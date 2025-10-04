@@ -1,65 +1,30 @@
 #!/bin/bash
-
-# Exit immediately if a command exits with a non-zero status
 set -e
 
-echo "Initializing project structure..."
+echo "Setting up project structure..."
 
-# Root directories
-mkdir -p api
-mkdir -p client/src/components
-mkdir -p db
+# Create API and client folders
+mkdir -p api/routes api/db client/scripts
 
-echo "Creating client structure..."
-# Initialize React app in client
-npx create-react-app client
+# Initialize backend package.json
+cd api
+npm init -y
+npm install express sqlite3 cors dotenv body-parser
+cd ..
 
-# Create components
-touch client/src/components/Dashboard.jsx
-touch client/src/components/Settings.jsx
-touch client/src/components/Login.jsx
-touch client/src/components/Backtesting.jsx
+# Initialize frontend with Vite + React
+cd client
+npm create vite@latest . -- --template react
+npm install @mui/material @mui/icons-material @emotion/react @emotion/styled react-router-dom recharts
+cd ..
 
-# Create API structure
-touch api/server.js
-touch api/routes.js
-touch api/settings.db
+# Copy setup scripts into scripts folder
+cp scripts/setupComponents.sh scripts/setupDB.sh ./scripts/
 
-# SQLite database folder
-mkdir -p db/sqlite
+# Run component setup
+bash scripts/setupComponents.sh
 
-echo "Creating ESLint configuration..."
-cat > client/.eslintrc.json <<EOL
-{
-  "extends": ["react-app", "airbnb"],
-  "plugins": ["react", "react-hooks"]
-}
-EOL
+# Run DB setup
+bash scripts/setupDB.sh
 
-echo "Creating Dockerfile stub..."
-cat > Dockerfile <<EOL
-# Use a Node.js base image
-FROM node:20-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-CMD ["npm", "start"]
-EOL
-
-echo "Creating Git ignore file..."
-cat > .gitignore <<EOL
-/node_modules
-/build
-/dist
-/db
-.env
-.DS_Store
-EOL
-
-echo "Adding files to git repository..."
-git init
-git add .
-git commit -m "Initial project setup with client, API, components, ESLint, and Dockerfile stub"
-
-echo "Setup complete!"
+echo "Project scaffolding complete!"

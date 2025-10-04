@@ -1,35 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import { login, signup } from "../api";
+import { TextField, Button, Box } from "@mui/material";
 
-function Login() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+const Login = ({ setUser }) => {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSignup, setIsSignup] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // TODO: handle login logic
-    console.log('Logging in', { username, password });
+  const handleSubmit = async () => {
+    try {
+      const res = isSignup
+        ? await signup({ username, password })
+        : await login({ username, password });
+      setUser(res.data);
+      setError("");
+    } catch (err) {
+      setError(err.response?.data?.error || "Error");
+    }
   };
 
   return (
-    <div>
-      <h1>Login</h1>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <button type="submit">Login</button>
-      </form>
-    </div>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: 300 , justifyContent:"center"}}>
+      <TextField label="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
+      <TextField label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+      {error && <Box sx={{ color: "red" }}>{error}</Box>}
+      <Button variant="contained" onClick={handleSubmit}>{isSignup ? "Signup" : "Login"}</Button>
+      <Button onClick={() => setIsSignup(!isSignup)}>
+        {isSignup ? "Already have an account?" : "Create account"}
+      </Button>
+    </Box>
   );
-}
+};
 
 export default Login;

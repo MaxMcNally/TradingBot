@@ -1,12 +1,11 @@
-import React from 'react';
+import React from "react";
+import { Box, Typography } from "@mui/material";
 
-function Backtesting() {
-  return (
-    <div>
-      <h1>Backtesting</h1>
-      <p>Run your strategies and see historical results.</p>
-    </div>
-  );
-}
+const Backtesting = () => (
+  <Box>
+    <Typography variant="h4">Backtesting</Typography>
+    <Typography>Backtest trading strategies here.</Typography>
+  </Box>
+);
 
 export default Backtesting;
