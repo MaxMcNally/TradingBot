@@ -18,8 +18,8 @@ export class MovingAverageStrategy {
     const shortMA = avg(this.prices.slice(-this.shortWindow));
     const longMA = avg(this.prices);
 
-    if (shortMA > longMA) return "BUY";
-    if (shortMA < longMA) return "SELL";
+    if (shortMA > longMA) return 'BUY';
+    if (shortMA < longMA) return 'SELL';
     return null;
   }
 }

@@ -10,9 +10,12 @@ mkdir -p api
 mkdir -p client/src/components
 mkdir -p db
 
-echo "Creating client structure..."
-# Initialize React app in client
-npx create-react-app client
+echo "Creating Vite React client..."
+# Initialize Vite + React + JSX client
+npm create vite@latest client -- --template react
+cd client
+npm install
+cd ..
 
 # Create components
 touch client/src/components/Dashboard.jsx
@@ -31,7 +34,7 @@ mkdir -p db/sqlite
 echo "Creating ESLint configuration..."
 cat > client/.eslintrc.json <<EOL
 {
-  "extends": ["react-app", "airbnb"],
+  "extends": ["airbnb", "airbnb/hooks"],
   "plugins": ["react", "react-hooks"]
 }
 EOL
@@ -44,13 +47,12 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-CMD ["npm", "start"]
+CMD ["npm", "run", "dev"]
 EOL
 
 echo "Creating Git ignore file..."
 cat > .gitignore <<EOL
 /node_modules
-/build
 /dist
 /db
 .env
@@ -60,6 +62,6 @@ EOL
 echo "Adding files to git repository..."
 git init
 git add .
-git commit -m "Initial project setup with client, API, components, ESLint, and Dockerfile stub"
+git commit -m "Initial project setup with Vite client, API, components, ESLint, and Dockerfile stub"
 
 echo "Setup complete!"

@@ -1,8 +1,8 @@
-import fetch from "node-fetch";
-import WebSocket from "ws";
-import { DataProvider } from "./baseProvider.js";
+import fetch from 'node-fetch';
+import WebSocket from 'ws';
+import { DataProvider } from './baseProvider.js';
 
-const BASE_URL = "https://api.polygon.io";
+const BASE_URL = 'https://api.polygon.io';
 
 export class PolygonProvider extends DataProvider {
   constructor(apiKey) {
@@ -21,7 +21,7 @@ export class PolygonProvider extends DataProvider {
     };
   }
 
-  async getHistorical(symbol, interval = "day", from, to) {
+  async getHistorical(symbol, interval = 'day', from, to) {
     const url = `${BASE_URL}/v2/aggs/ticker/${symbol}/range/1/${interval}/${from}/${to}?apiKey=${this.apiKey}`;
     const res = await fetch(url);
     const data = await res.json();
@@ -32,21 +32,21 @@ export class PolygonProvider extends DataProvider {
   }
 
   connectStream(symbols, onData) {
-    const ws = new WebSocket(`wss://socket.polygon.io/stocks`);
-    ws.on("open", () => {
-      ws.send(JSON.stringify({ action: "auth", params: this.apiKey }));
+    const ws = new WebSocket('wss://socket.polygon.io/stocks');
+    ws.on('open', () => {
+      ws.send(JSON.stringify({ action: 'auth', params: this.apiKey }));
       ws.send(
         JSON.stringify({
-          action: "subscribe",
-          params: symbols.map((s) => `T.${s}`).join(","),
-        })
+          action: 'subscribe',
+          params: symbols.map((s) => `T.${s}`).join(','),
+        }),
       );
     });
-    ws.on("message", (msg) => {
+    ws.on('message', (msg) => {
       const data = JSON.parse(msg);
       onData(data);
     });
-    ws.on("error", (err) => console.error("WS error:", err));
+    ws.on('error', (err) => console.error('WS error:', err));
     return ws;
   }
 }

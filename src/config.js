@@ -1,4 +1,4 @@
 export const TradingMode = {
-    PAPER: "paper",
-    LIVE: "live",
-  };
+  PAPER: 'paper',
+  LIVE: 'live',
+};

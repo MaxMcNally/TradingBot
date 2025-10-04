@@ -1,4 +1,4 @@
-import { TradingMode } from "./config.js";
+import { TradingMode } from './config.js';
 
 export class Portfolio {
   constructor(initialCash = 10000, mode = TradingMode.PAPER, symbols = []) {
