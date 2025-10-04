@@ -11,6 +11,7 @@ function App() {
   if (!user) return <Login setUser={setUser} />;
 
   return (
+
     <Router>
       <Routes>
         <Route path="/" element={<Dashboard />} />
