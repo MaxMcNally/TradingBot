@@ -21,7 +21,7 @@ const Login = ({ setUser }) => {
   };
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: 300 , justifyContent:"center"}}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: 300 }}>
       <TextField label="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
       <TextField label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
       {error && <Box sx={{ color: "red" }}>{error}</Box>}
