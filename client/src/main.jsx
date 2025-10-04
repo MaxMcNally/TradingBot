@@ -6,8 +6,6 @@ import Container from "./components/Container";
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-      <Container>
-          <App />
-      </Container>
+    <App />
   </StrictMode>,
 )
