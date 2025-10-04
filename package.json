@@ -1,0 +1,35 @@
+{
+  "name": "trading-bot",
+  "version": "1.0.0",
+  "description": "A flexible Node.js trading bot framework with pluggable data providers (Polygon, Yahoo, Finnhub, etc.)",
+  "main": "src/bot.js",
+  "type": "module",
+  "scripts": {
+    "start:paper": "TRADING_MODE=paper node src/bot.js",
+    "start:live": "TRADING_MODE=live node src/bot.js",
+    "dev": "nodemon src/bot.js"
+  },
+  "keywords": [
+    "trading",
+    "bot",
+    "stocks",
+    "polygon",
+    "nodejs"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.901.0",
+    "@aws-sdk/node-http-handler": "^3.374.0",
+    "csv-parser": "^3.2.0",
+    "csv-writer": "^1.6.0",
+    "date-fns": "^4.1.0",
+    "dotenv": "^16.4.5",
+    "node-fetch": "^3.3.2",
+    "ws": "^8.18.0",
+    "zlib": "^1.0.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

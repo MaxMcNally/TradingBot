@@ -1,0 +1,62 @@
+Arguments: 
+  /opt/homebrew/Cellar/node/18.6.0/bin/node /Users/maxmcnally/.yarn/bin/yarn.js
+
+PATH: 
+  /Users/maxmcnally/homebrew/sbin:/Users/maxmcnally/.yarn/bin:/Users/maxmcnally/.config/yarn/global/node_modules/.bin:/Users/maxmcnally/homebrew/bin:/Users/maxmcnally/.pyenv/shims:/Users/maxmcnally/.pyenv/bin:/Users/maxmcnally/Library/Application Support/cloud-code/installer/google-cloud-sdk/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Applications/Postgres.app/Contents/Versions/latest/bin:/Users/maxmcnally/Library/Application Support/cloud-code/installer/google-cloud-sdk/bin:/Users/maxmcnally/homebrew/sbin:/Users/maxmcnally/.yarn/bin:/Users/maxmcnally/.config/yarn/global/node_modules/.bin:/Users/maxmcnally/homebrew/bin:/Users/maxmcnally/.pyenv/shims:/Users/maxmcnally/.pyenv/bin:/opt/homebrew/bin:/opt/homebrew/sbin
+
+Yarn version: 
+  1.22.19
+
+Node version: 
+  18.6.0
+
+Platform: 
+  darwin arm64
+
+Trace: 
+  Error: connect EAGAIN 2606:4700::6810:323:443 - Local (:::0)
+      at internalConnect (node:net:1009:16)
+      at defaultTriggerAsyncIdScope (node:internal/async_hooks:464:18)
+      at emitLookup (node:net:1155:9)
+      at /Users/maxmcnally/.yarn/lib/cli.js:103606:29
+      at /Users/maxmcnally/.yarn/lib/cli.js:103452:25
+      at module.exports.RawTask.call (/Users/maxmcnally/.yarn/lib/cli.js:79584:19)
+      at flush (/Users/maxmcnally/.yarn/lib/cli.js:79666:29)
+      at process.processTicksAndRejections (node:internal/process/task_queues:77:11)
+
+npm manifest: 
+  {
+      "name": "trading-bot",
+      "version": "1.0.0",
+      "description": "A flexible Node.js trading bot framework with pluggable data providers (Polygon, Yahoo, Finnhub, etc.)",
+      "main": "src/bot.js",
+      "type": "module",
+      "scripts": {
+          "start:paper": "TRADING_MODE=paper node src/bot.js",
+          "start:live": "TRADING_MODE=live node src/bot.js",
+          "dev": "nodemon src/bot.js"
+      },
+      "keywords": [
+        "trading",
+        "bot",
+        "stocks",
+        "polygon",
+        "nodejs"
+      ],
+      "author": "Your Name",
+      "license": "MIT",
+      "dependencies": {
+        "dotenv": "^16.4.5",
+        "node-fetch": "^3.3.2",
+        "ws": "^8.18.0"
+      },
+      "devDependencies": {
+        "nodemon": "^3.1.0"
+      }
+    }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile
