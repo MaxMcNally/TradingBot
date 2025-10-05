@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -15,11 +15,17 @@ import {
   TableRow,
   Alert,
   CircularProgress,
+  Divider,
   Stack,
   LinearProgress,
   Tabs,
   Tab,
+  Grid,
   FormControl,
+  FormLabel,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
   InputLabel,
   Select,
   MenuItem,
@@ -33,12 +39,15 @@ import {
   Timeline,
   TrendingUp,
   Settings,
+  AccountBalance,
   DataUsage,
   Refresh,
+  Info,
 } from "@mui/icons-material";
 import { 
   BacktestFormData, 
-  BacktestResponse
+  BacktestResponse, 
+  Strategy
 } from "./Backtesting.types";
 import { StockPicker, StrategySelector } from "../shared";
 import { useStrategies, useBacktest } from "../../hooks";
@@ -65,7 +74,7 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-const BacktestingSimple: React.FC = () => {
+const BacktestingNew: React.FC = () => {
   // Tab state
   const [activeTab, setActiveTab] = useState(0);
   
@@ -111,7 +120,7 @@ const BacktestingSimple: React.FC = () => {
 
   // Use hooks for strategies and backtesting
   const { strategies: availableStrategies, isLoading: strategiesLoading, isError: strategiesError } = useStrategies();
-  const { runBacktest: runBacktestMutation, isLoading: backtestLoading } = useBacktest();
+  const { runBacktest: runBacktestMutation, isLoading: backtestLoading, isError: backtestError, data: backtestData } = useBacktest();
 
   const handleInputChange = (field: keyof BacktestFormData, value: string | number): void => {
     setFormData(prev => ({
@@ -120,7 +129,7 @@ const BacktestingSimple: React.FC = () => {
     }));
   };
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
   };
 
@@ -311,27 +320,31 @@ const BacktestingSimple: React.FC = () => {
                       <Typography variant="subtitle2" gutterBottom>
                         Mean Reversion Parameters
                       </Typography>
-                      <Stack spacing={2}>
-                        <TextField
-                          label="Window"
-                          type="number"
-                          value={formData.window}
-                          onChange={(e) => handleInputChange('window', parseInt(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Number of periods for mean calculation"
-                        />
-                        <TextField
-                          label="Threshold"
-                          type="number"
-                          inputProps={{ step: "0.01" }}
-                          value={formData.threshold}
-                          onChange={(e) => handleInputChange('threshold', parseFloat(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Number of standard deviations for signal generation"
-                        />
-                      </Stack>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            label="Window"
+                            type="number"
+                            value={formData.window}
+                            onChange={(e) => handleInputChange('window', parseInt(e.target.value))}
+                            size="small"
+                            fullWidth
+                            helperText="Number of periods for mean calculation"
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            label="Threshold"
+                            type="number"
+                            step="0.01"
+                            value={formData.threshold}
+                            onChange={(e) => handleInputChange('threshold', parseFloat(e.target.value))}
+                            size="small"
+                            fullWidth
+                            helperText="Number of standard deviations for signal generation"
+                          />
+                        </Grid>
+                      </Grid>
                     </Box>
                   )}
 
@@ -340,37 +353,43 @@ const BacktestingSimple: React.FC = () => {
                       <Typography variant="subtitle2" gutterBottom>
                         Moving Average Parameters
                       </Typography>
-                      <Stack spacing={2}>
-                        <TextField
-                          label="Fast Window"
-                          type="number"
-                          value={formData.fastWindow}
-                          onChange={(e) => handleInputChange('fastWindow', parseInt(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Short-term moving average periods"
-                        />
-                        <TextField
-                          label="Slow Window"
-                          type="number"
-                          value={formData.slowWindow}
-                          onChange={(e) => handleInputChange('slowWindow', parseInt(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Long-term moving average periods"
-                        />
-                        <FormControl size="small" fullWidth>
-                          <InputLabel>MA Type</InputLabel>
-                          <Select
-                            value={formData.maType}
-                            onChange={(e) => handleInputChange('maType', e.target.value)}
-                            label="MA Type"
-                          >
-                            <MenuItem value="SMA">Simple Moving Average</MenuItem>
-                            <MenuItem value="EMA">Exponential Moving Average</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </Stack>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={4}>
+                          <TextField
+                            label="Fast Window"
+                            type="number"
+                            value={formData.fastWindow}
+                            onChange={(e) => handleInputChange('fastWindow', parseInt(e.target.value))}
+                            size="small"
+                            fullWidth
+                            helperText="Short-term moving average periods"
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={4}>
+                          <TextField
+                            label="Slow Window"
+                            type="number"
+                            value={formData.slowWindow}
+                            onChange={(e) => handleInputChange('slowWindow', parseInt(e.target.value))}
+                            size="small"
+                            fullWidth
+                            helperText="Long-term moving average periods"
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={4}>
+                          <FormControl size="small" fullWidth>
+                            <InputLabel>MA Type</InputLabel>
+                            <Select
+                              value={formData.maType}
+                              onChange={(e) => handleInputChange('maType', e.target.value)}
+                              label="MA Type"
+                            >
+                              <MenuItem value="SMA">Simple Moving Average</MenuItem>
+                              <MenuItem value="EMA">Exponential Moving Average</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Grid>
+                      </Grid>
                     </Box>
                   )}
 
@@ -379,54 +398,64 @@ const BacktestingSimple: React.FC = () => {
                       <Typography variant="subtitle2" gutterBottom>
                         Momentum Parameters
                       </Typography>
-                      <Stack spacing={2}>
-                        <TextField
-                          label="RSI Window"
-                          type="number"
-                          value={formData.rsiWindow}
-                          onChange={(e) => handleInputChange('rsiWindow', parseInt(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Periods for RSI calculation"
-                        />
-                        <TextField
-                          label="Momentum Window"
-                          type="number"
-                          value={formData.momentumWindow}
-                          onChange={(e) => handleInputChange('momentumWindow', parseInt(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Periods for momentum calculation"
-                        />
-                        <TextField
-                          label="RSI Overbought"
-                          type="number"
-                          value={formData.rsiOverbought}
-                          onChange={(e) => handleInputChange('rsiOverbought', parseInt(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="RSI level considered overbought"
-                        />
-                        <TextField
-                          label="RSI Oversold"
-                          type="number"
-                          value={formData.rsiOversold}
-                          onChange={(e) => handleInputChange('rsiOversold', parseInt(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="RSI level considered oversold"
-                        />
-                        <TextField
-                          label="Momentum Threshold"
-                          type="number"
-                          inputProps={{ step: "0.01" }}
-                          value={formData.momentumThreshold}
-                          onChange={(e) => handleInputChange('momentumThreshold', parseFloat(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Minimum momentum change for signals"
-                        />
-                      </Stack>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            label="RSI Window"
+                            type="number"
+                            value={formData.rsiWindow}
+                            onChange={(e) => handleInputChange('rsiWindow', parseInt(e.target.value))}
+                            size="small"
+                            fullWidth
+                            helperText="Periods for RSI calculation"
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            label="Momentum Window"
+                            type="number"
+                            value={formData.momentumWindow}
+                            onChange={(e) => handleInputChange('momentumWindow', parseInt(e.target.value))}
+                            size="small"
+                            fullWidth
+                            helperText="Periods for momentum calculation"
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={4}>
+                          <TextField
+                            label="RSI Overbought"
+                            type="number"
+                            value={formData.rsiOverbought}
+                            onChange={(e) => handleInputChange('rsiOverbought', parseInt(e.target.value))}
+                            size="small"
+                            fullWidth
+                            helperText="RSI level considered overbought"
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={4}>
+                          <TextField
+                            label="RSI Oversold"
+                            type="number"
+                            value={formData.rsiOversold}
+                            onChange={(e) => handleInputChange('rsiOversold', parseInt(e.target.value))}
+                            size="small"
+                            fullWidth
+                            helperText="RSI level considered oversold"
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={4}>
+                          <TextField
+                            label="Momentum Threshold"
+                            type="number"
+                            step="0.01"
+                            value={formData.momentumThreshold}
+                            onChange={(e) => handleInputChange('momentumThreshold', parseFloat(e.target.value))}
+                            size="small"
+                            fullWidth
+                            helperText="Minimum momentum change for signals"
+                          />
+                        </Grid>
+                      </Grid>
                     </Box>
                   )}
 
@@ -435,27 +464,31 @@ const BacktestingSimple: React.FC = () => {
                       <Typography variant="subtitle2" gutterBottom>
                         Bollinger Bands Parameters
                       </Typography>
-                      <Stack spacing={2}>
-                        <TextField
-                          label="Window"
-                          type="number"
-                          value={formData.window}
-                          onChange={(e) => handleInputChange('window', parseInt(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Periods for moving average calculation"
-                        />
-                        <TextField
-                          label="Multiplier"
-                          type="number"
-                          inputProps={{ step: "0.1" }}
-                          value={formData.multiplier}
-                          onChange={(e) => handleInputChange('multiplier', parseFloat(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Standard deviation multiplier for bands"
-                        />
-                      </Stack>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            label="Window"
+                            type="number"
+                            value={formData.window}
+                            onChange={(e) => handleInputChange('window', parseInt(e.target.value))}
+                            size="small"
+                            fullWidth
+                            helperText="Periods for moving average calculation"
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            label="Multiplier"
+                            type="number"
+                            step="0.1"
+                            value={formData.multiplier}
+                            onChange={(e) => handleInputChange('multiplier', parseFloat(e.target.value))}
+                            size="small"
+                            fullWidth
+                            helperText="Standard deviation multiplier for bands"
+                          />
+                        </Grid>
+                      </Grid>
                     </Box>
                   )}
 
@@ -464,46 +497,54 @@ const BacktestingSimple: React.FC = () => {
                       <Typography variant="subtitle2" gutterBottom>
                         Breakout Parameters
                       </Typography>
-                      <Stack spacing={2}>
-                        <TextField
-                          label="Lookback Window"
-                          type="number"
-                          value={formData.lookbackWindow}
-                          onChange={(e) => handleInputChange('lookbackWindow', parseInt(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Periods for support/resistance calculation"
-                        />
-                        <TextField
-                          label="Breakout Threshold"
-                          type="number"
-                          inputProps={{ step: "0.01" }}
-                          value={formData.breakoutThreshold}
-                          onChange={(e) => handleInputChange('breakoutThreshold', parseFloat(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Minimum breakout percentage for signals"
-                        />
-                        <TextField
-                          label="Min Volume Ratio"
-                          type="number"
-                          inputProps={{ step: "0.1" }}
-                          value={formData.minVolumeRatio}
-                          onChange={(e) => handleInputChange('minVolumeRatio', parseFloat(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Minimum volume increase for breakout confirmation"
-                        />
-                        <TextField
-                          label="Confirmation Period"
-                          type="number"
-                          value={formData.confirmationPeriod}
-                          onChange={(e) => handleInputChange('confirmationPeriod', parseInt(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Periods to wait for breakout confirmation"
-                        />
-                      </Stack>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            label="Lookback Window"
+                            type="number"
+                            value={formData.lookbackWindow}
+                            onChange={(e) => handleInputChange('lookbackWindow', parseInt(e.target.value))}
+                            size="small"
+                            fullWidth
+                            helperText="Periods for support/resistance calculation"
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            label="Breakout Threshold"
+                            type="number"
+                            step="0.01"
+                            value={formData.breakoutThreshold}
+                            onChange={(e) => handleInputChange('breakoutThreshold', parseFloat(e.target.value))}
+                            size="small"
+                            fullWidth
+                            helperText="Minimum breakout percentage for signals"
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            label="Min Volume Ratio"
+                            type="number"
+                            step="0.1"
+                            value={formData.minVolumeRatio}
+                            onChange={(e) => handleInputChange('minVolumeRatio', parseFloat(e.target.value))}
+                            size="small"
+                            fullWidth
+                            helperText="Minimum volume increase for breakout confirmation"
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            label="Confirmation Period"
+                            type="number"
+                            value={formData.confirmationPeriod}
+                            onChange={(e) => handleInputChange('confirmationPeriod', parseInt(e.target.value))}
+                            size="small"
+                            fullWidth
+                            helperText="Periods to wait for breakout confirmation"
+                          />
+                        </Grid>
+                      </Grid>
                     </Box>
                   )}
                 </Stack>
@@ -556,7 +597,7 @@ const BacktestingSimple: React.FC = () => {
                     </Typography>
                     <StockPicker
                       selectedStocks={formData.symbols}
-                      onStocksChange={(symbols) => setFormData(prev => ({ ...prev, symbols }))}
+                      onStocksChange={(symbols) => handleInputChange('symbols', symbols)}
                       maxStocks={10}
                     />
                   </Box>
@@ -566,26 +607,30 @@ const BacktestingSimple: React.FC = () => {
                     <Typography variant="subtitle2" gutterBottom>
                       Date Range
                     </Typography>
-                    <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }}>
-                      <TextField
-                        label="Start Date"
-                        type="date"
-                        value={formData.startDate}
-                        onChange={(e) => handleInputChange('startDate', e.target.value)}
-                        InputLabelProps={{ shrink: true }}
-                        size="small"
-                        fullWidth
-                      />
-                      <TextField
-                        label="End Date"
-                        type="date"
-                        value={formData.endDate}
-                        onChange={(e) => handleInputChange('endDate', e.target.value)}
-                        InputLabelProps={{ shrink: true }}
-                        size="small"
-                        fullWidth
-                      />
-                    </Stack>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          label="Start Date"
+                          type="date"
+                          value={formData.startDate}
+                          onChange={(e) => handleInputChange('startDate', e.target.value)}
+                          InputLabelProps={{ shrink: true }}
+                          size="small"
+                          fullWidth
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          label="End Date"
+                          type="date"
+                          value={formData.endDate}
+                          onChange={(e) => handleInputChange('endDate', e.target.value)}
+                          InputLabelProps={{ shrink: true }}
+                          size="small"
+                          fullWidth
+                        />
+                      </Grid>
+                    </Grid>
                   </Box>
 
                   {/* Common Parameters */}
@@ -593,26 +638,30 @@ const BacktestingSimple: React.FC = () => {
                     <Typography variant="subtitle2" gutterBottom>
                       Trading Parameters
                     </Typography>
-                    <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }}>
-                      <TextField
-                        label="Initial Capital"
-                        type="number"
-                        value={formData.initialCapital}
-                        onChange={(e) => handleInputChange('initialCapital', parseFloat(e.target.value))}
-                        size="small"
-                        fullWidth
-                        helperText="Starting capital for backtest"
-                      />
-                      <TextField
-                        label="Shares Per Trade"
-                        type="number"
-                        value={formData.sharesPerTrade}
-                        onChange={(e) => handleInputChange('sharesPerTrade', parseInt(e.target.value))}
-                        size="small"
-                        fullWidth
-                        helperText="Number of shares to trade per signal"
-                      />
-                    </Stack>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          label="Initial Capital"
+                          type="number"
+                          value={formData.initialCapital}
+                          onChange={(e) => handleInputChange('initialCapital', parseFloat(e.target.value))}
+                          size="small"
+                          fullWidth
+                          helperText="Starting capital for backtest"
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          label="Shares Per Trade"
+                          type="number"
+                          value={formData.sharesPerTrade}
+                          onChange={(e) => handleInputChange('sharesPerTrade', parseInt(e.target.value))}
+                          size="small"
+                          fullWidth
+                          helperText="Number of shares to trade per signal"
+                        />
+                      </Grid>
+                    </Grid>
                   </Box>
 
                   {/* Run Backtest Button */}
@@ -716,48 +765,56 @@ const BacktestingSimple: React.FC = () => {
                   <Typography variant="subtitle1" gutterBottom>
                     Summary Statistics
                   </Typography>
-                  <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }}>
-                    <Card variant="outlined" sx={{ flex: 1 }}>
-                      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                        <Typography color="textSecondary" gutterBottom>
-                          Total Return
-                        </Typography>
-                        <Typography variant="h6" color="success.main">
-                          {formatPercentage(0.15)}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                    <Card variant="outlined" sx={{ flex: 1 }}>
-                      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                        <Typography color="textSecondary" gutterBottom>
-                          Win Rate
-                        </Typography>
-                        <Typography variant="h6">
-                          {formatPercentage(0.65)}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                    <Card variant="outlined" sx={{ flex: 1 }}>
-                      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                        <Typography color="textSecondary" gutterBottom>
-                          Total Trades
-                        </Typography>
-                        <Typography variant="h6">
-                          42
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                    <Card variant="outlined" sx={{ flex: 1 }}>
-                      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                        <Typography color="textSecondary" gutterBottom>
-                          Max Drawdown
-                        </Typography>
-                        <Typography variant="h6" color="error.main">
-                          {formatPercentage(0.08)}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  </Stack>
+                  <Grid container spacing={2}>
+                    <Grid item xs={6} sm={3}>
+                      <Card variant="outlined">
+                        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                          <Typography color="textSecondary" gutterBottom>
+                            Total Return
+                          </Typography>
+                          <Typography variant="h6" color={results.totalReturn >= 0 ? 'success.main' : 'error.main'}>
+                            {formatPercentage(results.totalReturn)}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                    <Grid item xs={6} sm={3}>
+                      <Card variant="outlined">
+                        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                          <Typography color="textSecondary" gutterBottom>
+                            Win Rate
+                          </Typography>
+                          <Typography variant="h6">
+                            {formatPercentage(results.winRate)}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                    <Grid item xs={6} sm={3}>
+                      <Card variant="outlined">
+                        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                          <Typography color="textSecondary" gutterBottom>
+                            Total Trades
+                          </Typography>
+                          <Typography variant="h6">
+                            {results.totalTrades}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                    <Grid item xs={6} sm={3}>
+                      <Card variant="outlined">
+                        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                          <Typography color="textSecondary" gutterBottom>
+                            Max Drawdown
+                          </Typography>
+                          <Typography variant="h6" color="error.main">
+                            {formatPercentage(results.maxDrawdown)}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  </Grid>
                 </Box>
 
                 {/* Results Table */}
@@ -777,33 +834,35 @@ const BacktestingSimple: React.FC = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        <TableRow>
-                          <TableCell>
-                            <Typography variant="subtitle2" fontWeight="bold">
-                              AAPL
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Typography
-                              variant="body2"
-                              color="success.main"
-                              fontWeight="bold"
-                            >
-                              {formatPercentage(0.12)}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            {formatPercentage(0.60)}
-                          </TableCell>
-                          <TableCell align="right">
-                            15
-                          </TableCell>
-                          <TableCell align="right">
-                            <Typography variant="body2" color="error.main">
-                              {formatPercentage(0.05)}
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
+                        {results.results.map((result) => (
+                          <TableRow key={result.symbol}>
+                            <TableCell>
+                              <Typography variant="subtitle2" fontWeight="bold">
+                                {result.symbol}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography
+                                variant="body2"
+                                color={result.totalReturn >= 0 ? 'success.main' : 'error.main'}
+                                fontWeight="bold"
+                              >
+                                {formatPercentage(result.totalReturn)}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              {formatPercentage(result.winRate)}
+                            </TableCell>
+                            <TableCell align="right">
+                              {result.totalTrades}
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography variant="body2" color="error.main">
+                                {formatPercentage(result.maxDrawdown)}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        ))}
                       </TableBody>
                     </Table>
                   </TableContainer>
@@ -826,4 +885,4 @@ const BacktestingSimple: React.FC = () => {
   );
 };
 
-export default BacktestingSimple;
+export default BacktestingNew;

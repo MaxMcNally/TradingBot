@@ -10,22 +10,16 @@ import {
   FormControlLabel,
   Radio,
   TextField,
-  Grid,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Alert,
   CircularProgress,
   Chip,
   Tooltip,
   IconButton,
-  Divider,
+  Stack,
 } from '@mui/material';
 import {
-  ExpandMore,
   Info,
   TrendingUp,
-  Assessment,
   Settings,
   Refresh,
 } from '@mui/icons-material';
@@ -67,7 +61,6 @@ const StrategySelector: React.FC<StrategySelectorProps> = ({
   const [strategies, setStrategies] = useState<TradingStrategy[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedStrategy, setExpandedStrategy] = useState<string | false>(false);
 
   // Default strategies with their parameters
   const defaultStrategies: TradingStrategy[] = [
@@ -151,7 +144,13 @@ const StrategySelector: React.FC<StrategySelectorProps> = ({
     onStrategyChange(strategyName);
     const strategy = strategies.find(s => s.name === strategyName);
     if (strategy) {
-      onParametersChange(strategy.parameters);
+      // Extract default values from parameter info
+      const parameterInfo = getParameterInfo(strategyName);
+      const defaultParameters: Record<string, any> = {};
+      Object.entries(parameterInfo).forEach(([paramName, paramInfo]) => {
+        defaultParameters[paramName] = paramInfo.default;
+      });
+      onParametersChange(defaultParameters);
     }
   };
 
@@ -364,14 +363,9 @@ const StrategySelector: React.FC<StrategySelectorProps> = ({
           onChange={(e) => handleStrategyChange(e.target.value)}
         >
           {strategies.map((strategy) => (
-            <Accordion
-              key={strategy.name}
-              expanded={expandedStrategy === strategy.name}
-              onChange={(_, isExpanded) => setExpandedStrategy(isExpanded ? strategy.name : false)}
-              sx={{ mb: 1 }}
-            >
-              <AccordionSummary expandIcon={<ExpandMore />}>
-                <Box display="flex" alignItems="center" width="100%">
+            <Card key={strategy.name} sx={{ mb: 2, border: selectedStrategy === strategy.name ? 2 : 1, borderColor: selectedStrategy === strategy.name ? 'primary.main' : 'divider' }}>
+              <CardContent>
+                <Box display="flex" alignItems="center" width="100%" mb={2}>
                   <FormControlLabel
                     value={strategy.name}
                     control={<Radio />}
@@ -383,33 +377,31 @@ const StrategySelector: React.FC<StrategySelectorProps> = ({
                         )}
                       </Box>
                     }
-                    onClick={(e) => e.stopPropagation()}
                   />
                 </Box>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Box>
-                  <Typography variant="body2" color="textSecondary" mb={2}>
-                    {strategy.description}
-                  </Typography>
-                  
-                  {/* Strategy Parameters */}
+                
+                <Typography variant="body2" color="textSecondary" mb={2}>
+                  {strategy.description}
+                </Typography>
+                
+                {/* Strategy Parameters - Always visible for selected strategy */}
+                {selectedStrategy === strategy.name && (
                   <Box>
                     <Typography variant="subtitle2" gutterBottom>
                       <Settings sx={{ mr: 1, verticalAlign: 'middle' }} />
                       Parameters
                     </Typography>
-                    <Grid container spacing={2}>
+                    <Stack spacing={2}>
                       {Object.entries(getParameterInfo(strategy.name)).map(([paramName, paramInfo]) => (
-                        <Grid item xs={12} sm={6} key={paramName}>
+                        <Box key={paramName}>
                           {renderParameterInput(paramName, paramInfo)}
-                        </Grid>
+                        </Box>
                       ))}
-                    </Grid>
+                    </Stack>
                   </Box>
-                </Box>
-              </AccordionDetails>
-            </Accordion>
+                )}
+              </CardContent>
+            </Card>
           ))}
         </RadioGroup>
       </FormControl>
@@ -424,7 +416,14 @@ const StrategySelector: React.FC<StrategySelectorProps> = ({
                 <strong>Selected Strategy:</strong> {selectedStrategy}
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                <strong>Parameters:</strong> {Object.entries(strategyParameters).map(([key, value]) => `${key}: ${value}`).join(', ')}
+                <strong>Parameters:</strong> {Object.entries(strategyParameters)
+                  .map(([key, value]) => {
+                    if (typeof value === 'object' && value !== null) {
+                      return `${key}: [object]`;
+                    }
+                    return `${key}: ${value}`;
+                  })
+                  .join(', ')}
               </Typography>
             </Box>
           </Box>

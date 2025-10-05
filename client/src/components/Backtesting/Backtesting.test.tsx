@@ -1,156 +1,254 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Backtesting from './Backtesting';
-import * as api from '../../api';
+import { useStrategies, useBacktest } from '../../hooks';
 
-// Mock the API module
-jest.mock('../../api', () => ({
-  runBacktest: jest.fn(),
-  getStrategies: jest.fn(),
-  searchSymbols: jest.fn(),
-  searchWithYahoo: jest.fn(),
-  getPopularSymbols: jest.fn(),
+// Mock the hooks
+jest.mock('../../hooks', () => ({
+  useStrategies: jest.fn(),
+  useBacktest: jest.fn(),
 }));
 
+// Mock the child components
+jest.mock('../shared', () => ({
+  StockPicker: function MockStockPicker({ selectedStocks, onStocksChange }: any) {
+    return (
+      <div data-testid="stock-picker">
+        <div>Selected: {selectedStocks.join(', ')}</div>
+        <button onClick={() => onStocksChange(['AAPL', 'GOOGL'])}>
+          Add Test Symbols
+        </button>
+      </div>
+    );
+  },
+  StrategySelector: function MockStrategySelector({ 
+    selectedStrategy, 
+    onStrategyChange, 
+    strategyParameters, 
+    onParametersChange 
+  }: any) {
+    return (
+      <div data-testid="strategy-selector">
+        <div>Selected: {selectedStrategy}</div>
+        <div>Parameters: {JSON.stringify(strategyParameters)}</div>
+        <button onClick={() => onStrategyChange('movingAverage')}>
+          Change Strategy
+        </button>
+        <button onClick={() => onParametersChange({ window: 15, threshold: 0.03 })}>
+          Update Parameters
+        </button>
+      </div>
+    );
+  },
+}));
+
+const createTestQueryClient = () => new QueryClient({
+  defaultOptions: {
+    queries: { retry: false },
+    mutations: { retry: false },
+  },
+});
+
+const renderWithQueryClient = (component: React.ReactElement) => {
+  const queryClient = createTestQueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>
+      {component}
+    </QueryClientProvider>
+  );
+};
+
 describe('Backtesting Component', () => {
+  const mockStrategies = [
+    {
+      name: 'meanReversion',
+      description: 'Mean Reversion Strategy',
+      parameters: { window: 20, threshold: 0.05 },
+      enabled: true,
+      symbols: [],
+    },
+    {
+      name: 'movingAverage',
+      description: 'Moving Average Strategy',
+      parameters: { fastWindow: 10, slowWindow: 30 },
+      enabled: true,
+      symbols: [],
+    },
+  ];
+
+  const mockRunBacktest = jest.fn();
+
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    (useStrategies as jest.Mock).mockReturnValue({
+      strategies: mockStrategies,
+      isLoading: false,
+      isError: false,
+    });
+
+    (useBacktest as jest.Mock).mockReturnValue({
+      runBacktest: mockRunBacktest,
+      isLoading: false,
+      isError: false,
+      data: null,
+    });
   });
 
-  it('renders backtesting form correctly', () => {
-    render(<Backtesting />);
+  it('renders backtesting interface with tabs correctly', () => {
+    renderWithQueryClient(<Backtesting />);
     
     expect(screen.getByText('Strategy Backtesting')).toBeInTheDocument();
-    expect(screen.getByText('Backtest Configuration')).toBeInTheDocument();
-    expect(screen.getByText('Run Backtest')).toBeInTheDocument();
+    expect(screen.getByText('Test your trading strategies against historical data to evaluate performance.')).toBeInTheDocument();
+    
+    // Check for tab navigation
+    expect(screen.getByRole('tab', { name: /strategy selection/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /parameters/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /data & settings/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /results/i })).toBeInTheDocument();
   });
 
-  it('loads strategies on component mount', async () => {
-    const mockStrategies = [
-      { name: 'meanReversion', description: 'Mean Reversion Strategy' },
-      { name: 'movingAverage', description: 'Moving Average Strategy' }
-    ];
-
-    (api.getStrategies as jest.Mock).mockResolvedValue({
-      data: { data: { strategies: mockStrategies } }
+  it('shows loading state when strategies are loading', () => {
+    (useStrategies as jest.Mock).mockReturnValue({
+      strategies: [],
+      isLoading: true,
+      isError: false,
     });
 
-    render(<Backtesting />);
-
-    await waitFor(() => {
-      expect(api.getStrategies).toHaveBeenCalledTimes(1);
-    });
+    renderWithQueryClient(<Backtesting />);
+    
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
-  it('searches for symbols when typing in search field', async () => {
-    const mockSymbols = [
-      { symbol: 'AAPL', name: 'Apple Inc.', exchange: 'NASDAQ' }
-    ];
-
-    (api.searchWithYahoo as jest.Mock).mockResolvedValue({
-      data: { data: { symbols: mockSymbols, source: 'yahoo-finance' } }
+  it('shows error state when strategies fail to load', () => {
+    (useStrategies as jest.Mock).mockReturnValue({
+      strategies: [],
+      isLoading: false,
+      isError: true,
     });
 
-    render(<Backtesting />);
-
-    const searchInput = screen.getByPlaceholderText(/search symbols/i);
-    fireEvent.change(searchInput, { target: { value: 'AAPL' } });
-
-    await waitFor(() => {
-      expect(api.searchWithYahoo).toHaveBeenCalledWith('AAPL');
-    });
+    renderWithQueryClient(<Backtesting />);
+    
+    expect(screen.getByText('Failed to load strategies')).toBeInTheDocument();
   });
 
-  it('adds symbol to selected symbols when clicked', async () => {
-    const mockSymbols = [
-      { symbol: 'AAPL', name: 'Apple Inc.', exchange: 'NASDAQ' }
-    ];
+  it('switches between tabs correctly', () => {
+    renderWithQueryClient(<Backtesting />);
+    
+    // Initially on Strategy Selection tab
+    expect(screen.getByTestId('strategy-selector')).toBeInTheDocument();
+    
+    // Click on Parameters tab
+    const parametersTab = screen.getByRole('tab', { name: /parameters/i });
+    fireEvent.click(parametersTab);
+    
+    expect(screen.getByText('Strategy Parameters')).toBeInTheDocument();
+    expect(screen.getByText('Configure the parameters for your selected strategy.')).toBeInTheDocument();
+    
+    // Click on Data & Settings tab
+    const dataSettingsTab = screen.getByRole('tab', { name: /data & settings/i });
+    fireEvent.click(dataSettingsTab);
+    
+    expect(screen.getByText('Data & Settings Configuration')).toBeInTheDocument();
+    expect(screen.getByTestId('stock-picker')).toBeInTheDocument();
+    
+    // Click on Results tab
+    const resultsTab = screen.getByRole('tab', { name: /results/i });
+    fireEvent.click(resultsTab);
+    
+    expect(screen.getByText('No backtest results available')).toBeInTheDocument();
+  });
 
-    (api.searchWithYahoo as jest.Mock).mockResolvedValue({
-      data: { data: { symbols: mockSymbols, source: 'yahoo-finance' } }
-    });
+  it('displays strategy selector in first tab', () => {
+    renderWithQueryClient(<Backtesting />);
+    
+    expect(screen.getByTestId('strategy-selector')).toBeInTheDocument();
+    expect(screen.getByText('Selected: meanReversion')).toBeInTheDocument();
+  });
 
-    render(<Backtesting />);
+  it('displays strategy parameters in second tab', () => {
+    renderWithQueryClient(<Backtesting />);
+    
+    // Switch to Parameters tab
+    const parametersTab = screen.getByRole('tab', { name: /parameters/i });
+    fireEvent.click(parametersTab);
+    
+    expect(screen.getByText('Strategy Parameters')).toBeInTheDocument();
+    expect(screen.getByText('Mean Reversion Parameters')).toBeInTheDocument();
+  });
 
-    const searchInput = screen.getByPlaceholderText(/search symbols/i);
-    fireEvent.change(searchInput, { target: { value: 'AAPL' } });
-
-    await waitFor(() => {
-      expect(screen.getByText('AAPL')).toBeInTheDocument();
-    });
-
-    // Click on the symbol option
-    fireEvent.click(screen.getByText('AAPL'));
-
-    // Check if symbol was added to selected symbols
-    expect(screen.getByText('AAPL')).toBeInTheDocument();
+  it('displays data configuration in third tab', () => {
+    renderWithQueryClient(<Backtesting />);
+    
+    // Switch to Data & Settings tab
+    const dataSettingsTab = screen.getByRole('tab', { name: /data & settings/i });
+    fireEvent.click(dataSettingsTab);
+    
+    expect(screen.getByText('Data & Settings Configuration')).toBeInTheDocument();
+    expect(screen.getByText('Symbol Selection')).toBeInTheDocument();
+    expect(screen.getByText('Date Range')).toBeInTheDocument();
+    expect(screen.getByText('Trading Parameters')).toBeInTheDocument();
+    expect(screen.getByTestId('stock-picker')).toBeInTheDocument();
   });
 
   it('runs backtest when form is submitted with valid data', async () => {
     const mockBacktestResult = {
-      data: {
-        results: [
-          {
-            symbol: 'AAPL',
-            totalReturn: 0.15,
-            finalPortfolioValue: 11500,
-            winRate: 0.6,
-            maxDrawdown: 0.05,
-            totalTrades: 10
-          }
-        ]
-      }
+      totalReturn: 0.15,
+      winRate: 0.65,
+      totalTrades: 42,
+      maxDrawdown: 0.08,
+      results: [
+        {
+          symbol: 'AAPL',
+          totalReturn: 0.12,
+          winRate: 0.60,
+          totalTrades: 15,
+          maxDrawdown: 0.05,
+        },
+      ],
     };
 
-    (api.getStrategies as jest.Mock).mockResolvedValue({
-      data: { data: { strategies: [{ name: 'meanReversion' }] } }
-    });
+    mockRunBacktest.mockResolvedValue(mockBacktestResult);
 
-    (api.runBacktest as jest.Mock).mockResolvedValue(mockBacktestResult);
-
-    render(<Backtesting />);
-
-    // Wait for strategies to load
-    await waitFor(() => {
-      expect(api.getStrategies).toHaveBeenCalled();
-    });
-
-    // Add a symbol first
-    const searchInput = screen.getByPlaceholderText(/search symbols/i);
-    fireEvent.change(searchInput, { target: { value: 'AAPL' } });
-
-    // Mock the search result
-    (api.searchWithYahoo as jest.Mock).mockResolvedValue({
-      data: { data: { symbols: [{ symbol: 'AAPL', name: 'Apple Inc.', exchange: 'NASDAQ' }] } }
-    });
-
-    await waitFor(() => {
-      fireEvent.click(screen.getByText('AAPL'));
-    });
-
+    renderWithQueryClient(<Backtesting />);
+    
+    // Switch to Data & Settings tab
+    const dataSettingsTab = screen.getByRole('tab', { name: /data & settings/i });
+    fireEvent.click(dataSettingsTab);
+    
+    // Add symbols
+    const addSymbolsButton = screen.getByText('Add Test Symbols');
+    fireEvent.click(addSymbolsButton);
+    
     // Click run backtest button
     const runButton = screen.getByText('Run Backtest');
     fireEvent.click(runButton);
 
     await waitFor(() => {
-      expect(api.runBacktest).toHaveBeenCalled();
+      expect(mockRunBacktest).toHaveBeenCalledWith({
+        strategy: 'meanReversion',
+        symbols: ['AAPL', 'GOOGL'],
+        startDate: '2023-01-01',
+        endDate: '2023-12-31',
+        initialCapital: 10000,
+        sharesPerTrade: 100,
+        parameters: expect.objectContaining({
+          window: 20,
+          threshold: 0.05,
+        }),
+      });
     });
   });
 
-  it('shows error when backtest fails', async () => {
-    (api.getStrategies as jest.Mock).mockResolvedValue({
-      data: { data: { strategies: [{ name: 'meanReversion' }] } }
-    });
-
-    (api.runBacktest as jest.Mock).mockRejectedValue(new Error('Backtest failed'));
-
-    render(<Backtesting />);
-
-    await waitFor(() => {
-      expect(api.getStrategies).toHaveBeenCalled();
-    });
-
+  it('shows error when no symbols are selected', async () => {
+    renderWithQueryClient(<Backtesting />);
+    
+    // Switch to Data & Settings tab
+    const dataSettingsTab = screen.getByRole('tab', { name: /data & settings/i });
+    fireEvent.click(dataSettingsTab);
+    
     // Try to run backtest without symbols
     const runButton = screen.getByText('Run Backtest');
     fireEvent.click(runButton);
@@ -160,23 +258,103 @@ describe('Backtesting Component', () => {
     });
   });
 
-  it('displays search source indicator', async () => {
-    render(<Backtesting />);
+  it('displays backtest results in results tab', async () => {
+    const mockBacktestResult = {
+      totalReturn: 0.15,
+      winRate: 0.65,
+      totalTrades: 42,
+      maxDrawdown: 0.08,
+      results: [
+        {
+          symbol: 'AAPL',
+          totalReturn: 0.12,
+          winRate: 0.60,
+          totalTrades: 15,
+          maxDrawdown: 0.05,
+        },
+      ],
+    };
+
+    (useBacktest as jest.Mock).mockReturnValue({
+      runBacktest: mockRunBacktest,
+      isLoading: false,
+      isError: false,
+      data: mockBacktestResult,
+    });
+
+    renderWithQueryClient(<Backtesting />);
     
-    // Should show "Live Data" by default
-    expect(screen.getByText('Live Data')).toBeInTheDocument();
+    // Switch to Results tab
+    const resultsTab = screen.getByRole('tab', { name: /results/i });
+    fireEvent.click(resultsTab);
+    
+    expect(screen.getByText('Backtest Results')).toBeInTheDocument();
+    expect(screen.getByText('Summary Statistics')).toBeInTheDocument();
+    expect(screen.getByText('Symbol Results')).toBeInTheDocument();
   });
 
-  it('handles search errors gracefully', async () => {
-    (api.searchWithYahoo as jest.Mock).mockRejectedValue(new Error('Search failed'));
-
-    render(<Backtesting />);
-
-    const searchInput = screen.getByPlaceholderText(/search symbols/i);
-    fireEvent.change(searchInput, { target: { value: 'INVALID' } });
-
-    await waitFor(() => {
-      expect(screen.getByText(/failed to search symbols/i)).toBeInTheDocument();
+  it('shows loading state when backtest is running', () => {
+    (useBacktest as jest.Mock).mockReturnValue({
+      runBacktest: mockRunBacktest,
+      isLoading: true,
+      isError: false,
+      data: null,
     });
+
+    renderWithQueryClient(<Backtesting />);
+    
+    // Switch to Results tab
+    const resultsTab = screen.getByRole('tab', { name: /results/i });
+    fireEvent.click(resultsTab);
+    
+    expect(screen.getByText('Running Backtest...')).toBeInTheDocument();
+  });
+
+  it('handles strategy parameter changes correctly', () => {
+    renderWithQueryClient(<Backtesting />);
+    
+    // Switch to Parameters tab
+    const parametersTab = screen.getByRole('tab', { name: /parameters/i });
+    fireEvent.click(parametersTab);
+    
+    // Change window parameter
+    const windowInput = screen.getByLabelText('Window');
+    fireEvent.change(windowInput, { target: { value: '15' } });
+    
+    expect(windowInput).toHaveValue(15);
+  });
+
+  it('updates form data when strategy changes', () => {
+    renderWithQueryClient(<Backtesting />);
+    
+    // Change strategy in the strategy selector
+    const changeStrategyButton = screen.getByText('Change Strategy');
+    fireEvent.click(changeStrategyButton);
+    
+    // The strategy selector should show the new strategy
+    expect(screen.getByText('Selected: movingAverage')).toBeInTheDocument();
+  });
+
+  it('has proper accessibility attributes for tabs', () => {
+    renderWithQueryClient(<Backtesting />);
+    
+    const strategySelectionTab = screen.getByRole('tab', { name: /strategy selection/i });
+    expect(strategySelectionTab).toHaveAttribute('id', 'backtest-tab-0');
+    expect(strategySelectionTab).toHaveAttribute('aria-controls', 'backtest-tabpanel-0');
+    
+    const parametersTab = screen.getByRole('tab', { name: /parameters/i });
+    expect(parametersTab).toHaveAttribute('id', 'backtest-tab-1');
+    expect(parametersTab).toHaveAttribute('aria-controls', 'backtest-tabpanel-1');
+  });
+
+  it('displays configuration summary in data settings tab', () => {
+    renderWithQueryClient(<Backtesting />);
+    
+    // Switch to Data & Settings tab
+    const dataSettingsTab = screen.getByRole('tab', { name: /data & settings/i });
+    fireEvent.click(dataSettingsTab);
+    
+    expect(screen.getByText('Configuration Summary')).toBeInTheDocument();
+    expect(screen.getByText('Review your backtest configuration before running.')).toBeInTheDocument();
   });
 });

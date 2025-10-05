@@ -120,7 +120,7 @@ const BacktestingSimple: React.FC = () => {
     }));
   };
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
   };
 
@@ -556,7 +556,7 @@ const BacktestingSimple: React.FC = () => {
                     </Typography>
                     <StockPicker
                       selectedStocks={formData.symbols}
-                      onStocksChange={(symbols) => setFormData(prev => ({ ...prev, symbols }))}
+                      onStocksChange={(symbols) => handleInputChange('symbols', symbols)}
                       maxStocks={10}
                     />
                   </Box>

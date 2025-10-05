@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   Box,
   Typography,
-  Grid,
   Tabs,
   Tab,
   Paper,
@@ -163,15 +162,15 @@ const Dashboard: React.FC = () => {
 
         {/* Stock Selection Tab */}
         <TabPanel value={activeTab} index={1}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} lg={8}>
+          <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', lg: 'row' } }}>
+            <Box sx={{ flex: 2 }}>
               <StockPicker
                 selectedStocks={selectedStocks}
                 onStocksChange={handleStocksChange}
                 maxStocks={10}
               />
-            </Grid>
-            <Grid item xs={12} lg={4}>
+            </Box>
+            <Box sx={{ flex: 1 }}>
               <Paper sx={{ p: 2, height: 'fit-content' }}>
                 <Typography variant="h6" gutterBottom>
                   Selection Summary
@@ -204,22 +203,22 @@ const Dashboard: React.FC = () => {
                   </Box>
                 )}
               </Paper>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </TabPanel>
 
         {/* Strategy Configuration Tab */}
         <TabPanel value={activeTab} index={2}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} lg={8}>
+          <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', lg: 'row' } }}>
+            <Box sx={{ flex: 2 }}>
               <StrategySelector
                 selectedStrategy={selectedStrategy}
                 onStrategyChange={handleStrategyChange}
                 strategyParameters={strategyParameters}
                 onParametersChange={handleParametersChange}
               />
-            </Grid>
-            <Grid item xs={12} lg={4}>
+            </Box>
+            <Box sx={{ flex: 1 }}>
               <Paper sx={{ p: 2, height: 'fit-content' }}>
                 <Typography variant="h6" gutterBottom>
                   Strategy Summary
@@ -239,14 +238,14 @@ const Dashboard: React.FC = () => {
                   </Box>
                 ))}
               </Paper>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </TabPanel>
 
         {/* Session Controls Tab */}
         <TabPanel value={activeTab} index={3}>
-          <Grid container spacing={3}>
-            <Grid xs={12} lg={8}>
+          <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', lg: 'row' } }}>
+            <Box sx={{ flex: 2 }}>
               <TradingSessionControls
                 userId={Number(user.id)}
                 selectedStocks={selectedStocks}
@@ -255,8 +254,8 @@ const Dashboard: React.FC = () => {
                 onSessionStarted={handleSessionStarted}
                 onSessionStopped={handleSessionStopped}
               />
-            </Grid>
-            <Grid xs={12} lg={4}>
+            </Box>
+            <Box sx={{ flex: 1 }}>
               <Paper sx={{ p: 2, height: 'fit-content' }}>
                 <Typography variant="h6" gutterBottom>
                   Session Status
@@ -298,8 +297,8 @@ const Dashboard: React.FC = () => {
                   </Typography>
                 )}
               </Paper>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </TabPanel>
 
         {/* Test Data Tab */}

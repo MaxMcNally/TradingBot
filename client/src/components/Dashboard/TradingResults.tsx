@@ -117,7 +117,12 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
   if (!userId || isNaN(userId)) {
     return (
       <Alert severity="error">
-        Invalid user ID. Please log in again.
+        <Typography variant="subtitle2" gutterBottom>
+          Authentication Error
+        </Typography>
+        <Typography variant="body2">
+          Invalid user ID detected. Please log out and log back in to continue.
+        </Typography>
       </Alert>
     );
   }
@@ -145,13 +150,30 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
   }
 
   if (error) {
+    // Create a more meaningful error message
+    const getErrorMessage = (error: any) => {
+      if (error?.response?.status === 404) {
+        return "No trading data found. Start a trading session to see your results.";
+      } else if (error?.response?.status === 500) {
+        return "Server error occurred. Please try again or contact support.";
+      } else if (error?.response?.status === 401) {
+        return "Authentication required. Please log in again.";
+      } else if (error?.code === 'NETWORK_ERROR' || error?.message?.includes('Network Error')) {
+        return "Unable to connect to the server. Please check your connection and try again.";
+      } else if (error?.message) {
+        return `Error loading trading data: ${error.message}`;
+      } else {
+        return "An unexpected error occurred while loading trading data. Please try again.";
+      }
+    };
+
     return (
       <Alert severity="error" action={
         <Button color="inherit" size="small" onClick={() => window.location.reload()}>
           Retry
         </Button>
       }>
-        {error}
+        {getErrorMessage(error)}
       </Alert>
     );
   }
@@ -210,7 +232,7 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
       )}
 
       {/* Stats Cards */}
-      {stats && portfolio && (
+      {stats && portfolio ? (
         <Grid container spacing={3} mb={3}>
           <Grid item xs={12} sm={6} md={3}>
             <Card>
@@ -287,6 +309,15 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
             </Card>
           </Grid>
         </Grid>
+      ) : (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            No trading data available
+          </Typography>
+          <Typography variant="body2">
+            You haven't started any trading sessions yet. Go to the "Session Controls" tab to configure and start your first trading session.
+          </Typography>
+        </Alert>
       )}
 
       {/* Tabs */}
@@ -300,21 +331,22 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
 
       {/* Recent Trades Tab */}
       <TabPanel value={activeTab} index={0}>
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Symbol</TableCell>
-                <TableCell>Action</TableCell>
-                <TableCell>Quantity</TableCell>
-                <TableCell>Price</TableCell>
-                <TableCell>P&L</TableCell>
-                <TableCell>Strategy</TableCell>
-                <TableCell>Timestamp</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {recentTrades.map((trade) => (
+        {recentTrades && recentTrades.length > 0 ? (
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Symbol</TableCell>
+                  <TableCell>Action</TableCell>
+                  <TableCell>Quantity</TableCell>
+                  <TableCell>Price</TableCell>
+                  <TableCell>P&L</TableCell>
+                  <TableCell>Strategy</TableCell>
+                  <TableCell>Timestamp</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {recentTrades.map((trade) => (
                 <TableRow key={trade.id}>
                   <TableCell>
                     <Typography variant="subtitle2" fontWeight="bold">
@@ -349,30 +381,41 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
                   <TableCell>{trade.strategy}</TableCell>
                   <TableCell>{formatDate(trade.timestamp)}</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        ) : (
+          <Alert severity="info">
+            <Typography variant="subtitle2" gutterBottom>
+              No trades found
+            </Typography>
+            <Typography variant="body2">
+              You haven't made any trades yet. Start a trading session to begin trading.
+            </Typography>
+          </Alert>
+        )}
       </TabPanel>
 
       {/* Trading Sessions Tab */}
       <TabPanel value={activeTab} index={1}>
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Session ID</TableCell>
-                <TableCell>Mode</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Start Time</TableCell>
-                <TableCell>Duration</TableCell>
-                <TableCell>Trades</TableCell>
-                <TableCell>P&L</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {sessions.map((session) => (
+        {sessions && sessions.length > 0 ? (
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Session ID</TableCell>
+                  <TableCell>Mode</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Start Time</TableCell>
+                  <TableCell>Duration</TableCell>
+                  <TableCell>Trades</TableCell>
+                  <TableCell>P&L</TableCell>
+                  <TableCell>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {sessions.map((session) => (
                 <TableRow key={session.id}>
                   <TableCell>{session.id}</TableCell>
                   <TableCell>
@@ -421,15 +464,25 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
                     </Tooltip>
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        ) : (
+          <Alert severity="info">
+            <Typography variant="subtitle2" gutterBottom>
+              No trading sessions found
+            </Typography>
+            <Typography variant="body2">
+              You haven't started any trading sessions yet. Go to the "Session Controls" tab to start your first session.
+            </Typography>
+          </Alert>
+        )}
       </TabPanel>
 
       {/* Portfolio Details Tab */}
       <TabPanel value={activeTab} index={2}>
-        {portfolio && (
+        {portfolio ? (
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <Card>
@@ -513,6 +566,15 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
               </Card>
             </Grid>
           </Grid>
+        ) : (
+          <Alert severity="info">
+            <Typography variant="subtitle2" gutterBottom>
+              No portfolio data available
+            </Typography>
+            <Typography variant="body2">
+              Portfolio information will appear here once you start a trading session.
+            </Typography>
+          </Alert>
         )}
       </TabPanel>
 

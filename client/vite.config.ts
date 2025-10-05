@@ -24,5 +24,14 @@ export default defineConfig({
   },
   esbuild: {
     target: 'node14'
+  },
+  define: {
+    __vite_ssr_exportName__: 'undefined',
+    global: 'globalThis'
+  },
+  resolve: {
+    alias: {
+      '@': '/src'
+    }
   }
 })

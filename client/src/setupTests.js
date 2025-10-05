@@ -49,3 +49,21 @@ const sessionStorageMock = {
   clear: vi.fn(),
 };
 global.sessionStorage = sessionStorageMock;
+
+// Mock window.location.reload
+Object.defineProperty(window, 'location', {
+  value: {
+    reload: vi.fn(),
+  },
+  writable: true,
+});
+
+// Mock console methods to reduce noise in tests
+global.console = {
+  ...console,
+  log: vi.fn(),
+  debug: vi.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+};
