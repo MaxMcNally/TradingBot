@@ -7,7 +7,9 @@ import {
   deleteStrategy,
   deactivateStrategy,
   activateStrategy,
-  saveStrategyFromBacktest
+  saveStrategyFromBacktest,
+  getPublicStrategies,
+  getPublicStrategiesByType
 } from "../controllers/strategyController";
 
 const router = Router();
@@ -35,5 +37,11 @@ router.patch("/strategies/:strategyId/activate", activateStrategy);
 
 // Save a strategy from backtest results
 router.post("/users/:userId/strategies/from-backtest", saveStrategyFromBacktest);
+
+// Get all public strategies
+router.get("/strategies/public", getPublicStrategies);
+
+// Get public strategies by type
+router.get("/strategies/public/:strategyType", getPublicStrategiesByType);
 
 export { router as strategyRouter };

@@ -21,7 +21,11 @@ import {
   FormControlLabel,
   Tooltip,
   Tabs,
-  Tab
+  Tab,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Divider
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -36,7 +40,10 @@ import {
   Assessment as AssessmentIcon,
   Public as PublicIcon,
   Person as PersonIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  ExpandMore as ExpandMoreIcon,
+  Visibility as VisibilityIcon,
+  Share as ShareIcon
 } from '@mui/icons-material';
 import { useUserStrategies, usePublicStrategies } from '../../hooks';
 import { UserStrategy } from '../../api';
@@ -65,7 +72,7 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-const Strategies: React.FC = () => {
+const StrategiesWithSections: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [includeInactive, setIncludeInactive] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -603,4 +610,4 @@ const Strategies: React.FC = () => {
   );
 };
 
-export default Strategies;
+export default StrategiesWithSections;

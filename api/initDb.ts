@@ -99,6 +99,7 @@ export const initDatabase = () => {
           config TEXT NOT NULL,
           backtest_results TEXT,
           is_active BOOLEAN DEFAULT 1,
+          is_public BOOLEAN DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users (id),
@@ -128,6 +129,15 @@ export const initDatabase = () => {
 
       db.run(`CREATE INDEX IF NOT EXISTS idx_user_strategies_user_id ON user_strategies(user_id)`, (err) => {
         if (err) console.error("Error creating user_strategies index:", err);
+      });
+
+      // Add is_public column if it doesn't exist (migration for existing databases)
+      db.run(`ALTER TABLE user_strategies ADD COLUMN is_public BOOLEAN DEFAULT 0`, (err) => {
+        if (err && !err.message.includes('duplicate column name')) {
+          console.error("Error adding is_public column:", err);
+        } else if (!err) {
+          console.log("Added is_public column to user_strategies table");
+        }
       });
 
       // Initialize trading tables

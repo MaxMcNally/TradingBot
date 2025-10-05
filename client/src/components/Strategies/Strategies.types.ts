@@ -4,6 +4,7 @@ export interface StrategyFormData {
   strategy_type: string;
   config: any;
   backtest_results?: any;
+  is_public?: boolean;
 }
 
 export interface StrategyDialogProps {

@@ -17,7 +17,7 @@ import {
   Tune,
 } from "@mui/icons-material";
 import TradingResults from "./TradingResults";
-import { StockPicker, StrategySelector } from "../shared";
+import { StockPicker, StrategySelector, EnhancedStrategySelector } from "../shared";
 import TradingSessionControls from "./TradingSessionControls";
 import TestDataManager from "./TestDataManager";
 import StrategyParameters from "./StrategyParameters";
@@ -259,10 +259,12 @@ const Dashboard: React.FC = () => {
         <TabPanel value={activeTab} index={2}>
           <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', lg: 'row' } }}>
             <Box sx={{ flex: 2 }}>
-              <StrategySelector
+              <EnhancedStrategySelector
                 selectedStrategy={selectedStrategy}
                 onStrategyChange={handleStrategyChange}
                 onParametersChange={handleParametersChange}
+                title="Select Trading Strategy"
+                description="Choose a trading strategy for live trading. You can select from basic strategies or public strategies shared by other users."
               />
             </Box>
             <Box sx={{ flex: 1 }}>
