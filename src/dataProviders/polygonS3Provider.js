@@ -6,7 +6,9 @@ import csvParser from 'csv-parser';
 import zlib from 'zlib';
 import stream from 'stream';
 import { promisify } from 'util';
-
+const agent = new https.Agent({
+  rejectUnauthorized: false, // allow self-signed certs
+});
 const pipeline = promisify(stream.pipeline);
 
 export class PolygonS3Provider {
@@ -17,7 +19,9 @@ export class PolygonS3Provider {
     this.s3 = new S3Client({
       region,
       endpoint: 'https://files.polygon.io',
+      useGlobalEndpoint:true,
       credentials: { accessKeyId, secretAccessKey },
+      requestHandler: new NodeHttpHandler({ httpsAgent: agent }),
     });
   }
 
@@ -30,6 +34,7 @@ export class PolygonS3Provider {
       console.log(reponse);
       return response.Contents || [];
     } catch (err) {
+      console.log(err);
       console.error(err.$response);
       console.error(err.$response?.body.toString());
     }

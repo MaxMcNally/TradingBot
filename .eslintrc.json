@@ -1,7 +1,9 @@
 {
-  "extends": ["airbnb", "prettier"],
+  "extends": ["eslint-config-airbnb-typescript", "eslint-config-prettier"],
   "plugins": ["prettier"],
   "rules": {
     "prettier/prettier": ["error"]
   }
 }
+
+
