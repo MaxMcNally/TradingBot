@@ -7,10 +7,12 @@ import { Box, Container, CssBaseline } from '@mui/material';
  * - Provides optional header/footer/sidebar placeholders
  * - Full-page background
  */
-const AppLayout = ({ children, header, footer, sidebar }) => {
+const AppLayout = ({ children, header, footer, sidebar}) => {
   return (
     <>
       <CssBaseline />
+
+
       <Box
         sx={{
           display: 'flex',

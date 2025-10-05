@@ -8,8 +8,8 @@
     "dev:server": "nodemon api/server.ts",
     "dev:client": "cd client && yarn dev",
     "dev": "yarn dev:server && yarn dev:client",
-    "lint": "eslint . --ext .js,.jsx",
-    "lint:fix": "eslint . --ext .js,.jsx --fix"
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix && prettier --write ."
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.901.0",

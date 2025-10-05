@@ -31,7 +31,7 @@ export class PolygonS3Provider {
       console.log(command);
       const response = await this.s3.send(command);
       console.log('Response to list');
-      console.log(reponse);
+      console.log(response);
       return response.Contents || [];
     } catch (err) {
       console.log(err);

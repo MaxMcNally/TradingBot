@@ -12,7 +12,7 @@ const argv = yargs(hideBin(process.argv))
 
 async function main() {
   const data = await fetchYahooData(argv.symbol, argv.start, argv.end);
-  const result = runStrategy(argv.symbol, data);
+  const result = runStrategy(argv.symbol, data); 
   console.log(JSON.stringify(result, null, 2));
 }
 
