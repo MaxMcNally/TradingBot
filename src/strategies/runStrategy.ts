@@ -13,7 +13,7 @@ export interface BacktestResult {
 
 export function runStrategy(
   symbol: string,
-  data: { date: string; close: number }[]
+  data: { date: string; close: number, open: number }[]
 ): BacktestResult {
   const trades: Trade[] = [];
 
@@ -23,7 +23,7 @@ export function runStrategy(
       symbol,
       date: data[0].date,
       action: "BUY",
-      price: data[0].close,
+      price: data[0].open,
       shares: 100,
     });
 
