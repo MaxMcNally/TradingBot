@@ -200,10 +200,10 @@ export class TradingDatabase {
 
   static async createTradingSession(session: Omit<TradingSession, 'id' | 'created_at'>): Promise<TradingSession> {
     return new Promise((resolve, reject) => {
-      const { user_id, start_time, mode, initial_cash, status } = session;
+      const { user_id, start_time, end_time, mode, initial_cash, status } = session;
       db.run(
-        'INSERT INTO trading_sessions (user_id, start_time, mode, initial_cash, status) VALUES (?, ?, ?, ?, ?)',
-        [user_id, start_time, mode, initial_cash, status],
+        'INSERT INTO trading_sessions (user_id, start_time, end_time, mode, initial_cash, status) VALUES (?, ?, ?, ?, ?, ?)',
+        [user_id, start_time, end_time || null, mode, initial_cash, status],
         function(err) {
           if (err) {
             reject(err);
@@ -212,6 +212,7 @@ export class TradingDatabase {
               id: this.lastID,
               user_id,
               start_time,
+              end_time,
               mode,
               initial_cash,
               status,

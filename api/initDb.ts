@@ -2,6 +2,7 @@ import sqlite3 from "sqlite3";
 import path from "path";
 import fs from "fs";
 import bcrypt from "bcryptjs";
+import { TradingDatabase } from "../src/database/tradingSchema";
 
 // Ensure the database directory exists
 const dbDir = path.resolve(__dirname, "../db");
@@ -98,6 +99,14 @@ export const initDatabase = () => {
 
       db.run(`CREATE INDEX IF NOT EXISTS idx_backtest_results_user_id ON backtest_results(user_id)`, (err) => {
         if (err) console.error("Error creating backtest_results index:", err);
+      });
+
+      // Initialize trading tables
+      TradingDatabase.initializeTables().then(() => {
+        console.log("Trading tables initialized successfully");
+      }).catch((err) => {
+        console.error("Error initializing trading tables:", err);
+        reject(err);
       });
 
       // Create a default admin user if no users exist

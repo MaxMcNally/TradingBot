@@ -39,17 +39,15 @@ api.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${token}`;
           return api(originalRequest);
         } catch (refreshError) {
-          // Refresh failed, redirect to login
-          console.log('Token refresh failed, redirecting to login');
+          // Refresh failed, clear local data but don't redirect
+          console.log('Token refresh failed, clearing local data');
           localStorage.removeItem('authToken');
           localStorage.removeItem('user');
-          window.location.href = '/login';
         }
       } else {
-        // No token or refresh failed, redirect to login
+        // No token or refresh failed, clear local data but don't redirect
         localStorage.removeItem('authToken');
         localStorage.removeItem('user');
-        window.location.href = '/login';
       }
     }
     return Promise.reject(error);

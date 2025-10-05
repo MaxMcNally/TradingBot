@@ -105,11 +105,13 @@ export interface TradingConfig {
 }
 
 export interface StartTradingSessionRequest {
+  userId: number;
   mode: 'PAPER' | 'LIVE';
   initialCash: number;
   symbols: string[];
   strategy: string;
   strategyParameters: Record<string, any>;
+  scheduledEndTime?: string; // ISO string for when session should automatically end
 }
 
 export interface StartTradingSessionResponse {

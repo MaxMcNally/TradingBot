@@ -103,7 +103,9 @@ export const getActiveTradingSession = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid user ID" });
     }
 
+    console.log(`Getting active trading session for user ID: ${userId}`);
     const session = await TradingDatabase.getActiveTradingSession(userId);
+    console.log(`Active session result:`, session);
     
     if (!session) {
       return res.status(404).json({ message: "No active trading session found" });
@@ -112,7 +114,11 @@ export const getActiveTradingSession = async (req: Request, res: Response) => {
     res.json(session);
   } catch (error) {
     console.error("Error getting active trading session:", error);
-    res.status(500).json({ message: "Internal server error" });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error("Error details:", errorMessage);
+    console.error("Error stack:", errorStack);
+    res.status(500).json({ message: "Internal server error", error: errorMessage });
   }
 };
 
@@ -134,7 +140,7 @@ export const getTradesBySession = async (req: Request, res: Response) => {
 
 export const startTradingSession = async (req: Request, res: Response) => {
   try {
-    const { mode, initialCash, symbols, strategy, strategyParameters } = req.body;
+    const { mode, initialCash, symbols, strategy, strategyParameters, scheduledEndTime } = req.body;
     const userId = parseInt(req.body.userId || req.params.userId);
     
     if (isNaN(userId)) {
@@ -162,6 +168,7 @@ export const startTradingSession = async (req: Request, res: Response) => {
     const session = await TradingDatabase.createTradingSession({
       user_id: userId,
       start_time: new Date().toISOString(),
+      end_time: scheduledEndTime || undefined,
       mode: mode || 'PAPER',
       initial_cash: initialCash || 10000,
       status: 'ACTIVE',

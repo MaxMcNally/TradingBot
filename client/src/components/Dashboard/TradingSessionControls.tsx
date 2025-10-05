@@ -25,6 +25,8 @@ import {
   Divider,
   IconButton,
   Tooltip,
+  Switch,
+  FormControlLabel as MuiFormControlLabel,
 } from '@mui/material';
 import {
   PlayArrow,
@@ -47,6 +49,7 @@ import {
   StartTradingSessionRequest,
   TradingSession,
 } from '../../api/tradingApi';
+import { getMarketStatus, formatMarketTime } from '../../utils/marketHours';
 
 interface TradingSessionControlsProps {
   userId: number;
@@ -75,12 +78,26 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
   const [initialCash, setInitialCash] = useState(10000);
   const [showStartDialog, setShowStartDialog] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
+  
+  // Time controls
+  const [enableScheduledEnd, setEnableScheduledEnd] = useState(false);
+  const [scheduledEndTime, setScheduledEndTime] = useState('');
+  const [marketStatus, setMarketStatus] = useState(getMarketStatus());
 
   useEffect(() => {
     if (userId && !isNaN(userId)) {
       checkActiveSession();
     }
   }, [userId]);
+
+  // Update market status every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMarketStatus(getMarketStatus());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   const checkActiveSession = async () => {
     if (!userId || isNaN(userId)) {
@@ -89,11 +106,19 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
     }
     
     try {
+      console.log('Checking active session for user:', userId);
       const response = await getActiveTradingSession(userId);
+      console.log('Active session response:', response.data);
       setActiveSession(response.data);
-    } catch (err) {
-      // No active session found
-      setActiveSession(null);
+    } catch (err: any) {
+      // Check if it's a 404 error (no active session found)
+      if (err.response?.status === 404) {
+        console.log('No active session found');
+        setActiveSession(null);
+      } else {
+        console.error('Error checking active session:', err);
+        setError('Failed to check active session status');
+      }
     }
   };
 
@@ -118,11 +143,13 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
       setError(null);
 
       const request: StartTradingSessionRequest = {
+        userId,
         mode,
         initialCash,
         symbols: selectedStocks,
         strategy: selectedStrategy,
         strategyParameters,
+        scheduledEndTime: enableScheduledEnd && scheduledEndTime ? scheduledEndTime : undefined,
       };
 
       const response = await startTradingSession(request);
@@ -153,17 +180,27 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
   };
 
   const handleStopSession = async () => {
-    if (!activeSession) return;
+    if (!activeSession) {
+      console.warn('No active session to stop');
+      return;
+    }
+
+    console.log('Stopping session:', activeSession.id);
 
     try {
       setLoading(true);
       setError(null);
 
-      await stopTradingSession(activeSession.id);
+      const response = await stopTradingSession(activeSession.id);
+      console.log('Stop session response:', response.data);
+      
       setSuccess('Trading session stopped successfully!');
       
       setActiveSession(null);
       onSessionStopped();
+      
+      // Refresh the active session status
+      await checkActiveSession();
     } catch (err: any) {
       console.error('Error stopping trading session:', err);
       setError(err.response?.data?.message || 'Failed to stop trading session');
@@ -280,6 +317,58 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
                   helperText="Starting cash amount for the trading session"
                 />
               </Grid>
+              
+              {/* Market Status */}
+              <Grid item xs={12}>
+                <Alert 
+                  severity={marketStatus.isOpen ? "success" : "info"}
+                  sx={{ mb: 2 }}
+                >
+                  <Typography variant="subtitle2">
+                    Market Status: {marketStatus.isOpen ? "Open" : "Closed"}
+                  </Typography>
+                  <Typography variant="body2">
+                    {marketStatus.isOpen 
+                      ? `Closes at ${formatMarketTime(marketStatus.nextClose!)}`
+                      : `Opens ${formatMarketTime(marketStatus.nextOpen!)}`
+                    }
+                  </Typography>
+                </Alert>
+              </Grid>
+              
+              {/* Scheduled End Time */}
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <MuiFormControlLabel
+                    control={
+                      <Switch
+                        checked={enableScheduledEnd}
+                        onChange={(e) => setEnableScheduledEnd(e.target.checked)}
+                      />
+                    }
+                    label="Enable Scheduled End Time"
+                  />
+                  <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                    Automatically stop the session at a specific time
+                  </Typography>
+                </FormControl>
+              </Grid>
+              
+              {enableScheduledEnd && (
+                <Grid item xs={12}>
+                  <TextField
+                    label="Session End Time"
+                    type="datetime-local"
+                    value={scheduledEndTime}
+                    onChange={(e) => setScheduledEndTime(e.target.value)}
+                    fullWidth
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    helperText="The session will automatically stop at this time"
+                  />
+                </Grid>
+              )}
             </Grid>
           </Box>
         );
@@ -344,6 +433,22 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
                   </CardContent>
                 </Card>
               </Grid>
+              
+              {/* Scheduled End Time */}
+              {enableScheduledEnd && scheduledEndTime && (
+                <Grid item xs={12}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="subtitle2" gutterBottom>
+                        Scheduled End Time
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {new Date(scheduledEndTime).toLocaleString()}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              )}
             </Grid>
           </Box>
         );

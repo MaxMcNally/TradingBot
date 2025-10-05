@@ -5,6 +5,19 @@ import { UseUserReturn, LoginCredentials } from './useUser.types';
 export const useUser = (): UseUserReturn => {
   const queryClient = useQueryClient();
 
+  // Check if user is authenticated (has token)
+  const isAuthenticated = () => {
+    const token = localStorage.getItem('authToken');
+    const userData = localStorage.getItem('user');
+    return !!(token && userData);
+  };
+
+  // Get initial user from localStorage if available
+  const getInitialUser = () => {
+    const userData = localStorage.getItem('user');
+    return userData ? JSON.parse(userData) : null;
+  };
+
   // Query for current user
   const {
     data: user,
@@ -20,6 +33,8 @@ export const useUser = (): UseUserReturn => {
     },
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: isAuthenticated(), // Only fetch if user is authenticated
+    initialData: getInitialUser(), // Use localStorage data as initial data
   });
 
   // Login mutation
@@ -72,7 +87,7 @@ export const useUser = (): UseUserReturn => {
   };
 
   return {
-    user: user || null,
+    user: user || getInitialUser(),
     isLoading: isLoading || loginMutation.isPending || logoutMutation.isPending,
     isError: isError || loginMutation.isError || logoutMutation.isError,
     error: error || loginMutation.error || logoutMutation.error,

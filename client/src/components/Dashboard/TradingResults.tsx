@@ -55,6 +55,7 @@ import {
   useTradingSessions,
   useActiveTradingSession 
 } from '../../hooks';
+import { getMarketStatus, formatMarketTime } from '../../utils/marketHours';
 
 interface TradingResultsProps {
   userId: number;
@@ -88,6 +89,9 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
   // Dialog states
   const [sessionDetailsOpen, setSessionDetailsOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<TradingSession | null>(null);
+  
+  // Market status
+  const [marketStatus, setMarketStatus] = useState(getMarketStatus());
 
   // Use hooks for data fetching
   const { stats, isLoading: statsLoading, isError: statsError } = useTradingStats(userId);
@@ -100,6 +104,15 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
   const loading = statsLoading || portfolioLoading || tradesLoading || sessionsLoading || activeSessionLoading;
   const error = statsError || portfolioError || tradesError || sessionsError || activeSessionError;
 
+  // Update market status every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMarketStatus(getMarketStatus());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
+
   // Safety check for userId
   if (!userId || isNaN(userId)) {
     return (
@@ -108,7 +121,6 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
       </Alert>
     );
   }
-
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
@@ -135,7 +147,7 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
   if (error) {
     return (
       <Alert severity="error" action={
-        <Button color="inherit" size="small" onClick={fetchData}>
+        <Button color="inherit" size="small" onClick={() => window.location.reload()}>
           Retry
         </Button>
       }>
@@ -152,7 +164,7 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
           Trading Results
         </Typography>
         <Tooltip title="Refresh Data">
-          <IconButton onClick={fetchData} color="primary">
+          <IconButton onClick={() => window.location.reload()} color="primary">
             <Refresh />
           </IconButton>
         </Tooltip>
@@ -179,6 +191,21 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
           }
         >
           Active trading session running in {activeSession.mode} mode since {formatDate(activeSession.start_time)}
+        </Alert>
+      )}
+
+      {/* Market Status Alert */}
+      {!marketStatus.isOpen && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          <Typography variant="subtitle2">
+            Market is currently closed
+          </Typography>
+          <Typography variant="body2">
+            {marketStatus.nextOpen 
+              ? `Market opens ${formatMarketTime(marketStatus.nextOpen)}`
+              : 'Market is closed'
+            }
+          </Typography>
         </Alert>
       )}
 

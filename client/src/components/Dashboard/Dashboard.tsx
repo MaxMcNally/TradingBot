@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Box,
   Typography,
@@ -14,10 +14,12 @@ import {
   Settings,
   Assessment,
   AccountBalance,
+  DataUsage,
 } from "@mui/icons-material";
 import TradingResults from "./TradingResults";
 import { StockPicker, StrategySelector } from "../shared";
 import TradingSessionControls from "./TradingSessionControls";
+import TestDataManager from "./TestDataManager";
 import { useUser } from "../../hooks";
 
 interface TabPanelProps {
@@ -113,7 +115,7 @@ const Dashboard: React.FC = () => {
           Trading Dashboard
         </Typography>
         <Typography variant="subtitle1" color="textSecondary">
-          Welcome back, {user.name || user.username}! Manage your trading sessions and monitor performance.
+          Welcome back, {user.name || 'User'}! Manage your trading sessions and monitor performance.
         </Typography>
       </Box>
 
@@ -144,6 +146,12 @@ const Dashboard: React.FC = () => {
               label="Session Controls"
               id="dashboard-tab-3"
               aria-controls="dashboard-tabpanel-3"
+            />
+            <Tab
+              icon={<DataUsage />}
+              label="Test Data"
+              id="dashboard-tab-4"
+              aria-controls="dashboard-tabpanel-4"
             />
           </Tabs>
         </Box>
@@ -238,7 +246,7 @@ const Dashboard: React.FC = () => {
         {/* Session Controls Tab */}
         <TabPanel value={activeTab} index={3}>
           <Grid container spacing={3}>
-            <Grid item xs={12} lg={8}>
+            <Grid xs={12} lg={8}>
               <TradingSessionControls
                 userId={Number(user.id)}
                 selectedStocks={selectedStocks}
@@ -248,7 +256,7 @@ const Dashboard: React.FC = () => {
                 onSessionStopped={handleSessionStopped}
               />
             </Grid>
-            <Grid item xs={12} lg={4}>
+            <Grid xs={12} lg={4}>
               <Paper sx={{ p: 2, height: 'fit-content' }}>
                 <Typography variant="h6" gutterBottom>
                   Session Status
@@ -292,6 +300,11 @@ const Dashboard: React.FC = () => {
               </Paper>
             </Grid>
           </Grid>
+        </TabPanel>
+
+        {/* Test Data Tab */}
+        <TabPanel value={activeTab} index={4}>
+          <TestDataManager />
         </TabPanel>
       </Paper>
     </Box>

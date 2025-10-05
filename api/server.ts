@@ -10,6 +10,8 @@ import {symbolRouter} from "./routes/symbols";
 import {cacheRouter} from "./routes/cache";
 import tradingRouter from "./routes/trading";
 import { initDatabase } from "./initDb";
+import { sessionMonitor } from "./services/sessionMonitor";
+import testRouter from "./routes/test";
 
 dotenv.config();
 
@@ -37,6 +39,7 @@ app.use("/api/backtest", backtestRouter);
 app.use("/api/symbols", symbolRouter);
 app.use("/api/cache", cacheRouter);
 app.use("/api/trading", tradingRouter);
+app.use("/api/test", testRouter);
 app.get("/ping", (req, res) => {
   console.log("Ping route hit ✅");
   res.json({ status: "ok" });
@@ -46,9 +49,25 @@ initDatabase()
   .then(() => {
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
+      
+      // Start the session monitor
+      sessionMonitor.start();
     });
   })
   .catch((error) => {
     console.error("Failed to initialize database:", error);
     process.exit(1);
   });
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('Received SIGINT, shutting down gracefully...');
+  sessionMonitor.stop();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM, shutting down gracefully...');
+  sessionMonitor.stop();
+  process.exit(0);
+});
