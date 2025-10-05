@@ -28,3 +28,46 @@ export interface DashboardData {
     value: number;
   }>;
 }
+
+// Trading session types
+export interface TradingSessionConfig {
+  mode: 'PAPER' | 'LIVE';
+  initialCash: number;
+  symbols: string[];
+  strategy: string;
+  strategyParameters: Record<string, any>;
+}
+
+export interface TradingSessionState {
+  selectedStocks: string[];
+  selectedStrategy: string;
+  strategyParameters: Record<string, any>;
+  activeSession: any | null;
+}
+
+// Component prop types
+export interface StockPickerProps {
+  selectedStocks: string[];
+  onStocksChange: (stocks: string[]) => void;
+  maxStocks?: number;
+}
+
+export interface StrategySelectorProps {
+  selectedStrategy: string;
+  onStrategyChange: (strategy: string) => void;
+  strategyParameters: Record<string, any>;
+  onParametersChange: (parameters: Record<string, any>) => void;
+}
+
+export interface TradingSessionControlsProps {
+  userId: number;
+  selectedStocks: string[];
+  selectedStrategy: string;
+  strategyParameters: Record<string, any>;
+  onSessionStarted: (session: any) => void;
+  onSessionStopped: () => void;
+}
+
+export interface TradingResultsProps {
+  userId: number;
+}
