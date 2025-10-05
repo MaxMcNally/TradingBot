@@ -1,34 +1,213 @@
 import React, { useState } from "react";
 import { login, signup } from "../api";
-import { TextField, Button, Box } from "@mui/material";
+import {
+  TextField,
+  Button,
+  Box,
+  Paper,
+  Typography,
+  Alert,
+  CircularProgress,
+  Divider,
+  Link
+} from "@mui/material";
+import { Login as LoginIcon, PersonAdd } from "@mui/icons-material";
 
 const Login = ({ setUser }) => {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [formData, setFormData] = useState({
+    username: "",
+    password: "",
+    email: ""
+  });
   const [isSignup, setIsSignup] = useState(false);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async () => {
+  const handleInputChange = (field) => (e) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: e.target.value
+    }));
+    // Clear error when user starts typing
+    if (error) setError("");
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.username || !formData.password) {
+      setError("Username and password are required");
+      return;
+    }
+
+    if (isSignup && formData.password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+
     try {
+      const requestData = isSignup 
+        ? { username: formData.username, password: formData.password, email: formData.email }
+        : { username: formData.username, password: formData.password };
+
       const res = isSignup
-        ? await signup({ username, password })
-        : await login({ username, password });
-      setUser(res.data);
+        ? await signup(requestData)
+        : await login(requestData);
+      
+      // Store token and user data
+      if (res.data.token) {
+        localStorage.setItem('authToken', res.data.token);
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+      }
+      
+      setUser(res.data.user);
       setError("");
     } catch (err) {
-      setError(err.response?.data?.error || "Error");
+      setError(err.response?.data?.error || "An error occurred");
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const toggleMode = () => {
+    setIsSignup(!isSignup);
+    setError("");
+    setFormData({ username: "", password: "", email: "" });
+  };
+
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: 300 }}>
-      <TextField label="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
-      <TextField label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-      {error && <Box sx={{ color: "red" }}>{error}</Box>}
-      <Button variant="contained" onClick={handleSubmit}>{isSignup ? "Signup" : "Login"}</Button>
-      <Button onClick={() => setIsSignup(!isSignup)}>
-        {isSignup ? "Already have an account?" : "Create account"}
-      </Button>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        padding: 2
+      }}
+    >
+      <Paper
+        elevation={10}
+        sx={{
+          padding: 4,
+          width: "100%",
+          maxWidth: 400,
+          borderRadius: 2
+        }}
+      >
+        <Box sx={{ textAlign: "center", mb: 3 }}>
+          {isSignup ? (
+            <PersonAdd sx={{ fontSize: 48, color: "primary.main", mb: 1 }} />
+          ) : (
+            <LoginIcon sx={{ fontSize: 48, color: "primary.main", mb: 1 }} />
+          )}
+          <Typography variant="h4" component="h1" gutterBottom>
+            {isSignup ? "Create Account" : "Welcome Back"}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {isSignup 
+              ? "Sign up to start trading with our platform" 
+              : "Sign in to your trading account"
+            }
+          </Typography>
+        </Box>
+
+        <Box component="form" onSubmit={handleSubmit}>
+          <TextField
+            fullWidth
+            label="Username"
+            value={formData.username}
+            onChange={handleInputChange("username")}
+            margin="normal"
+            required
+            disabled={isLoading}
+            autoComplete="username"
+          />
+
+          {isSignup && (
+            <TextField
+              fullWidth
+              label="Email (Optional)"
+              type="email"
+              value={formData.email}
+              onChange={handleInputChange("email")}
+              margin="normal"
+              disabled={isLoading}
+              autoComplete="email"
+            />
+          )}
+
+          <TextField
+            fullWidth
+            label="Password"
+            type="password"
+            value={formData.password}
+            onChange={handleInputChange("password")}
+            margin="normal"
+            required
+            disabled={isLoading}
+            autoComplete={isSignup ? "new-password" : "current-password"}
+            helperText={isSignup ? "Must be at least 6 characters" : ""}
+          />
+
+          {error && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {error}
+            </Alert>
+          )}
+
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            size="large"
+            disabled={isLoading}
+            sx={{ mt: 3, mb: 2, py: 1.5 }}
+            startIcon={isLoading ? <CircularProgress size={20} /> : null}
+          >
+            {isLoading 
+              ? (isSignup ? "Creating Account..." : "Signing In...") 
+              : (isSignup ? "Create Account" : "Sign In")
+            }
+          </Button>
+
+          <Divider sx={{ my: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              OR
+            </Typography>
+          </Divider>
+
+          <Box sx={{ textAlign: "center" }}>
+            <Typography variant="body2" color="text.secondary">
+              {isSignup ? "Already have an account?" : "Don't have an account?"}
+            </Typography>
+            <Link
+              component="button"
+              type="button"
+              variant="body2"
+              onClick={toggleMode}
+              disabled={isLoading}
+              sx={{ mt: 1 }}
+            >
+              {isSignup ? "Sign in here" : "Create one here"}
+            </Link>
+          </Box>
+        </Box>
+
+        {!isSignup && (
+          <Box sx={{ mt: 3, p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+            <Typography variant="caption" color="text.secondary" display="block">
+              Demo Account:
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Username: admin | Password: admin123
+            </Typography>
+          </Box>
+        )}
+      </Paper>
     </Box>
   );
 };

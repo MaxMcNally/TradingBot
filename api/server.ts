@@ -7,6 +7,7 @@ import {authRouter} from "./routes/auth";
 import {settingsRouter} from "./routes/settings";
 import {backtestRouter} from "./routes/backtest";
 import {symbolRouter} from "./routes/symbols";
+import { initDatabase } from "./initDb";
 
 dotenv.config();
 
@@ -34,6 +35,14 @@ app.get("/ping", (req, res) => {
   console.log("Ping route hit ✅");
   res.json({ status: "ok" });
 });
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Initialize database and start server
+initDatabase()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch((error) => {
+    console.error("Failed to initialize database:", error);
+    process.exit(1);
+  });

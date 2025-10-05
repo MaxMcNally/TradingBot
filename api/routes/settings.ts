@@ -1,5 +1,5 @@
 import express, { Request,Response } from "express";
-import { db } from "../db";
+import { db } from "../initDb";
 
 // routes/settings.js
 export const settingsRouter = express.Router();

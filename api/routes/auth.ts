@@ -1,34 +1,121 @@
 import { Router, Request, Response } from "express";
-import { db } from "../db";
+import bcrypt from "bcryptjs";
+import { db } from "../initDb";
+import { generateToken, authenticateToken, AuthenticatedRequest } from "../middleware/auth";
 
 export const authRouter = Router();
 
 authRouter.post("/login", (req: Request, res: Response) => {
   const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: "Username and password are required" });
+  }
+
   db.get(
-    "SELECT * FROM users WHERE username = ? AND password = ?",
-    [username, password],
-    (err, row) => {
-      if (err) return res.status(500).json({ error: err.message });
-      if (!row) return res.status(401).json({ error: "Invalid credentials" });
-      res.json({ success: true, user: row });
+    "SELECT id, username, password_hash, email, created_at FROM users WHERE username = ?",
+    [username],
+    (err, row: any) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res.status(500).json({ error: "Internal server error" });
+      }
+      
+      if (!row) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      // Verify password
+      bcrypt.compare(password, row.password_hash, (err, isMatch) => {
+        if (err) {
+          console.error("Password comparison error:", err);
+          return res.status(500).json({ error: "Internal server error" });
+        }
+
+        if (!isMatch) {
+          return res.status(401).json({ error: "Invalid credentials" });
+        }
+
+        // Return user data (without password hash)
+        const { password_hash, ...user } = row;
+        const userData = {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          createdAt: user.created_at
+        };
+        
+        // Generate JWT token
+        const token = generateToken(userData);
+        
+        res.json({ 
+          success: true, 
+          user: userData,
+          token
+        });
+      });
     }
   );
 });
 
 authRouter.post("/signup", (req: Request, res: Response) => {
-  const { username, password } = req.body;
-  db.run(
-    "INSERT INTO users(username, password) VALUES(?, ?)",
-    [username, password],
-    function (err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ success: true, userId: this.lastID });
+  const { username, password, email } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: "Username and password are required" });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ error: "Password must be at least 6 characters long" });
+  }
+
+  // Hash password
+  bcrypt.hash(password, 10, (err, hashedPassword) => {
+    if (err) {
+      console.error("Password hashing error:", err);
+      return res.status(500).json({ error: "Internal server error" });
     }
-  );
+
+    db.run(
+      "INSERT INTO users(username, password_hash, email) VALUES(?, ?, ?)",
+      [username, hashedPassword, email || null],
+      function (err) {
+        if (err) {
+          if (err.message.includes("UNIQUE constraint failed")) {
+            return res.status(409).json({ error: "Username already exists" });
+          }
+          console.error("Database error:", err);
+          return res.status(500).json({ error: "Internal server error" });
+        }
+
+        const userData = {
+          id: this.lastID,
+          username,
+          email: email || null
+        };
+        
+        // Generate JWT token
+        const token = generateToken(userData);
+        
+        res.json({ 
+          success: true, 
+          user: userData,
+          token
+        });
+      }
+    );
+  });
 });
 
 authRouter.post("/logout", (_req: Request, res: Response) => {
-  // placeholder, actual logout depends on session/token handling
-  res.json({ success: true });
+  // For now, just return success. In a real app, you'd invalidate the session/token
+  res.json({ success: true, message: "Logged out successfully" });
+});
+
+// Get current user info (for session validation)
+authRouter.get("/me", authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  res.json({ 
+    success: true, 
+    user: req.user
+  });
 });
