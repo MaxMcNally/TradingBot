@@ -34,12 +34,13 @@ const createWrapper = () => {
   });
   const theme = createTheme();
   
-  return ({ children }: { children: React.ReactNode }) => 
-    React.createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      React.createElement(ThemeProvider, { theme }, children)
-    );
+  return ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider theme={theme}>
+        {children}
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
 };
 
 const mockPublicStrategies = [
