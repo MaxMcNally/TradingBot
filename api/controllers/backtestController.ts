@@ -1,6 +1,9 @@
 import { Request, Response } from "express";
 import { spawn } from "child_process";
 import path from "path";
+import { YahooDataProvider } from "../../src/dataProviders/yahooProvider";
+import { SmartCacheManager } from "../../src/cache/SmartCacheManager";
+import { CacheManager } from "../../src/cache/CacheManager";
 
 export interface BacktestRequest {
   strategy: string;
@@ -11,6 +14,9 @@ export interface BacktestRequest {
   threshold?: number;
   initialCapital?: number;
   sharesPerTrade?: number;
+  useCache?: boolean;
+  prepopulateCache?: boolean;
+  showCacheStats?: boolean;
 }
 
 export interface BacktestResponse {
@@ -25,6 +31,15 @@ export interface BacktestResponse {
     winRate: number;
     maxDrawdown: number;
   }[];
+  cacheStats?: {
+    symbol: string;
+    cachedRanges: number;
+    coverage?: {
+      start: string;
+      end: string;
+      totalDays: number;
+    };
+  };
 }
 
 export const runBacktest = async (req: Request, res: Response) => {
@@ -37,7 +52,10 @@ export const runBacktest = async (req: Request, res: Response) => {
       window = 20,
       threshold = 0.05,
       initialCapital = 10000,
-      sharesPerTrade = 100
+      sharesPerTrade = 100,
+      useCache = true,
+      prepopulateCache = false,
+      showCacheStats = false
     }: BacktestRequest = req.body;
 
     // Validate required fields
@@ -91,7 +109,10 @@ export const runBacktest = async (req: Request, res: Response) => {
           window,
           threshold,
           initialCapital,
-          sharesPerTrade
+          sharesPerTrade,
+          useCache,
+          prepopulateCache,
+          showCacheStats
         });
         
         results.push({
@@ -142,9 +163,12 @@ const runSingleBacktest = async (params: {
   threshold: number;
   initialCapital: number;
   sharesPerTrade: number;
+  useCache: boolean;
+  prepopulateCache: boolean;
+  showCacheStats: boolean;
 }): Promise<any> => {
   return new Promise((resolve, reject) => {
-    const { symbol, startDate, endDate, window, threshold, initialCapital, sharesPerTrade } = params;
+    const { symbol, startDate, endDate, window, threshold, initialCapital, sharesPerTrade, useCache, prepopulateCache, showCacheStats } = params;
     
     // Path to the backtest script
     const backtestScript = path.join(__dirname, '../../src/backtest.ts');
@@ -159,6 +183,17 @@ const runSingleBacktest = async (params: {
       '--capital', initialCapital.toString(),
       '--shares', sharesPerTrade.toString()
     ];
+
+    // Add cache-related flags
+    if (!useCache) {
+      args.push('--no-cache');
+    }
+    if (prepopulateCache) {
+      args.push('--prepopulate');
+    }
+    if (showCacheStats) {
+      args.push('--cache-stats');
+    }
 
     console.log(`Running backtest: npx ts-node ${backtestScript} ${args.join(' ')}`);
 

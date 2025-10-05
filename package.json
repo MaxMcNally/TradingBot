@@ -9,7 +9,11 @@
     "dev:client": "cd client && yarn dev",
     "dev": "yarn dev:server && yarn dev:client",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
-    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix && prettier --write ."
+    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix && prettier --write .",
+    "backtest": "npx ts-node src/backtest.ts",
+    "cache:stats": "npx ts-node src/cache/cacheCLI.ts stats",
+    "cache:cleanup": "npx ts-node src/cache/cacheCLI.ts cleanup",
+    "cache:demo": "npx ts-node src/cache/example.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.901.0",

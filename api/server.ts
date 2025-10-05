@@ -7,6 +7,7 @@ import {authRouter} from "./routes/auth";
 import {settingsRouter} from "./routes/settings";
 import {backtestRouter} from "./routes/backtest";
 import {symbolRouter} from "./routes/symbols";
+import {cacheRouter} from "./routes/cache";
 import { initDatabase } from "./initDb";
 
 dotenv.config();
@@ -31,6 +32,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/settings", settingsRouter);
 app.use("/api/backtest", backtestRouter);
 app.use("/api/symbols", symbolRouter);
+app.use("/api/cache", cacheRouter);
 app.get("/ping", (req, res) => {
   console.log("Ping route hit ✅");
   res.json({ status: "ok" });
