@@ -1,46 +1,49 @@
+import { MeanReversionStrategy, MeanReversionConfig, runMeanReversionStrategy } from './meanReversionStrategy';
+
 export interface Trade {
   symbol: string;
   date: string;
   action: "BUY" | "SELL";
   price: number;
   shares: number;
+  movingAverage?: number;
+  deviation?: number;
 }
 
 export interface BacktestResult {
   trades: Trade[];
   finalPortfolioValue: number;
+  totalReturn: number;
+  winRate: number;
+  maxDrawdown: number;
+}
+
+export interface StrategyConfig {
+  window: number;        // x-day moving average window
+  threshold: number;     // y percent threshold (e.g., 0.05 for 5%)
+  initialCapital: number;
+  sharesPerTrade: number;
 }
 
 export function runStrategy(
   symbol: string,
-  data: { date: string; close: number, open: number }[]
-): BacktestResult {
-  const trades: Trade[] = [];
-
-  // example simple strategy: buy at first day, sell at last
-  if (data.length >= 2) {
-    trades.push({
-      symbol,
-      date: data[0].date,
-      action: "BUY",
-      price: data[0].open,
-      shares: 100,
-    });
-
-    trades.push({
-      symbol,
-      date: data[data.length - 1].date,
-      action: "SELL",
-      price: data[data.length - 1].close,
-      shares: 100,
-    });
+  data: { date: string; close: number, open: number }[],
+  config: StrategyConfig = {
+    window: 20,
+    threshold: 0.05,
+    initialCapital: 10000,
+    sharesPerTrade: 100
   }
-
-  const finalPortfolioValue = trades.reduce(
-    (acc, t) =>
-      t.action === "BUY" ? acc - t.price * t.shares : acc + t.price * t.shares,
-    0
-  );
-
-  return { trades, finalPortfolioValue };
+): BacktestResult {
+  // Use the dedicated mean reversion strategy
+  const result = runMeanReversionStrategy(symbol, data, config);
+  
+  // Convert the result to match the expected interface
+  return {
+    trades: result.trades,
+    finalPortfolioValue: result.finalPortfolioValue,
+    totalReturn: result.totalReturn,
+    winRate: result.winRate,
+    maxDrawdown: result.maxDrawdown
+  };
 }
