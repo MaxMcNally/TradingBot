@@ -4,6 +4,7 @@ export interface User {
   id: string;
   email: string;
   name?: string;
+  username?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -15,6 +16,12 @@ export interface Setting {
   value: string;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface AccountSettings {
+  name: string;
+  email: string;
+  username: string;
 }
 
 export interface SettingsFormData {

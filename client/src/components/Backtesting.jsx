@@ -13,6 +13,7 @@ import {
   Chip,
   Card,
   CardContent,
+  CardActions,
   Table,
   TableBody,
   TableCell,
@@ -24,26 +25,21 @@ import {
   Autocomplete,
   Divider,
   Stack,
-  LinearProgress,
-  SelectChangeEvent
+  LinearProgress
 } from "@mui/material";
 import {
   PlayArrow,
+  Refresh,
+  TrendingUp,
+  TrendingDown,
   Assessment,
   Timeline
 } from "@mui/icons-material";
-import { runBacktest, getStrategies, searchSymbols, searchWithYahoo, getPopularSymbols } from "../../api";
-import { 
-  BacktestFormData, 
-  BacktestResponse, 
-  Strategy, 
-  SymbolOption, 
-  SearchSource 
-} from "./Backtesting.types";
+import { runBacktest, getStrategies, searchSymbols, searchWithYahoo, getPopularSymbols } from "../api";
 
-const Backtesting: React.FC = () => {
+const Backtesting = () => {
   // State management
-  const [formData, setFormData] = useState<BacktestFormData>({
+  const [formData, setFormData] = useState({
     strategy: "meanReversion",
     symbols: [],
     startDate: "2023-01-01",
@@ -54,16 +50,16 @@ const Backtesting: React.FC = () => {
     sharesPerTrade: 100
   });
 
-  const [availableStrategies, setAvailableStrategies] = useState<Strategy[]>([]);
-  const [symbolOptions, setSymbolOptions] = useState<SymbolOption[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [results, setResults] = useState<BacktestResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [symbolSearchQuery, setSymbolSearchQuery] = useState<string>("");
-  const [isSearching, setIsSearching] = useState<boolean>(false);
-  const [searchSource, setSearchSource] = useState<SearchSource>("yahoo-finance");
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [availableStrategies, setAvailableStrategies] = useState([]);
+  const [symbolOptions, setSymbolOptions] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [results, setResults] = useState(null);
+  const [error, setError] = useState(null);
+  const [symbolSearchQuery, setSymbolSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchSource, setSearchSource] = useState("yahoo-finance");
+  const [searchError, setSearchError] = useState(null);
+  const [searchTimeout, setSearchTimeout] = useState(null);
 
   // Load available strategies on component mount
   useEffect(() => {
@@ -79,7 +75,7 @@ const Backtesting: React.FC = () => {
     };
   }, [searchTimeout]);
 
-  const loadStrategies = async (): Promise<void> => {
+  const loadStrategies = async () => {
     try {
       const response = await getStrategies();
       setAvailableStrategies(response.data.data.strategies);
@@ -88,7 +84,7 @@ const Backtesting: React.FC = () => {
     }
   };
 
-  const handleSymbolSearch = async (query: string): Promise<void> => {
+  const handleSymbolSearch = async (query) => {
     if (query.length < 1) {
       // Load popular symbols when query is empty
       try {
@@ -135,14 +131,14 @@ const Backtesting: React.FC = () => {
     }
   };
 
-  const handleInputChange = (field: keyof BacktestFormData, value: string | number): void => {
+  const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
-  const handleAddSymbol = (symbol: string): void => {
+  const handleAddSymbol = (symbol) => {
     if (symbol && !formData.symbols.includes(symbol)) {
       setFormData(prev => ({
         ...prev,
@@ -152,14 +148,14 @@ const Backtesting: React.FC = () => {
     }
   };
 
-  const handleRemoveSymbol = (symbolToRemove: string): void => {
+  const handleRemoveSymbol = (symbolToRemove) => {
     setFormData(prev => ({
       ...prev,
       symbols: prev.symbols.filter(symbol => symbol !== symbolToRemove)
     }));
   };
 
-  const handleRunBacktest = async (): Promise<void> => {
+  const handleRunBacktest = async () => {
     if (formData.symbols.length === 0) {
       setError("Please select at least one symbol");
       return;
@@ -176,21 +172,21 @@ const Backtesting: React.FC = () => {
       });
       
       setResults(response.data);
-    } catch (err: any) {
+    } catch (err) {
       setError(err.response?.data?.error || "Failed to run backtest");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const formatCurrency = (amount: number): string => {
+  const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
     }).format(amount);
   };
 
-  const formatPercentage = (value: number): string => {
+  const formatPercentage = (value) => {
     return `${(value * 100).toFixed(2)}%`;
   };
 
@@ -207,7 +203,7 @@ const Backtesting: React.FC = () => {
 
       <Grid container spacing={3}>
         {/* Configuration Panel */}
-        <Grid>
+        <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               Backtest Configuration
@@ -220,7 +216,7 @@ const Backtesting: React.FC = () => {
                 <Select
                   value={formData.strategy}
                   label="Strategy"
-                  onChange={(e: SelectChangeEvent) => handleInputChange('strategy', e.target.value)}
+                  onChange={(e) => handleInputChange('strategy', e.target.value)}
                 >
                   {availableStrategies.map((strategy) => (
                     <MenuItem key={strategy.name} value={strategy.name}>
@@ -253,24 +249,24 @@ const Backtesting: React.FC = () => {
                   </Alert>
                 )}
                 
-                <Autocomplete<SymbolOption, false, false, true>
+                <Autocomplete
                   freeSolo
                   options={symbolOptions}
-                  getOptionLabel={(option) => typeof option === 'string' ? option : option.symbol}
+                  getOptionLabel={(option) => option.symbol || option}
                   value={symbolSearchQuery}
                   loading={isSearching}
                   onInputChange={(event, newValue) => {
-                    setSymbolSearchQuery(newValue || "");
+                    setSymbolSearchQuery(newValue);
                     // Debounce search to avoid too many API calls
                     if (searchTimeout) {
                       clearTimeout(searchTimeout);
                     }
                     const timeoutId = setTimeout(() => {
-                      handleSymbolSearch(newValue || "");
+                      handleSymbolSearch(newValue);
                     }, 300);
                     setSearchTimeout(timeoutId);
                   }}
-                  onChange={(_, newValue) => {
+                  onChange={(event, newValue) => {
                     if (newValue && typeof newValue === 'object') {
                       handleAddSymbol(newValue.symbol);
                     }

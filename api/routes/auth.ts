@@ -119,3 +119,71 @@ authRouter.get("/me", authenticateToken, (req: AuthenticatedRequest, res: Respon
     user: req.user
   });
 });
+
+// Update account settings
+authRouter.put("/account", authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  const { name, email, username } = req.body;
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ error: "User not authenticated" });
+  }
+
+  // Validate input
+  if (!name || !email || !username) {
+    return res.status(400).json({ error: "Name, email, and username are required" });
+  }
+
+  // Check if username is already taken by another user
+  db.get(
+    "SELECT id FROM users WHERE username = ? AND id != ?",
+    [username, userId],
+    (err, row: any) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res.status(500).json({ error: "Internal server error" });
+      }
+
+      if (row) {
+        return res.status(409).json({ error: "Username already exists" });
+      }
+
+      // Update user information
+      db.run(
+        "UPDATE users SET username = ?, email = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        [username, email, userId],
+        function (err) {
+          if (err) {
+            console.error("Database error:", err);
+            return res.status(500).json({ error: "Internal server error" });
+          }
+
+          // Get updated user data
+          db.get(
+            "SELECT id, username, email, created_at FROM users WHERE id = ?",
+            [userId],
+            (err, user: any) => {
+              if (err) {
+                console.error("Database error:", err);
+                return res.status(500).json({ error: "Internal server error" });
+              }
+
+              const userData = {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                name: name, // Store name in settings or add to users table
+                createdAt: user.created_at
+              };
+
+              res.json({ 
+                success: true, 
+                user: userData
+              });
+            }
+          );
+        }
+      );
+    }
+  );
+});

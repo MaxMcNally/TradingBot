@@ -124,6 +124,10 @@ export const getSettings = (user_id: string): Promise<AxiosResponse<Setting[]>> 
 export const saveSetting = (data: { user_id: string; setting_key: string; setting_value: string }): Promise<AxiosResponse<ApiResponse>> => 
   api.post('/settings', data);
 
+// Account Settings API
+export const updateAccountSettings = (data: { name: string; email: string; username: string }): Promise<AxiosResponse<ApiResponse<User>>> => 
+  api.put('/auth/account', data);
+
 // Backtest API
 export const runBacktest = (data: BacktestRequest): Promise<AxiosResponse<ApiResponse<BacktestResponse>>> => 
   api.post('/backtest/run', data);
