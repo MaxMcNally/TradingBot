@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
-  Grid2 as Grid,
+  Grid,
   Tabs,
   Tab,
   Paper,
@@ -15,10 +15,10 @@ import {
   Assessment,
   AccountBalance,
 } from "@mui/icons-material";
-import { getCurrentUser } from "../../api";
 import TradingResults from "./TradingResults";
 import { StockPicker, StrategySelector } from "../shared";
 import TradingSessionControls from "./TradingSessionControls";
+import { useUser } from "../../hooks";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -44,9 +44,7 @@ function TabPanel(props: TabPanelProps) {
 
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user, isLoading: userLoading, error: userError } = useUser();
 
   // Trading session state
   const [selectedStocks, setSelectedStocks] = useState<string[]>([]);
@@ -57,23 +55,6 @@ const Dashboard: React.FC = () => {
   });
   const [activeSession, setActiveSession] = useState<any>(null);
 
-  useEffect(() => {
-    fetchCurrentUser();
-  }, []);
-
-  const fetchCurrentUser = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await getCurrentUser();
-      setUser(response.data);
-    } catch (err) {
-      console.error("Error fetching current user:", err);
-      setError("Failed to load user data");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
@@ -100,7 +81,7 @@ const Dashboard: React.FC = () => {
     setActiveSession(null);
   };
 
-  if (loading) {
+  if (userLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
@@ -108,10 +89,10 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (userError) {
     return (
       <Alert severity="error">
-        {error}
+        {userError.message}
       </Alert>
     );
   }
@@ -175,14 +156,14 @@ const Dashboard: React.FC = () => {
         {/* Stock Selection Tab */}
         <TabPanel value={activeTab} index={1}>
           <Grid container spacing={3}>
-            <Grid xs={12} lg={8}>
+            <Grid item xs={12} lg={8}>
               <StockPicker
                 selectedStocks={selectedStocks}
                 onStocksChange={handleStocksChange}
                 maxStocks={10}
               />
             </Grid>
-            <Grid xs={12} lg={4}>
+            <Grid item xs={12} lg={4}>
               <Paper sx={{ p: 2, height: 'fit-content' }}>
                 <Typography variant="h6" gutterBottom>
                   Selection Summary
@@ -222,7 +203,7 @@ const Dashboard: React.FC = () => {
         {/* Strategy Configuration Tab */}
         <TabPanel value={activeTab} index={2}>
           <Grid container spacing={3}>
-            <Grid xs={12} lg={8}>
+            <Grid item xs={12} lg={8}>
               <StrategySelector
                 selectedStrategy={selectedStrategy}
                 onStrategyChange={handleStrategyChange}
@@ -230,7 +211,7 @@ const Dashboard: React.FC = () => {
                 onParametersChange={handleParametersChange}
               />
             </Grid>
-            <Grid xs={12} lg={4}>
+            <Grid item xs={12} lg={4}>
               <Paper sx={{ p: 2, height: 'fit-content' }}>
                 <Typography variant="h6" gutterBottom>
                   Strategy Summary
@@ -257,7 +238,7 @@ const Dashboard: React.FC = () => {
         {/* Session Controls Tab */}
         <TabPanel value={activeTab} index={3}>
           <Grid container spacing={3}>
-            <Grid xs={12} lg={8}>
+            <Grid item xs={12} lg={8}>
               <TradingSessionControls
                 userId={parseInt(user.id)}
                 selectedStocks={selectedStocks}
@@ -267,7 +248,7 @@ const Dashboard: React.FC = () => {
                 onSessionStopped={handleSessionStopped}
               />
             </Grid>
-            <Grid xs={12} lg={4}>
+            <Grid item xs={12} lg={4}>
               <Paper sx={{ p: 2, height: 'fit-content' }}>
                 <Typography variant="h6" gutterBottom>
                   Session Status

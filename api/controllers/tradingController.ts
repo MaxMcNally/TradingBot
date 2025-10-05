@@ -164,7 +164,9 @@ export const startTradingSession = async (req: Request, res: Response) => {
       start_time: new Date().toISOString(),
       mode: mode || 'PAPER',
       initial_cash: initialCash || 10000,
-      status: 'ACTIVE'
+      status: 'ACTIVE',
+      total_trades: 0,
+      winning_trades: 0
     });
 
     res.json({

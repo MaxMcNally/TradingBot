@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { login, signup } from "../../api";
+import { signup } from "../../api";
 import {
   TextField,
   Button,
@@ -12,9 +12,11 @@ import {
   Link
 } from "@mui/material";
 import { Login as LoginIcon, PersonAdd } from "@mui/icons-material";
-import { LoginProps, LoginFormData, User } from "./Login.types";
+import { LoginFormData } from "./Login.types";
+import { useUser } from "../../hooks";
 
-const Login: React.FC<LoginProps> = ({ setUser }) => {
+const Login: React.FC = () => {
+  const { login, isLoading: userLoading, error: userError } = useUser();
   const [formData, setFormData] = useState<LoginFormData>({
     username: "",
     password: "",
@@ -50,24 +52,18 @@ const Login: React.FC<LoginProps> = ({ setUser }) => {
     setError("");
 
     try {
-      const requestData = isSignup 
-        ? { username: formData.username, password: formData.password, email: formData.email }
-        : { username: formData.username, password: formData.password };
-
-      const res = isSignup
-        ? await signup(requestData)
-        : await login(requestData);
-      
-      // Store token and user data
-      if (res.data.token) {
-        localStorage.setItem('authToken', res.data.token);
-        localStorage.setItem('user', JSON.stringify(res.data.user));
+      if (isSignup) {
+        const requestData = { username: formData.username, password: formData.password, email: formData.email };
+        await signup(requestData);
+        setError("");
+        // After successful signup, automatically log in
+        await login(formData.username, formData.password);
+      } else {
+        await login(formData.username, formData.password);
+        setError("");
       }
-      
-      setUser(res.data.user);
-      setError("");
     } catch (err: any) {
-      setError(err.response?.data?.error || "An error occurred");
+      setError(err.response?.data?.error || err.message || "An error occurred");
     } finally {
       setIsLoading(false);
     }

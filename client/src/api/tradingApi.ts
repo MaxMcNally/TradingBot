@@ -1,5 +1,12 @@
 import axios, { AxiosResponse } from "axios";
-import { api } from "../api";
+
+const API_BASE = "http://localhost:8001/api";
+
+// Create axios instance with default config
+const api = axios.create({
+  baseURL: API_BASE,
+  withCredentials: true
+});
 
 // Trading-specific types
 export interface UserTradingStats {

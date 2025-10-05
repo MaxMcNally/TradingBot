@@ -1,36 +1,26 @@
-import React, { useState } from "react";
+import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import AppLayout from "./components/AppLayout";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
-import Login from "./components/Login";
+import Login from "./components/Login/Login";
 import Dashboard from "./components/Dashboard";
 import Settings from "./components/Settings";
-import Backtesting from "./components/Backtesting";
+import Backtesting from "./components/Backtesting/Backtesting";
 import ThemeProvider from "./components/ThemeProvider";
-import { User } from "./components/Login/Login.types";
-import { logout } from "./api";
+import { QueryProvider } from "./providers/QueryProvider";
+import { useUser } from "./hooks";
 
-const App: React.FC = () => {
-  const [user, setUser] = useState<User | null>(null);
+const AppContent: React.FC = () => {
+  const { user, logout } = useUser();
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setUser(null);
-    }
-  };
-
-  if (!user) return <Login setUser={setUser} />;
+  if (!user) return <Login />;
 
   return (
     <Router>
       <ThemeProvider>
         <AppLayout
-          header={<Header user={user} onLogout={handleLogout} />}
+          header={<Header user={user} onLogout={logout} />}
           footer={<Footer user={user} />}
         >
           <Routes>
@@ -41,6 +31,14 @@ const App: React.FC = () => {
         </AppLayout>
       </ThemeProvider>
     </Router>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <QueryProvider>
+      <AppContent />
+    </QueryProvider>
   );
 };
 

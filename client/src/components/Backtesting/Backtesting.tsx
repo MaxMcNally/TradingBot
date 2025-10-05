@@ -24,13 +24,13 @@ import {
   Assessment,
   Timeline
 } from "@mui/icons-material";
-import { runBacktest, getStrategies } from "../../api";
 import { 
   BacktestFormData, 
   BacktestResponse, 
   Strategy
 } from "./Backtesting.types";
 import { StockPicker, StrategySelector } from "../shared";
+import { useStrategies, useBacktest } from "../../hooks";
 
 const Backtesting: React.FC = () => {
   // State management
@@ -64,8 +64,6 @@ const Backtesting: React.FC = () => {
     confirmationPeriod: 2
   });
 
-  const [availableStrategies, setAvailableStrategies] = useState<Strategy[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [results, setResults] = useState<BacktestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   
@@ -75,19 +73,9 @@ const Backtesting: React.FC = () => {
     longWindow: 10,
   });
 
-  // Load available strategies on component mount
-  useEffect(() => {
-    loadStrategies();
-  }, []);
-
-  const loadStrategies = async (): Promise<void> => {
-    try {
-      const response = await getStrategies();
-      setAvailableStrategies(response.data.data.strategies);
-    } catch (err) {
-      console.error("Failed to load strategies:", err);
-    }
-  };
+  // Use hooks for strategies and backtesting
+  const { strategies: availableStrategies, isLoading: strategiesLoading, isError: strategiesError } = useStrategies();
+  const { runBacktest: runBacktestMutation, isLoading: backtestLoading, isError: backtestError, data: backtestData } = useBacktest();
 
 
   const handleInputChange = (field: keyof BacktestFormData, value: string | number): void => {
@@ -143,7 +131,6 @@ const Backtesting: React.FC = () => {
       return;
     }
 
-    setIsLoading(true);
     setError(null);
     setResults(null);
 
@@ -155,12 +142,10 @@ const Backtesting: React.FC = () => {
         symbols: formData.symbols.length === 1 ? formData.symbols[0] : formData.symbols
       };
       
-      const response = await runBacktest(backtestData);
-      setResults(response.data);
+      const response = await runBacktestMutation(backtestData);
+      setResults(response);
     } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to run backtest");
-    } finally {
-      setIsLoading(false);
+      setError(err.response?.data?.error || err.message || "Failed to run backtest");
     }
   };
 
@@ -175,8 +160,16 @@ const Backtesting: React.FC = () => {
     return `${(value * 100).toFixed(2)}%`;
   };
   
-  if(availableStrategies.length === 0) {
+  if (strategiesLoading) {
     return <CircularProgress />;
+  }
+
+  if (strategiesError) {
+    return (
+      <Box p={3}>
+        <Alert severity="error">Failed to load strategies</Alert>
+      </Box>
+    );
   }
   
   return (
@@ -278,11 +271,11 @@ const Backtesting: React.FC = () => {
                 variant="contained"
                 size="large"
                 onClick={handleRunBacktest}
-                disabled={isLoading || formData.symbols.length === 0}
-                startIcon={isLoading ? <CircularProgress size={20} /> : <PlayArrow />}
+                disabled={backtestLoading || formData.symbols.length === 0}
+                startIcon={backtestLoading ? <CircularProgress size={20} /> : <PlayArrow />}
                 fullWidth
               >
-                {isLoading ? 'Running Backtest...' : 'Run Backtest'}
+                {backtestLoading ? 'Running Backtest...' : 'Run Backtest'}
               </Button>
             </Stack>
           </Paper>
@@ -296,7 +289,7 @@ const Backtesting: React.FC = () => {
             </Alert>
           )}
 
-          {isLoading && (
+          {backtestLoading && (
             <Paper sx={{ p: 3, textAlign: 'center' }}>
               <CircularProgress sx={{ mb: 2 }} />
               <Typography>Running backtest...</Typography>
@@ -400,7 +393,7 @@ const Backtesting: React.FC = () => {
             </Box>
           )}
 
-          {!results && !isLoading && !error && (
+          {!results && !backtestLoading && !error && (
             <Paper sx={{ p: 3, textAlign: 'center' }}>
               <Typography variant="h6" color="text.secondary">
                 Configure your backtest and click "Run Backtest" to see results
