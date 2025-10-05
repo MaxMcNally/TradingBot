@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import yahooFinance from 'yahoo-finance2';
 
 // Popular stock symbols with their names
 const POPULAR_SYMBOLS = [
@@ -110,9 +111,9 @@ const POPULAR_SYMBOLS = [
   { symbol: "TEAM", name: "Atlassian Corporation Plc", exchange: "NASDAQ" }
 ];
 
-export const searchSymbols = (req: Request, res: Response) => {
+export const searchSymbols = async (req: Request, res: Response) => {
   try {
-    const { q } = req.query;
+    const { q, useYahoo = 'true' } = req.query;
     
     if (!q || typeof q !== 'string') {
       return res.status(400).json({
@@ -132,7 +133,25 @@ export const searchSymbols = (req: Request, res: Response) => {
       });
     }
 
-    // Filter symbols based on query
+    // Use Yahoo Finance search if requested (default behavior)
+    if (useYahoo === 'true') {
+      try {
+        const yahooResults = await searchWithYahooFinance(query);
+        return res.json({
+          success: true,
+          data: {
+            symbols: yahooResults,
+            query: q,
+            source: 'yahoo-finance'
+          }
+        });
+      } catch (yahooError) {
+        console.warn("Yahoo Finance search failed, falling back to static list:", yahooError);
+        // Fall back to static search if Yahoo Finance fails
+      }
+    }
+
+    // Fallback to static search
     const filteredSymbols = POPULAR_SYMBOLS.filter(symbol => 
       symbol.symbol.toLowerCase().includes(query) ||
       symbol.name.toLowerCase().includes(query)
@@ -142,7 +161,8 @@ export const searchSymbols = (req: Request, res: Response) => {
       success: true,
       data: {
         symbols: filteredSymbols,
-        query: q
+        query: q,
+        source: 'static'
       }
     });
 
@@ -152,6 +172,40 @@ export const searchSymbols = (req: Request, res: Response) => {
       success: false,
       error: "Internal server error during symbol search"
     });
+  }
+};
+
+// New function to search using Yahoo Finance
+const searchWithYahooFinance = async (query: string) => {
+  try {
+    const searchResults = await yahooFinance.search(query, {
+      quotesCount: 20,
+      newsCount: 0
+    });
+
+    // Transform Yahoo Finance results to match our expected format
+    const symbols = searchResults.quotes
+      .filter(quote => {
+        // Only include results that have the required properties for stock quotes
+        return 'symbol' in quote && 'longname' in quote && quote.symbol && quote.longname;
+      })
+      .map(quote => {
+        // Type assertion since we've filtered for the correct type
+        const stockQuote = quote as any;
+        return {
+          symbol: stockQuote.symbol,
+          name: stockQuote.longname || stockQuote.shortname || stockQuote.symbol,
+          exchange: stockQuote.exchange || 'Unknown',
+          type: stockQuote.type || 'EQUITY',
+          market: stockQuote.market || 'Unknown'
+        };
+      })
+      .slice(0, 20); // Limit to 20 results
+
+    return symbols;
+  } catch (error) {
+    console.error("Yahoo Finance search error:", error);
+    throw error;
   }
 };
 
@@ -168,6 +222,48 @@ export const getPopularSymbols = (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       error: "Internal server error"
+    });
+  }
+};
+
+// New dedicated Yahoo Finance search endpoint
+export const searchWithYahoo = async (req: Request, res: Response) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q || typeof q !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: "Query parameter 'q' is required"
+      });
+    }
+
+    const query = q.toLowerCase().trim();
+    
+    if (query.length < 1) {
+      return res.status(400).json({
+        success: false,
+        error: "Query parameter 'q' cannot be empty"
+      });
+    }
+
+    const yahooResults = await searchWithYahooFinance(query);
+    
+    res.json({
+      success: true,
+      data: {
+        symbols: yahooResults,
+        query: q,
+        source: 'yahoo-finance',
+        count: yahooResults.length
+      }
+    });
+
+  } catch (error) {
+    console.error("Yahoo Finance search error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to search with Yahoo Finance. Please try again later."
     });
   }
 };
