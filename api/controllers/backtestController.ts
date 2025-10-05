@@ -10,13 +10,32 @@ export interface BacktestRequest {
   symbols: string | string[];
   startDate: string;
   endDate: string;
-  window?: number;
-  threshold?: number;
+  // Common parameters
   initialCapital?: number;
   sharesPerTrade?: number;
   useCache?: boolean;
   prepopulateCache?: boolean;
   showCacheStats?: boolean;
+  // Mean Reversion parameters
+  window?: number;
+  threshold?: number;
+  // Moving Average Crossover parameters
+  fastWindow?: number;
+  slowWindow?: number;
+  maType?: 'SMA' | 'EMA';
+  // Momentum parameters
+  rsiWindow?: number;
+  rsiOverbought?: number;
+  rsiOversold?: number;
+  momentumWindow?: number;
+  momentumThreshold?: number;
+  // Bollinger Bands parameters
+  multiplier?: number;
+  // Breakout parameters
+  lookbackWindow?: number;
+  breakoutThreshold?: number;
+  minVolumeRatio?: number;
+  confirmationPeriod?: number;
 }
 
 export interface BacktestResponse {
@@ -49,13 +68,28 @@ export const runBacktest = async (req: Request, res: Response) => {
       symbols,
       startDate,
       endDate,
-      window = 20,
-      threshold = 0.05,
+      // Common parameters
       initialCapital = 10000,
       sharesPerTrade = 100,
       useCache = true,
       prepopulateCache = false,
-      showCacheStats = false
+      showCacheStats = false,
+      // Strategy-specific parameters with defaults
+      window = 20,
+      threshold = 0.05,
+      fastWindow = 10,
+      slowWindow = 30,
+      maType = 'SMA',
+      rsiWindow = 14,
+      rsiOverbought = 70,
+      rsiOversold = 30,
+      momentumWindow = 10,
+      momentumThreshold = 0.02,
+      multiplier = 2.0,
+      lookbackWindow = 20,
+      breakoutThreshold = 0.01,
+      minVolumeRatio = 1.5,
+      confirmationPeriod = 2
     }: BacktestRequest = req.body;
 
     // Validate required fields
@@ -67,7 +101,13 @@ export const runBacktest = async (req: Request, res: Response) => {
     }
 
     // Validate strategy
-    const validStrategies = ['meanReversion'];
+    const validStrategies = [
+      'meanReversion',
+      'movingAverageCrossover', 
+      'momentum',
+      'bollingerBands',
+      'breakout'
+    ];
     if (!validStrategies.includes(strategy)) {
       return res.status(400).json({
         success: false,
@@ -106,13 +146,29 @@ export const runBacktest = async (req: Request, res: Response) => {
           symbol,
           startDate,
           endDate,
-          window,
-          threshold,
+          strategy,
+          // Common parameters
           initialCapital,
           sharesPerTrade,
           useCache,
           prepopulateCache,
-          showCacheStats
+          showCacheStats,
+          // Strategy-specific parameters
+          window,
+          threshold,
+          fastWindow,
+          slowWindow,
+          maType,
+          rsiWindow,
+          rsiOverbought,
+          rsiOversold,
+          momentumWindow,
+          momentumThreshold,
+          multiplier,
+          lookbackWindow,
+          breakoutThreshold,
+          minVolumeRatio,
+          confirmationPeriod
         });
         
         results.push({
@@ -137,10 +193,25 @@ export const runBacktest = async (req: Request, res: Response) => {
         startDate,
         endDate,
         config: {
+          // Common parameters
+          initialCapital,
+          sharesPerTrade,
+          // Strategy-specific parameters
           window,
           threshold,
-          initialCapital,
-          sharesPerTrade
+          fastWindow,
+          slowWindow,
+          maType,
+          rsiWindow,
+          rsiOverbought,
+          rsiOversold,
+          momentumWindow,
+          momentumThreshold,
+          multiplier,
+          lookbackWindow,
+          breakoutThreshold,
+          minVolumeRatio,
+          confirmationPeriod
         },
         results
       }
@@ -159,16 +230,38 @@ const runSingleBacktest = async (params: {
   symbol: string;
   startDate: string;
   endDate: string;
-  window: number;
-  threshold: number;
+  strategy: string;
+  // Common parameters
   initialCapital: number;
   sharesPerTrade: number;
   useCache: boolean;
   prepopulateCache: boolean;
   showCacheStats: boolean;
+  // Strategy-specific parameters
+  window: number;
+  threshold: number;
+  fastWindow: number;
+  slowWindow: number;
+  maType: 'SMA' | 'EMA';
+  rsiWindow: number;
+  rsiOverbought: number;
+  rsiOversold: number;
+  momentumWindow: number;
+  momentumThreshold: number;
+  multiplier: number;
+  lookbackWindow: number;
+  breakoutThreshold: number;
+  minVolumeRatio: number;
+  confirmationPeriod: number;
 }): Promise<any> => {
   return new Promise((resolve, reject) => {
-    const { symbol, startDate, endDate, window, threshold, initialCapital, sharesPerTrade, useCache, prepopulateCache, showCacheStats } = params;
+    const { 
+      symbol, startDate, endDate, strategy,
+      initialCapital, sharesPerTrade, useCache, prepopulateCache, showCacheStats,
+      window, threshold, fastWindow, slowWindow, maType,
+      rsiWindow, rsiOverbought, rsiOversold, momentumWindow, momentumThreshold,
+      multiplier, lookbackWindow, breakoutThreshold, minVolumeRatio, confirmationPeriod
+    } = params;
     
     // Path to the backtest script
     const backtestScript = path.join(__dirname, '../../src/backtest.ts');
@@ -178,11 +271,35 @@ const runSingleBacktest = async (params: {
       '--symbol', symbol,
       '--start', startDate,
       '--end', endDate,
-      '--window', window.toString(),
-      '--threshold', threshold.toString(),
+      '--strategy', strategy,
       '--capital', initialCapital.toString(),
       '--shares', sharesPerTrade.toString()
     ];
+
+    // Add strategy-specific parameters
+    if (strategy === 'meanReversion') {
+      args.push('--window', window.toString());
+      args.push('--threshold', threshold.toString());
+    } else if (strategy === 'movingAverageCrossover') {
+      args.push('--fastWindow', fastWindow.toString());
+      args.push('--slowWindow', slowWindow.toString());
+      args.push('--maType', maType);
+    } else if (strategy === 'momentum') {
+      args.push('--rsiWindow', rsiWindow.toString());
+      args.push('--rsiOverbought', rsiOverbought.toString());
+      args.push('--rsiOversold', rsiOversold.toString());
+      args.push('--momentumWindow', momentumWindow.toString());
+      args.push('--momentumThreshold', momentumThreshold.toString());
+    } else if (strategy === 'bollingerBands') {
+      args.push('--window', window.toString());
+      args.push('--multiplier', multiplier.toString());
+      args.push('--maType', maType);
+    } else if (strategy === 'breakout') {
+      args.push('--lookbackWindow', lookbackWindow.toString());
+      args.push('--breakoutThreshold', breakoutThreshold.toString());
+      args.push('--minVolumeRatio', minVolumeRatio.toString());
+      args.push('--confirmationPeriod', confirmationPeriod.toString());
+    }
 
     // Add cache-related flags
     if (!useCache) {

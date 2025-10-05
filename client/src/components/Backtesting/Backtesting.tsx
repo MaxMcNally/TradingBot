@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Paper,
-  Grid,
   TextField,
   Button,
   FormControl,
@@ -40,6 +39,7 @@ import {
   SymbolOption, 
   SearchSource 
 } from "./Backtesting.types";
+import StrategyParamsSelector from "./strategyComponents/StrategyParamsSelector";
 
 const Backtesting: React.FC = () => {
   // State management
@@ -48,10 +48,29 @@ const Backtesting: React.FC = () => {
     symbols: [],
     startDate: "2023-01-01",
     endDate: "2023-12-31",
+    // Common parameters
+    initialCapital: 10000,
+    sharesPerTrade: 100,
+    // Mean Reversion parameters
     window: 20,
     threshold: 0.05,
-    initialCapital: 10000,
-    sharesPerTrade: 100
+    // Moving Average Crossover parameters
+    fastWindow: 10,
+    slowWindow: 30,
+    maType: 'SMA',
+    // Momentum parameters
+    rsiWindow: 14,
+    rsiOverbought: 70,
+    rsiOversold: 30,
+    momentumWindow: 10,
+    momentumThreshold: 0.02,
+    // Bollinger Bands parameters
+    multiplier: 2.0,
+    // Breakout parameters
+    lookbackWindow: 20,
+    breakoutThreshold: 0.01,
+    minVolumeRatio: 1.5,
+    confirmationPeriod: 2
   });
 
   const [availableStrategies, setAvailableStrategies] = useState<Strategy[]>([]);
@@ -205,9 +224,9 @@ const Backtesting: React.FC = () => {
         Test your trading strategies against historical data to evaluate performance.
       </Typography>
 
-      <Grid container spacing={3}>
+      <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', md: 'row' } }}>
         {/* Configuration Panel */}
-        <Grid>
+        <Box sx={{ flex: { xs: 1, md: '0 0 33.333%' } }}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               Backtest Configuration
@@ -259,7 +278,7 @@ const Backtesting: React.FC = () => {
                   getOptionLabel={(option) => typeof option === 'string' ? option : option.symbol}
                   value={symbolSearchQuery}
                   loading={isSearching}
-                  onInputChange={(event, newValue) => {
+                  onInputChange={(_, newValue) => {
                     setSymbolSearchQuery(newValue || "");
                     // Debounce search to avoid too many API calls
                     if (searchTimeout) {
@@ -339,52 +358,36 @@ const Backtesting: React.FC = () => {
               </Box>
 
               {/* Date Range */}
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="Start Date"
-                    type="date"
-                    value={formData.startDate}
-                    onChange={(e) => handleInputChange('startDate', e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="End Date"
-                    type="date"
-                    value={formData.endDate}
-                    onChange={(e) => handleInputChange('endDate', e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Grid>
-              </Grid>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <TextField
+                  fullWidth
+                  label="Start Date"
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => handleInputChange('startDate', e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                />
+                <TextField
+                  fullWidth
+                  label="End Date"
+                  type="date"
+                  value={formData.endDate}
+                  onChange={(e) => handleInputChange('endDate', e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Box>
 
               {/* Strategy Parameters */}
-              <Divider />
-              <Typography variant="subtitle2">Strategy Parameters</Typography>
+              <StrategyParamsSelector 
+                strategy={formData.strategy}
+                formData={formData}
+                onInputChange={handleInputChange}
+              />
+
+              {/* Common Parameters */}
+              <Divider sx={{ mt: 2, mb: 2 }} />
+              <Typography variant="subtitle2">Common Parameters</Typography>
               
-              <TextField
-                fullWidth
-                label="Moving Average Window (days)"
-                type="number"
-                value={formData.window}
-                onChange={(e) => handleInputChange('window', parseInt(e.target.value))}
-                inputProps={{ min: 5, max: 200 }}
-              />
-
-              <TextField
-                fullWidth
-                label="Threshold (%)"
-                type="number"
-                value={formData.threshold * 100}
-                onChange={(e) => handleInputChange('threshold', parseFloat(e.target.value) / 100)}
-                inputProps={{ min: 1, max: 20, step: 0.1 }}
-                helperText="Percentage deviation from moving average"
-              />
-
               <TextField
                 fullWidth
                 label="Initial Capital ($)"
@@ -392,6 +395,7 @@ const Backtesting: React.FC = () => {
                 value={formData.initialCapital}
                 onChange={(e) => handleInputChange('initialCapital', parseInt(e.target.value))}
                 inputProps={{ min: 1000 }}
+                sx={{ mb: 2 }}
               />
 
               <TextField
@@ -416,10 +420,10 @@ const Backtesting: React.FC = () => {
               </Button>
             </Stack>
           </Paper>
-        </Grid>
+        </Box>
 
         {/* Results Panel */}
-        <Grid item xs={12} md={8}>
+        <Box sx={{ flex: { xs: 1, md: '0 0 66.666%' } }}>
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
@@ -442,9 +446,9 @@ const Backtesting: React.FC = () => {
               </Typography>
 
               {/* Summary Cards */}
-              <Grid container spacing={2} sx={{ mb: 3 }}>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
                 {results.data.results.map((result, index) => (
-                  <Grid item xs={12} sm={6} md={4} key={index}>
+                  <Box key={index} sx={{ flex: { xs: '1 1 100%', sm: '1 1 calc(50% - 8px)', md: '1 1 calc(33.333% - 11px)' } }}>
                     <Card>
                       <CardContent>
                         <Typography variant="h6" color="primary">
@@ -472,9 +476,9 @@ const Backtesting: React.FC = () => {
                         </Box>
                       </CardContent>
                     </Card>
-                  </Grid>
+                  </Box>
                 ))}
-              </Grid>
+              </Box>
 
               {/* Detailed Results Table */}
               <Paper>
@@ -537,8 +541,8 @@ const Backtesting: React.FC = () => {
               </Typography>
             </Paper>
           )}
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
     </Box>
   );
 };

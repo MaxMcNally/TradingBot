@@ -13,10 +13,29 @@ export interface BacktestFormData {
   symbols: string[];
   startDate: string;
   endDate: string;
-  window: number;
-  threshold: number;
+  // Common parameters
   initialCapital: number;
   sharesPerTrade: number;
+  // Mean Reversion parameters
+  window: number;
+  threshold: number;
+  // Moving Average Crossover parameters
+  fastWindow: number;
+  slowWindow: number;
+  maType: 'SMA' | 'EMA';
+  // Momentum parameters
+  rsiWindow: number;
+  rsiOverbought: number;
+  rsiOversold: number;
+  momentumWindow: number;
+  momentumThreshold: number;
+  // Bollinger Bands parameters
+  multiplier: number;
+  // Breakout parameters
+  lookbackWindow: number;
+  breakoutThreshold: number;
+  minVolumeRatio: number;
+  confirmationPeriod: number;
 }
 
 export interface BacktestResult {
@@ -38,7 +57,17 @@ export interface BacktestResponse {
 export interface Strategy {
   name: string;
   description?: string;
-  parameters?: Record<string, any>;
+  category?: string;
+  parameters?: Record<string, StrategyParameter>;
+}
+
+export interface StrategyParameter {
+  type: 'number' | 'select';
+  description: string;
+  default: any;
+  min?: number;
+  max?: number;
+  options?: string[];
 }
 
 export interface SearchResponse {
