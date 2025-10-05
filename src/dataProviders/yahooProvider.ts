@@ -1,4 +1,3 @@
-import { DataProvider } from './baseProvider.js';
 const BASE_URL = "https://query1.finance.yahoo.com/v7/finance/download/";
 export class YahooDataProvider {
     constructor(){
@@ -11,8 +10,9 @@ export class YahooDataProvider {
         const url = `${BASE_URL}${symbol}?period1=${new Date(from).getTime() / 1000}&period2=${new Date(to).getTime() / 1000}&interval=${interval}&events=history`;
         try {
             const response = await fetch(url);
-            return Promise.resolve(response);
+return Promise.resolve(response);
         }
+        
         catch(e){
             return Promise.reject(e);
         }

@@ -5,7 +5,7 @@ export const saveSettings = async (req, res) => {
   const { username, settings } = req.body;
   const user = await User.findOne({ where: { username } });
   if (!user) return res.status(404).json({ message: "User not found" });
-  const [userSettings, created] = await Settings.upsert({ UserId: user.id, ...settings });
+  const [userSettings] = await Settings.upsert({ UserId: user.id, ...settings });
   return res.json({ message: "Settings saved successfully", settings: userSettings });
 };
 
