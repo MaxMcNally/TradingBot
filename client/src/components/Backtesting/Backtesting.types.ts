@@ -51,6 +51,11 @@ export interface BacktestResponse {
   success: boolean;
   data: {
     results: BacktestResult[];
+    totalReturn: number;
+    winRate: number;
+    totalTrades: number;
+    maxDrawdown: number;
+    finalPortfolioValue: number;
   };
 }
 

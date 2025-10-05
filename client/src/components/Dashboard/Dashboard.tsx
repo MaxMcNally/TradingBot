@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -14,11 +14,13 @@ import {
   Assessment,
   AccountBalance,
   DataUsage,
+  Tune,
 } from "@mui/icons-material";
 import TradingResults from "./TradingResults";
 import { StockPicker, StrategySelector } from "../shared";
 import TradingSessionControls from "./TradingSessionControls";
 import TestDataManager from "./TestDataManager";
+import StrategyParameters from "./StrategyParameters";
 import { useUser } from "../../hooks";
 
 interface TabPanelProps {
@@ -50,11 +52,51 @@ const Dashboard: React.FC = () => {
   // Trading session state
   const [selectedStocks, setSelectedStocks] = useState<string[]>([]);
   const [selectedStrategy, setSelectedStrategy] = useState<string>("MovingAverage");
-  const [strategyParameters, setStrategyParameters] = useState<Record<string, any>>({
-    shortWindow: 5,
-    longWindow: 10,
-  });
+  const [strategyParameters, setStrategyParameters] = useState<Record<string, any>>({});
   const [activeSession, setActiveSession] = useState<any>(null);
+
+  // Reset strategy parameters when strategy changes
+  useEffect(() => {
+    const defaultParams: Record<string, any> = {};
+    
+    switch (selectedStrategy) {
+      case 'meanReversion':
+      case 'MeanReversion':
+        defaultParams.window = 20;
+        defaultParams.threshold = 0.05;
+        break;
+      case 'movingAverage':
+      case 'MovingAverage':
+        defaultParams.shortWindow = 5;
+        defaultParams.longWindow = 10;
+        break;
+      case 'movingAverageCrossover':
+        defaultParams.fastWindow = 10;
+        defaultParams.slowWindow = 30;
+        defaultParams.maType = 'SMA';
+        break;
+      case 'momentum':
+      case 'Momentum':
+        defaultParams.rsiWindow = 14;
+        defaultParams.rsiOverbought = 70;
+        defaultParams.rsiOversold = 30;
+        break;
+      case 'bollingerBands':
+      case 'BollingerBands':
+        defaultParams.window = 20;
+        defaultParams.multiplier = 2.0;
+        break;
+      case 'breakout':
+      case 'Breakout':
+        defaultParams.lookbackWindow = 20;
+        defaultParams.breakoutThreshold = 0.01;
+        break;
+      default:
+        break;
+    }
+    
+    setStrategyParameters(defaultParams);
+  }, [selectedStrategy]);
 
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -136,21 +178,27 @@ const Dashboard: React.FC = () => {
             />
             <Tab
               icon={<Settings />}
-              label="Strategy Configuration"
+              label="Strategy Selection"
               id="dashboard-tab-2"
               aria-controls="dashboard-tabpanel-2"
             />
             <Tab
-              icon={<AccountBalance />}
-              label="Session Controls"
+              icon={<Tune />}
+              label="Strategy Parameters"
               id="dashboard-tab-3"
               aria-controls="dashboard-tabpanel-3"
             />
             <Tab
-              icon={<DataUsage />}
-              label="Test Data"
+              icon={<AccountBalance />}
+              label="Session Controls"
               id="dashboard-tab-4"
               aria-controls="dashboard-tabpanel-4"
+            />
+            <Tab
+              icon={<DataUsage />}
+              label="Test Data"
+              id="dashboard-tab-5"
+              aria-controls="dashboard-tabpanel-5"
             />
           </Tabs>
         </Box>
@@ -207,14 +255,13 @@ const Dashboard: React.FC = () => {
           </Box>
         </TabPanel>
 
-        {/* Strategy Configuration Tab */}
+        {/* Strategy Selection Tab */}
         <TabPanel value={activeTab} index={2}>
           <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', lg: 'row' } }}>
             <Box sx={{ flex: 2 }}>
               <StrategySelector
                 selectedStrategy={selectedStrategy}
                 onStrategyChange={handleStrategyChange}
-                strategyParameters={strategyParameters}
                 onParametersChange={handleParametersChange}
               />
             </Box>
@@ -233,7 +280,7 @@ const Dashboard: React.FC = () => {
                   <Box key={key} display="flex" justifyContent="space-between" mb={1}>
                     <Typography variant="body2">{key}:</Typography>
                     <Typography variant="body2" fontWeight="bold">
-                      {value}
+                      {typeof value === 'object' ? JSON.stringify(value) : value}
                     </Typography>
                   </Box>
                 ))}
@@ -242,8 +289,17 @@ const Dashboard: React.FC = () => {
           </Box>
         </TabPanel>
 
-        {/* Session Controls Tab */}
+        {/* Strategy Parameters Tab */}
         <TabPanel value={activeTab} index={3}>
+          <StrategyParameters
+            selectedStrategy={selectedStrategy}
+            strategyParameters={strategyParameters}
+            onParametersChange={handleParametersChange}
+          />
+        </TabPanel>
+
+        {/* Session Controls Tab */}
+        <TabPanel value={activeTab} index={4}>
           <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', lg: 'row' } }}>
             <Box sx={{ flex: 2 }}>
               <TradingSessionControls
@@ -302,7 +358,7 @@ const Dashboard: React.FC = () => {
         </TabPanel>
 
         {/* Test Data Tab */}
-        <TabPanel value={activeTab} index={4}>
+        <TabPanel value={activeTab} index={5}>
           <TestDataManager />
         </TabPanel>
       </Paper>

@@ -9,18 +9,15 @@ import {
   RadioGroup,
   FormControlLabel,
   Radio,
-  TextField,
   Alert,
   CircularProgress,
   Chip,
   Tooltip,
   IconButton,
-  Stack,
 } from '@mui/material';
 import {
   Info,
   TrendingUp,
-  Settings,
   Refresh,
 } from '@mui/icons-material';
 import { getAvailableStrategies, TradingStrategy } from '../../api/tradingApi';
@@ -28,7 +25,6 @@ import { getAvailableStrategies, TradingStrategy } from '../../api/tradingApi';
 interface StrategySelectorProps {
   selectedStrategy: string;
   onStrategyChange: (strategy: string) => void;
-  strategyParameters: Record<string, any>;
   onParametersChange: (parameters: Record<string, any>) => void;
   title?: string;
   description?: string;
@@ -37,20 +33,10 @@ interface StrategySelectorProps {
   availableStrategies?: TradingStrategy[];
 }
 
-interface StrategyParameter {
-  name: string;
-  type: 'number' | 'string' | 'boolean';
-  min?: number;
-  max?: number;
-  step?: number;
-  description: string;
-  default: any;
-}
 
 const StrategySelector: React.FC<StrategySelectorProps> = ({
   selectedStrategy,
   onStrategyChange,
-  strategyParameters,
   onParametersChange,
   title = "Select Trading Strategy",
   description = "Choose a trading strategy that will determine when to buy and sell stocks. Each strategy has different parameters that you can customize.",
@@ -143,179 +129,18 @@ const StrategySelector: React.FC<StrategySelectorProps> = ({
   const handleStrategyChange = (strategyName: string) => {
     onStrategyChange(strategyName);
     const strategy = strategies.find(s => s.name === strategyName);
-    if (strategy) {
-      // Extract default values from parameter info
-      const parameterInfo = getParameterInfo(strategyName);
+    if (strategy && strategy.parameters) {
+      // Extract default values from parameter info objects
       const defaultParameters: Record<string, any> = {};
-      Object.entries(parameterInfo).forEach(([paramName, paramInfo]) => {
-        defaultParameters[paramName] = paramInfo.default;
+      Object.entries(strategy.parameters).forEach(([paramName, paramInfo]) => {
+        if (typeof paramInfo === 'object' && paramInfo !== null && 'default' in paramInfo) {
+          defaultParameters[paramName] = paramInfo.default;
+        }
       });
       onParametersChange(defaultParameters);
     }
   };
 
-  const handleParameterChange = (paramName: string, value: any) => {
-    onParametersChange({
-      ...strategyParameters,
-      [paramName]: value,
-    });
-  };
-
-  const getParameterInfo = (strategyName: string): Record<string, StrategyParameter> => {
-    const parameterInfo: Record<string, Record<string, StrategyParameter>> = {
-      MovingAverage: {
-        shortWindow: {
-          name: 'Short Window',
-          type: 'number',
-          min: 2,
-          max: 50,
-          step: 1,
-          description: 'Number of periods for short-term moving average',
-          default: 5,
-        },
-        longWindow: {
-          name: 'Long Window',
-          type: 'number',
-          min: 5,
-          max: 200,
-          step: 1,
-          description: 'Number of periods for long-term moving average',
-          default: 10,
-        },
-      },
-      BollingerBands: {
-        window: {
-          name: 'Window',
-          type: 'number',
-          min: 5,
-          max: 50,
-          step: 1,
-          description: 'Number of periods for moving average calculation',
-          default: 20,
-        },
-        numStdDev: {
-          name: 'Standard Deviations',
-          type: 'number',
-          min: 1,
-          max: 3,
-          step: 0.1,
-          description: 'Number of standard deviations for band calculation',
-          default: 2,
-        },
-      },
-      MeanReversion: {
-        window: {
-          name: 'Window',
-          type: 'number',
-          min: 5,
-          max: 50,
-          step: 1,
-          description: 'Number of periods for mean calculation',
-          default: 20,
-        },
-        threshold: {
-          name: 'Threshold',
-          type: 'number',
-          min: 1,
-          max: 5,
-          step: 0.1,
-          description: 'Number of standard deviations for signal generation',
-          default: 2,
-        },
-      },
-      Momentum: {
-        window: {
-          name: 'Window',
-          type: 'number',
-          min: 5,
-          max: 50,
-          step: 1,
-          description: 'Number of periods for momentum calculation',
-          default: 10,
-        },
-        threshold: {
-          name: 'Threshold',
-          type: 'number',
-          min: 0.01,
-          max: 0.1,
-          step: 0.01,
-          description: 'Minimum momentum change for signal generation',
-          default: 0.02,
-        },
-      },
-      Breakout: {
-        window: {
-          name: 'Window',
-          type: 'number',
-          min: 5,
-          max: 50,
-          step: 1,
-          description: 'Number of periods for support/resistance calculation',
-          default: 20,
-        },
-        threshold: {
-          name: 'Threshold',
-          type: 'number',
-          min: 0.01,
-          max: 0.2,
-          step: 0.01,
-          description: 'Minimum breakout percentage for signal generation',
-          default: 0.05,
-        },
-      },
-    };
-
-    return parameterInfo[strategyName] || {};
-  };
-
-  const renderParameterInput = (paramName: string, paramInfo: StrategyParameter) => {
-    const value = strategyParameters[paramName] ?? paramInfo.default;
-
-    switch (paramInfo.type) {
-      case 'number':
-        return (
-          <TextField
-            type="number"
-            label={paramInfo.name}
-            value={value}
-            onChange={(e) => handleParameterChange(paramName, parseFloat(e.target.value))}
-            inputProps={{
-              min: paramInfo.min,
-              max: paramInfo.max,
-              step: paramInfo.step,
-            }}
-            size="small"
-            fullWidth
-            helperText={paramInfo.description}
-          />
-        );
-      case 'string':
-        return (
-          <TextField
-            label={paramInfo.name}
-            value={value}
-            onChange={(e) => handleParameterChange(paramName, e.target.value)}
-            size="small"
-            fullWidth
-            helperText={paramInfo.description}
-          />
-        );
-      case 'boolean':
-        return (
-          <FormControlLabel
-            control={
-              <Radio
-                checked={value}
-                onChange={(e) => handleParameterChange(paramName, e.target.checked)}
-              />
-            }
-            label={paramInfo.name}
-          />
-        );
-      default:
-        return null;
-    }
-  };
 
   if (loading) {
     return (
@@ -380,26 +205,9 @@ const StrategySelector: React.FC<StrategySelectorProps> = ({
                   />
                 </Box>
                 
-                <Typography variant="body2" color="textSecondary" mb={2}>
+                <Typography variant="body2" color="textSecondary">
                   {strategy.description}
                 </Typography>
-                
-                {/* Strategy Parameters - Always visible for selected strategy */}
-                {selectedStrategy === strategy.name && (
-                  <Box>
-                    <Typography variant="subtitle2" gutterBottom>
-                      <Settings sx={{ mr: 1, verticalAlign: 'middle' }} />
-                      Parameters
-                    </Typography>
-                    <Stack spacing={2}>
-                      {Object.entries(getParameterInfo(strategy.name)).map(([paramName, paramInfo]) => (
-                        <Box key={paramName}>
-                          {renderParameterInput(paramName, paramInfo)}
-                        </Box>
-                      ))}
-                    </Stack>
-                  </Box>
-                )}
               </CardContent>
             </Card>
           ))}
@@ -414,16 +222,6 @@ const StrategySelector: React.FC<StrategySelectorProps> = ({
             <Box>
               <Typography variant="body2" color="textSecondary">
                 <strong>Selected Strategy:</strong> {selectedStrategy}
-              </Typography>
-              <Typography variant="body2" color="textSecondary">
-                <strong>Parameters:</strong> {Object.entries(strategyParameters)
-                  .map(([key, value]) => {
-                    if (typeof value === 'object' && value !== null) {
-                      return `${key}: [object]`;
-                    }
-                    return `${key}: ${value}`;
-                  })
-                  .join(', ')}
               </Typography>
             </Box>
           </Box>
