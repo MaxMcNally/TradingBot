@@ -120,6 +120,26 @@ authRouter.get("/me", authenticateToken, (req: AuthenticatedRequest, res: Respon
   });
 });
 
+// Refresh token endpoint
+authRouter.post("/refresh", authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: "User not authenticated" });
+  }
+
+  // Generate a new token with the same user data
+  const newToken = generateToken({
+    id: req.user.id,
+    username: req.user.username,
+    email: req.user.email
+  });
+
+  res.json({ 
+    success: true, 
+    token: newToken,
+    user: req.user
+  });
+});
+
 // Update account settings
 authRouter.put("/account", authenticateToken, (req: AuthenticatedRequest, res: Response) => {
   const { name, email, username } = req.body;

@@ -20,11 +20,37 @@ api.interceptors.request.use((config) => {
 // Add response interceptor to handle token expiration
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+    
     if (error.response?.status === 401 || error.response?.status === 403) {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      // If this is not a retry and we have a token, try to refresh it
+      if (!originalRequest._retry && localStorage.getItem('authToken')) {
+        originalRequest._retry = true;
+        
+        try {
+          const response = await refreshToken();
+          const { token } = response.data.data;
+          
+          // Update the stored token
+          localStorage.setItem('authToken', token);
+          
+          // Retry the original request with the new token
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return api(originalRequest);
+        } catch (refreshError) {
+          // Refresh failed, redirect to login
+          console.log('Token refresh failed, redirecting to login');
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+        }
+      } else {
+        // No token or refresh failed, redirect to login
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
@@ -116,6 +142,9 @@ export const logout = (): Promise<AxiosResponse<ApiResponse>> =>
 
 export const getCurrentUser = (): Promise<AxiosResponse<ApiResponse<User>>> => 
   api.get('/auth/me');
+
+export const refreshToken = (): Promise<AxiosResponse<ApiResponse<AuthResponse>>> => 
+  api.post('/auth/refresh');
 
 // Settings API
 export const getSettings = (user_id: string): Promise<AxiosResponse<Setting[]>> => 
