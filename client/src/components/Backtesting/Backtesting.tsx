@@ -155,10 +155,49 @@ const Backtesting: React.FC = () => {
   };
 
   const handleInputChange = (field: keyof BacktestFormData, value: string | number): void => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    console.log("Input changed");
+    console.log(field);
+    console.log(value);
+
+    setFormData(prev => {
+      const newFormData = {
+        ...prev,
+        [field]: value
+      };
+
+      // If strategy is changing, reset all strategy-specific parameters to defaults
+      if (field === 'strategy') {
+        const strategyDefaults: Partial<BacktestFormData> = {
+          // Mean Reversion parameters
+          window: 20,
+          threshold: 0.05,
+          // Moving Average Crossover parameters
+          fastWindow: 10,
+          slowWindow: 30,
+          maType: 'SMA',
+          // Momentum parameters
+          rsiWindow: 14,
+          rsiOverbought: 70,
+          rsiOversold: 30,
+          momentumWindow: 10,
+          momentumThreshold: 0.02,
+          // Bollinger Bands parameters
+          multiplier: 2.0,
+          // Breakout parameters
+          lookbackWindow: 20,
+          breakoutThreshold: 0.01,
+          minVolumeRatio: 1.5,
+          confirmationPeriod: 2
+        };
+
+        return {
+          ...newFormData,
+          ...strategyDefaults
+        };
+      }
+
+      return newFormData;
+    });
   };
 
   const handleAddSymbol = (symbol: string): void => {
@@ -212,7 +251,11 @@ const Backtesting: React.FC = () => {
   const formatPercentage = (value: number): string => {
     return `${(value * 100).toFixed(2)}%`;
   };
-
+  
+  if(availableStrategies.length === 0) {
+    return <CircularProgress />;
+  }
+  
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>

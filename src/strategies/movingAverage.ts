@@ -1,18 +1,23 @@
+export type Signal = 'BUY' | 'SELL' | null;
+
 export class MovingAverageStrategy {
-  constructor(shortWindow = 5, longWindow = 10) {
+  private shortWindow: number;
+  private longWindow: number;
+  private prices: number[] = [];
+
+  constructor(shortWindow: number = 5, longWindow: number = 10) {
     this.shortWindow = shortWindow;
     this.longWindow = longWindow;
-    this.prices = [];
   }
 
-  addPrice(price) {
+  addPrice(price: number): void {
     this.prices.push(price);
     if (this.prices.length > this.longWindow) {
       this.prices.shift();
     }
   }
 
-  getSignal() {
+  getSignal(): Signal {
     if (this.prices.length < this.longWindow) return null;
 
     const shortMA = avg(this.prices.slice(-this.shortWindow));
@@ -24,7 +29,6 @@ export class MovingAverageStrategy {
   }
 }
 
-function avg(arr) {
+function avg(arr: number[]): number {
   return arr.reduce((a, b) => a + b, 0) / arr.length;
 }
-

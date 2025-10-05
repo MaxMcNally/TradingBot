@@ -86,7 +86,6 @@ export class SmartCacheManager {
 
   private async getCachedRanges(symbol: string, interval: string): Promise<DateRange[]> {
     const db = cacheDb.getDatabase();
-    const all = promisify(db.all.bind(db));
 
     const query = `
       SELECT start_date, end_date 
@@ -95,16 +94,20 @@ export class SmartCacheManager {
       ORDER BY start_date
     `;
 
-    try {
-      const results = await all(query, [symbol, this.cachedProvider['providerName'], interval]) as any[];
-      return results.map(row => ({
-        start: row.start_date,
-        end: row.end_date
-      }));
-    } catch (error) {
-      console.error("Error getting cached ranges:", error);
-      return [];
-    }
+    return new Promise((resolve, reject) => {
+      db.all(query, [symbol, this.cachedProvider['providerName'], interval], (err: any, rows: any[]) => {
+        if (err) {
+          console.error("Error getting cached ranges:", err);
+          resolve([]);
+        } else {
+          const results = rows.map(row => ({
+            start: row.start_date,
+            end: row.end_date
+          }));
+          resolve(results);
+        }
+      });
+    });
   }
 
   private findGapsInRange(cachedRanges: DateRange[], from: string, to: string): CacheGap[] {

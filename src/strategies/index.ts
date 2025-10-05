@@ -50,8 +50,5 @@ export {
   runBreakoutStrategy
 } from './breakoutStrategy';
 
-// Legacy moving average strategy (if needed)
-export { MovingAverageStrategy } from './movingAverage';
-
 // Strategy runner
 export { runStrategy, StrategyConfig, Trade, BacktestResult } from './runStrategy';

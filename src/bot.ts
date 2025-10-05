@@ -1,37 +1,38 @@
 import dotenv from "dotenv";
-import { PolygonProvider } from "./dataProviders/polygonProvider.js";
-import { MovingAverageStrategy } from "./strategies/movingAverage.js";
-import { Portfolio } from "./portfolio.js";
-import { TradingMode } from "./config.js";
-import stocks from "./config/stocks.json" assert { type: "json" };
+import { PolygonProvider, PolygonTrade } from "./dataProviders/PolygonProvider";
+import { MovingAverageStrategy, Signal } from "./strategies/movingAverage";
+import { Portfolio } from "./portfolio";
+import { TradingMode, TradingModeType } from "./config";
+import stocks from "./data/stocks.json" with { type: "json" };
+import process from "process";
 
 dotenv.config();
 
-const mode = process.env.TRADING_MODE || TradingMode.PAPER;
+const mode: TradingModeType = (process.env.TRADING_MODE as TradingModeType) || TradingMode.PAPER;
 console.log(`🚀 Starting bot in ${mode.toUpperCase()} mode`);
 
-const provider = new PolygonProvider(process.env.POLYGON_API_KEY);
+const provider = new PolygonProvider(process.env.POLYGON_API_KEY!);
 const portfolio = new Portfolio(10000, mode, stocks.symbols);
 
 // create one strategy per symbol
-const strategies = {};
-stocks.symbols.forEach((symbol) => {
+const strategies: Record<string, MovingAverageStrategy> = {};
+stocks.symbols.forEach((symbol: string) => {
   strategies[symbol] = new MovingAverageStrategy(5, 10);
 });
 
-async function run() {
+async function run(): Promise<void> {
   console.log(`📊 Subscribing to: ${stocks.symbols.join(", ")}`);
 
   // fetch initial quotes
-  const latestPrices = {};
+  const latestPrices: Record<string, number> = {};
   for (const symbol of stocks.symbols) {
     const quote = await provider.getQuote(symbol);
-    latestPrices[symbol] = quote.price;
+    latestPrices[symbol] = quote.price || 0;
     console.log(`Initial Quote [${symbol}]:`, quote);
   }
 
   // subscribe to live stream
-  provider.connectStream(stocks.symbols, (data) => {
+  provider.connectStream(stocks.symbols, (data: PolygonTrade[]) => {
     const trades = data.filter((d) => d.ev === "T");
     if (trades.length === 0) return;
 
@@ -42,7 +43,7 @@ async function run() {
       // add price to that symbol's strategy
       const strategy = strategies[symbol];
       strategy.addPrice(price);
-      const signal = strategy.getSignal();
+      const signal: Signal = strategy.getSignal();
 
       // execute trade per symbol
       if (signal === "BUY") portfolio.buy(symbol, price);
@@ -60,4 +61,4 @@ async function run() {
   });
 }
 
-run();
+run().catch(console.error);

@@ -1,23 +1,50 @@
 import fs from 'fs';
 import { createObjectCsvWriter } from 'csv-writer';
+import { DataProvider } from './dataProviders/baseProvider';
+import { Portfolio, PortfolioStatus } from './portfolio';
+import { Signal } from './strategies/movingAverage';
+
+export interface Trade {
+  date: number;
+  symbol: string;
+  action: 'BUY' | 'SELL';
+  price: number;
+  quantity: number;
+  pnl: number;
+}
+
+export interface BacktesterConfig {
+  provider: DataProvider;
+  portfolio: Portfolio;
+  strategies: Record<string, { addPrice: (price: number) => void; getSignal: () => Signal }>;
+  symbols: string[];
+}
+
+export interface BacktestOptions {
+  from: string;
+  to: string;
+  interval?: string;
+  csvFile?: string;
+}
 
 export class Backtester {
-  constructor({
-    provider, portfolio, strategies, symbols,
-  }) {
+  private provider: DataProvider;
+  private portfolio: Portfolio;
+  private strategies: Record<string, { addPrice: (price: number) => void; getSignal: () => Signal }>;
+  private symbols: string[];
+  private trades: Trade[] = []; // log of all trades
+
+  constructor({ provider, portfolio, strategies, symbols }: BacktesterConfig) {
     this.provider = provider;
     this.portfolio = portfolio;
     this.strategies = strategies;
     this.symbols = symbols;
-    this.trades = []; // log of all trades
   }
 
-  async run({
-    from, to, interval = 'day', csvFile = 'trade_history.csv',
-  }) {
+  async run({ from, to, interval = 'day', csvFile = 'trade_history.csv' }: BacktestOptions): Promise<void> {
     console.log(`📈 Running backtest from ${from} to ${to} with interval ${interval}`);
-    const latestPrices = {};
-    let peakValue = this.portfolio.cash;
+    const latestPrices: Record<string, number> = {};
+    let peakValue = this.portfolio.status().cash;
     let maxDrawdown = 0;
 
     for (const symbol of this.symbols) {
@@ -25,7 +52,7 @@ export class Backtester {
       console.log(`Fetched ${historical.length} bars for ${symbol}`);
 
       for (const bar of historical) {
-        const price = bar.c; // close price
+        const price = (bar as any).c; // close price
         latestPrices[symbol] = price;
 
         // update strategy
@@ -37,16 +64,16 @@ export class Backtester {
         if (signal === 'BUY') {
           this.portfolio.buy(symbol, price);
           this.trades.push({
-            date: bar.t, symbol, action: 'BUY', price, quantity: 1, pnl: 0,
+            date: (bar as any).t, symbol, action: 'BUY', price, quantity: 1, pnl: 0,
           });
         }
         if (signal === 'SELL') {
           // calculate P/L
-          const pos = this.portfolio.positions[symbol];
+          const pos = this.portfolio.status().positions[symbol];
           const tradePnl = (price - pos.avgPrice) * 1; // qty = 1
           this.portfolio.sell(symbol, price);
           this.trades.push({
-            date: bar.t, symbol, action: 'SELL', price, quantity: 1, pnl: tradePnl,
+            date: (bar as any).t, symbol, action: 'SELL', price, quantity: 1, pnl: tradePnl,
           });
         }
 
@@ -77,9 +104,9 @@ export class Backtester {
     console.log(`📄 Trade history exported to ${csvFile}`);
   }
 
-  async runWithBars(allBars, csvFile = 'trade_history.csv') {
-    const latestPrices = {};
-    let peakValue = this.portfolio.cash;
+  async runWithBars(allBars: Record<string, any[]>, csvFile: string = 'trade_history.csv'): Promise<void> {
+    const latestPrices: Record<string, number> = {};
+    let peakValue = this.portfolio.status().cash;
     let maxDrawdown = 0;
 
     for (const symbol of this.symbols) {
@@ -87,7 +114,7 @@ export class Backtester {
       console.log(`Processing ${historical.length} bars for ${symbol}`);
 
       for (const bar of historical) {
-        const price = bar.c;
+        const price = (bar as any).c;
         latestPrices[symbol] = price;
 
         // update strategy
@@ -99,15 +126,15 @@ export class Backtester {
         if (signal === 'BUY') {
           this.portfolio.buy(symbol, price);
           this.trades.push({
-            date: bar.t, symbol, action: 'BUY', price, quantity: 1, pnl: 0,
+            date: (bar as any).t, symbol, action: 'BUY', price, quantity: 1, pnl: 0,
           });
         }
         if (signal === 'SELL') {
-          const pos = this.portfolio.positions[symbol];
+          const pos = this.portfolio.status().positions[symbol];
           const tradePnl = (price - pos.avgPrice) * 1;
           this.portfolio.sell(symbol, price);
           this.trades.push({
-            date: bar.t, symbol, action: 'SELL', price, quantity: 1, pnl: tradePnl,
+            date: (bar as any).t, symbol, action: 'SELL', price, quantity: 1, pnl: tradePnl,
           });
         }
 
@@ -137,7 +164,7 @@ export class Backtester {
     console.log(`📄 Trade history exported to ${csvFile}`);
   }
 
-  async exportCsv(filePath) {
+  private async exportCsv(filePath: string): Promise<void> {
     if (this.trades.length === 0) return;
 
     const csvWriter = createObjectCsvWriter({

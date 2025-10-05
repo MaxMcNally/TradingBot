@@ -19,7 +19,9 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173", // Vite dev server
+      "http://localhost:5174", // Vite dev server (alternate port)
       "http://127.0.0.1:5173", // Alternate local URL
+      "http://127.0.0.1:5174", // Alternate local URL (alternate port)
       process.env.FRONTEND_URL as  string, // Optional for deployed frontend
     ],
     credentials: true, // Allow cookies and auth headers

@@ -21,6 +21,9 @@ const StrategyParamsSelector: React.FC<StrategyParamsSelectorProps> = ({
   onInputChange 
 }) => {
   const renderStrategyParams = () => {
+    console.log("Rendering Strategy Params"); 
+    console.log(strategy);
+    
     switch (strategy) {
       case 'meanReversion':
         return <MeanReversionParams formData={formData} onInputChange={onInputChange} />;

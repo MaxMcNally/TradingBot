@@ -83,7 +83,6 @@ export class CachedDataProvider extends DataProvider {
 
   private async getFromCache(symbol: string, interval: string, from: string, to: string): Promise<HistoricalDataPoint[] | null> {
     const db = cacheDb.getDatabase();
-    const get = promisify(db.get.bind(db));
 
     const query = `
       SELECT data_json, created_at 
@@ -91,34 +90,38 @@ export class CachedDataProvider extends DataProvider {
       WHERE symbol = ? AND provider = ? AND interval = ? AND start_date = ? AND end_date = ?
     `;
 
-    try {
-      const result = await get(query, [symbol, this.providerName, interval, from, to]) as any;
-      
-      if (!result) {
-        return null;
-      }
+    return new Promise((resolve, reject) => {
+      db.get(query, [symbol, this.providerName, interval, from, to], async (err: any, result: any) => {
+        if (err) {
+          console.error("Error reading from cache:", err);
+          resolve(null);
+          return;
+        }
+        
+        if (!result) {
+          resolve(null);
+          return;
+        }
 
-      // Check if data is still fresh (within TTL)
-      const createdAt = new Date(result.created_at);
-      const now = new Date();
-      const hoursDiff = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+        // Check if data is still fresh (within TTL)
+        const createdAt = new Date(result.created_at);
+        const now = new Date();
+        const hoursDiff = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
 
-      if (hoursDiff > this.config.ttlHours!) {
-        console.log(`Cache entry expired for ${symbol} (${hoursDiff.toFixed(1)} hours old)`);
-        await this.removeFromCache(symbol, interval, from, to);
-        return null;
-      }
+        if (hoursDiff > this.config.ttlHours!) {
+          console.log(`Cache entry expired for ${symbol} (${hoursDiff.toFixed(1)} hours old)`);
+          await this.removeFromCache(symbol, interval, from, to);
+          resolve(null);
+          return;
+        }
 
-      return JSON.parse(result.data_json);
-    } catch (error) {
-      console.error("Error reading from cache:", error);
-      return null;
-    }
+        resolve(JSON.parse(result.data_json));
+      });
+    });
   }
 
   private async storeInCache(symbol: string, interval: string, from: string, to: string, data: HistoricalDataPoint[]): Promise<void> {
     const db = cacheDb.getDatabase();
-    const run = promisify(db.run.bind(db));
 
     const dataJson = JSON.stringify(data);
     const dataSize = Buffer.byteLength(dataJson, 'utf8');
@@ -129,17 +132,20 @@ export class CachedDataProvider extends DataProvider {
       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1)
     `;
 
-    try {
-      await run(query, [symbol, this.providerName, interval, from, to, dataJson, dataSize]);
-      console.log(`Cached ${data.length} data points for ${symbol} (${dataSize} bytes)`);
-    } catch (error) {
-      console.error("Error storing in cache:", error);
-    }
+    return new Promise((resolve, reject) => {
+      db.run(query, [symbol, this.providerName, interval, from, to, dataJson, dataSize], (err: any) => {
+        if (err) {
+          console.error("Error storing in cache:", err);
+        } else {
+          console.log(`Cached ${data.length} data points for ${symbol} (${dataSize} bytes)`);
+        }
+        resolve();
+      });
+    });
   }
 
   private async updateCacheAccess(symbol: string, interval: string, from: string, to: string): Promise<void> {
     const db = cacheDb.getDatabase();
-    const run = promisify(db.run.bind(db));
 
     const query = `
       UPDATE historical_data_cache 
@@ -147,27 +153,32 @@ export class CachedDataProvider extends DataProvider {
       WHERE symbol = ? AND provider = ? AND interval = ? AND start_date = ? AND end_date = ?
     `;
 
-    try {
-      await run(query, [symbol, this.providerName, interval, from, to]);
-    } catch (error) {
-      console.error("Error updating cache access:", error);
-    }
+    return new Promise((resolve, reject) => {
+      db.run(query, [symbol, this.providerName, interval, from, to], (err: any) => {
+        if (err) {
+          console.error("Error updating cache access:", err);
+        }
+        resolve();
+      });
+    });
   }
 
   private async removeFromCache(symbol: string, interval: string, from: string, to: string): Promise<void> {
     const db = cacheDb.getDatabase();
-    const run = promisify(db.run.bind(db));
 
     const query = `
       DELETE FROM historical_data_cache 
       WHERE symbol = ? AND provider = ? AND interval = ? AND start_date = ? AND end_date = ?
     `;
 
-    try {
-      await run(query, [symbol, this.providerName, interval, from, to]);
-    } catch (error) {
-      console.error("Error removing from cache:", error);
-    }
+    return new Promise((resolve, reject) => {
+      db.run(query, [symbol, this.providerName, interval, from, to], (err: any) => {
+        if (err) {
+          console.error("Error removing from cache:", err);
+        }
+        resolve();
+      });
+    });
   }
 
   // Cache management methods
@@ -199,7 +210,6 @@ export class CachedDataProvider extends DataProvider {
 
   async clearCache(symbol?: string, provider?: string): Promise<void> {
     const db = cacheDb.getDatabase();
-    const run = promisify(db.run.bind(db));
 
     let query = "DELETE FROM historical_data_cache";
     const params: string[] = [];
@@ -219,12 +229,16 @@ export class CachedDataProvider extends DataProvider {
       query += " WHERE " + conditions.join(" AND ");
     }
 
-    try {
-      const result = await run(query, params) as any;
-      console.log(`Cleared ${result.changes} cache entries`);
-    } catch (error) {
-      console.error("Error clearing cache:", error);
-    }
+    return new Promise((resolve, reject) => {
+      db.run(query, params, (err: any, result: any) => {
+        if (err) {
+          console.error("Error clearing cache:", err);
+        } else {
+          console.log(`Cleared ${result.changes} cache entries`);
+        }
+        resolve();
+      });
+    });
   }
 
   async cleanupOldEntries(daysOld: number = 30): Promise<void> {

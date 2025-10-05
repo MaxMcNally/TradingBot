@@ -1,7 +1,23 @@
-import { TradingMode } from './config.js';
+import { TradingMode, TradingModeType } from './config';
+
+export interface Position {
+  shares: number;
+  avgPrice: number;
+}
+
+export interface PortfolioStatus {
+  cash: number;
+  positions: Record<string, Position>;
+  totalValue: number;
+  mode: TradingModeType;
+}
 
 export class Portfolio {
-  constructor(initialCash = 10000, mode = TradingMode.PAPER, symbols = []) {
+  private mode: TradingModeType;
+  private cash: number;
+  private positions: Record<string, Position>;
+
+  constructor(initialCash: number = 10000, mode: TradingModeType = TradingMode.PAPER, symbols: string[] = []) {
     this.mode = mode;
     this.cash = initialCash;
     // track positions per symbol
@@ -11,7 +27,7 @@ export class Portfolio {
     });
   }
 
-  buy(symbol, price, quantity = 1) {
+  buy(symbol: string, price: number, quantity: number = 1): void {
     if (this.mode === TradingMode.PAPER) {
       const cost = price * quantity;
       if (this.cash >= cost) {
@@ -27,7 +43,7 @@ export class Portfolio {
     }
   }
 
-  sell(symbol, price, quantity = 1) {
+  sell(symbol: string, price: number, quantity: number = 1): void {
     if (this.mode === TradingMode.PAPER) {
       const pos = this.positions[symbol];
       if (pos.shares >= quantity) {
@@ -41,7 +57,7 @@ export class Portfolio {
     }
   }
 
-  status(latestPrices = {}) {
+  status(latestPrices: Record<string, number> = {}): PortfolioStatus {
     const positionsValue = Object.entries(this.positions).reduce((sum, [symbol, pos]) => {
       const price = latestPrices[symbol] || pos.avgPrice;
       return sum + pos.shares * price;
