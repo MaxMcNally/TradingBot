@@ -88,6 +88,31 @@ export const initDatabase = () => {
         }
       });
 
+      // Create user_strategies table
+      db.run(`
+        CREATE TABLE IF NOT EXISTS user_strategies (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          description TEXT,
+          strategy_type TEXT NOT NULL,
+          config TEXT NOT NULL,
+          backtest_results TEXT,
+          is_active BOOLEAN DEFAULT 1,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users (id),
+          UNIQUE(user_id, name)
+        )
+      `, (err) => {
+        if (err) {
+          console.error("Error creating user_strategies table:", err);
+          reject(err);
+        } else {
+          console.log("User strategies table created/verified");
+        }
+      });
+
       // Create indexes for better performance
       db.run(`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`, (err) => {
         if (err) console.error("Error creating users index:", err);
@@ -99,6 +124,10 @@ export const initDatabase = () => {
 
       db.run(`CREATE INDEX IF NOT EXISTS idx_backtest_results_user_id ON backtest_results(user_id)`, (err) => {
         if (err) console.error("Error creating backtest_results index:", err);
+      });
+
+      db.run(`CREATE INDEX IF NOT EXISTS idx_user_strategies_user_id ON user_strategies(user_id)`, (err) => {
+        if (err) console.error("Error creating user_strategies index:", err);
       });
 
       // Initialize trading tables

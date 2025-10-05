@@ -185,6 +185,34 @@ export const runBacktest = async (req: Request, res: Response) => {
         }
     }
 
+    // Calculate aggregated metrics
+    const validResults = results.filter(r => !r.error && r.finalPortfolioValue !== undefined);
+    
+    let totalReturn = 0;
+    let finalPortfolioValue = 0;
+    let totalTrades = 0;
+    let totalWins = 0;
+    let maxDrawdown = 0;
+    
+    if (validResults.length > 0) {
+      // Calculate weighted average return based on initial capital allocation
+      const totalInitialCapital = initialCapital * validResults.length;
+      let weightedReturnSum = 0;
+      
+      validResults.forEach(result => {
+        const weight = initialCapital / totalInitialCapital;
+        weightedReturnSum += result.totalReturn * weight;
+        finalPortfolioValue += result.finalPortfolioValue;
+        totalTrades += result.totalTrades || 0;
+        totalWins += (result.winRate || 0) * (result.totalTrades || 0) / 100;
+        maxDrawdown = Math.max(maxDrawdown, result.maxDrawdown || 0);
+      });
+      
+      totalReturn = weightedReturnSum;
+    }
+
+    const winRate = totalTrades > 0 ? totalWins / totalTrades : 0;
+
     res.json({
       success: true,
       data: {
@@ -192,6 +220,12 @@ export const runBacktest = async (req: Request, res: Response) => {
         symbols: symbolArray,
         startDate,
         endDate,
+        // Overall aggregated metrics
+        totalReturn,
+        finalPortfolioValue,
+        winRate,
+        totalTrades,
+        maxDrawdown,
         config: {
           // Common parameters
           initialCapital,

@@ -15,7 +15,8 @@ import {
   Settings as SettingsIcon,
   Assessment as BacktestIcon,
   AccountCircle as AccountIcon,
-  Logout as LogoutIcon
+  Logout as LogoutIcon,
+  Psychology as StrategiesIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { HeaderProps } from './Header.types';
@@ -41,6 +42,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
   const navigationItems = [
     { label: 'Dashboard', path: '/', icon: <DashboardIcon /> },
     { label: 'Backtesting', path: '/backtesting', icon: <BacktestIcon /> },
+    { label: 'Strategies', path: '/strategies', icon: <StrategiesIcon /> },
     { label: 'Settings', path: '/settings', icon: <SettingsIcon /> },
   ];
 

@@ -10,6 +10,10 @@ export type { UseSettingsReturn, SaveSettingData } from './useSettings';
 export { useStrategies, useBacktest } from './useStrategies';
 export type { UseStrategiesReturn, UseBacktestReturn } from './useStrategies';
 
+// User Strategy hooks
+export { useUserStrategies } from './useUserStrategies';
+export type { UseUserStrategiesReturn } from './useUserStrategies';
+
 // Trading hooks
 export { 
   useTradingStats, 
