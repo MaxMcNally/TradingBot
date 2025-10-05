@@ -240,3 +240,6 @@ export const getPublicStrategies = (): Promise<AxiosResponse<{ strategies: UserS
 
 export const getPublicStrategiesByType = (strategyType: string): Promise<AxiosResponse<{ strategies: UserStrategy[]; count: number }>> => 
   api.get(`/strategies/strategies/public/${strategyType}`);
+
+export const copyPublicStrategy = (userId: number, strategyId: number, customName?: string): Promise<AxiosResponse<{ message: string; strategy: UserStrategy }>> => 
+  api.post(`/strategies/users/${userId}/strategies/copy-public`, { strategyId, customName });
