@@ -236,7 +236,7 @@ export function runMeanReversionStrategy(
   }
 
   // Calculate final portfolio value
-  const finalPrice = data[data.length - 1].close;
+  const finalPrice = data.length > 0 ? data[data.length - 1].close : 0;
   const finalPortfolioValue = cash + (currentShares * finalPrice);
   const totalReturn = (finalPortfolioValue - config.initialCapital) / config.initialCapital;
   const winRate = totalTrades > 0 ? winningTrades / totalTrades : 0;

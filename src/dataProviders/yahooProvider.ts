@@ -7,8 +7,13 @@ export class YahooDataProvider extends DataProvider {
         super();
     }
     async getQuote(_symbol:string){
-        const quote = await yahooFinance.quote('AAPL');
-        return quote
+        try {
+            const quote = await yahooFinance.quote('AAPL');
+            return quote;
+        } catch (error) {
+            console.error('Error fetching quote from Yahoo:', error);
+            return null;
+        }
     }
     async getHistorical(symbol:string, interval = "1d", from:string, to:string ): Promise<any[]> {
         const url = `${BASE_URL}${symbol}?period1=${new Date(from).getTime() / 1000}&period2=${new Date(to).getTime() / 1000}&interval=${interval}&events=history`;
