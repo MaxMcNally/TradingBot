@@ -8,7 +8,6 @@ import {
   Autocomplete,
   Chip,
   Button,
-  Grid,
   Alert,
   CircularProgress,
   IconButton,
@@ -56,7 +55,6 @@ const StockPicker: React.FC<StockPickerProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SymbolOption[]>([]);
   const [popularSymbols, setPopularSymbols] = useState<SymbolOption[]>([]);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
 
@@ -82,16 +80,13 @@ const StockPicker: React.FC<StockPickerProps> = ({
 
   const fetchPopularSymbols = async () => {
     try {
-      setLoading(true);
       setError(null);
       const response = await getPopularSymbols();
-      setPopularSymbols(response.data.symbols || defaultSymbols);
+      setPopularSymbols(response.data.data.symbols || defaultSymbols);
     } catch (err) {
       console.error('Error fetching popular symbols:', err);
       setPopularSymbols(defaultSymbols);
       setError('Failed to load popular symbols');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -105,7 +100,7 @@ const StockPicker: React.FC<StockPickerProps> = ({
       setSearchLoading(true);
       setError(null);
       const response = await searchSymbols(query, true);
-      setSearchResults(response.data.symbols || []);
+      setSearchResults(response.data.data.symbols || []);
     } catch (err) {
       console.error('Error searching symbols:', err);
       setError('Failed to search symbols');
@@ -134,7 +129,7 @@ const StockPicker: React.FC<StockPickerProps> = ({
     onStocksChange(selectedStocks.filter(s => s !== symbol));
   };
 
-  const handleSearchInputChange = (event: React.SyntheticEvent, value: string) => {
+  const handleSearchInputChange = (_event: React.SyntheticEvent, value: string) => {
     setSearchQuery(value);
     if (value.length >= 2) {
       handleSearch(value);
@@ -234,7 +229,7 @@ const StockPicker: React.FC<StockPickerProps> = ({
           )}
           value={searchQuery}
           onInputChange={handleSearchInputChange}
-          onChange={(event, value) => {
+          onChange={(_event, value) => {
             if (value && typeof value === 'object') {
               handleAddStock(value.symbol);
             }
@@ -264,9 +259,9 @@ const StockPicker: React.FC<StockPickerProps> = ({
               {popularSymbols.map((symbol, index) => (
                 <React.Fragment key={symbol.symbol}>
                   <ListItem
-                    button
                     onClick={() => handleAddStock(symbol.symbol)}
                     disabled={selectedStocks.includes(symbol.symbol) || selectedStocks.length >= maxStocks}
+                    sx={{ cursor: 'pointer' }}
                   >
                     <ListItemText
                       primary={

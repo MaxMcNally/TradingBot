@@ -5,11 +5,6 @@ import {
   Paper,
   TextField,
   Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
   Card,
   CardContent,
   Table,
@@ -20,26 +15,22 @@ import {
   TableRow,
   Alert,
   CircularProgress,
-  Autocomplete,
   Divider,
   Stack,
   LinearProgress,
-  SelectChangeEvent
 } from "@mui/material";
 import {
   PlayArrow,
   Assessment,
   Timeline
 } from "@mui/icons-material";
-import { runBacktest, getStrategies, searchSymbols, searchWithYahoo, getPopularSymbols } from "../../api";
+import { runBacktest, getStrategies } from "../../api";
 import { 
   BacktestFormData, 
   BacktestResponse, 
-  Strategy, 
-  SymbolOption, 
-  SearchSource 
+  Strategy
 } from "./Backtesting.types";
-import StrategyParamsSelector from "./strategyComponents/StrategyParamsSelector";
+import { StockPicker, StrategySelector } from "../shared";
 
 const Backtesting: React.FC = () => {
   // State management
@@ -74,29 +65,20 @@ const Backtesting: React.FC = () => {
   });
 
   const [availableStrategies, setAvailableStrategies] = useState<Strategy[]>([]);
-  const [symbolOptions, setSymbolOptions] = useState<SymbolOption[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [results, setResults] = useState<BacktestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [symbolSearchQuery, setSymbolSearchQuery] = useState<string>("");
-  const [isSearching, setIsSearching] = useState<boolean>(false);
-  const [searchSource, setSearchSource] = useState<SearchSource>("yahoo-finance");
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  
+  // Strategy parameters for the reusable StrategySelector
+  const [strategyParameters, setStrategyParameters] = useState<Record<string, any>>({
+    shortWindow: 5,
+    longWindow: 10,
+  });
 
   // Load available strategies on component mount
   useEffect(() => {
     loadStrategies();
   }, []);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (searchTimeout) {
-        clearTimeout(searchTimeout);
-      }
-    };
-  }, [searchTimeout]);
 
   const loadStrategies = async (): Promise<void> => {
     try {
@@ -107,52 +89,6 @@ const Backtesting: React.FC = () => {
     }
   };
 
-  const handleSymbolSearch = async (query: string): Promise<void> => {
-    if (query.length < 1) {
-      // Load popular symbols when query is empty
-      try {
-        const response = await getPopularSymbols();
-        setSymbolOptions(response.data.data.symbols);
-        setSearchSource("static");
-        setSearchError(null);
-      } catch (err) {
-        console.error("Failed to load popular symbols:", err);
-        setSearchError("Failed to load popular symbols");
-      }
-      return;
-    }
-    
-    setIsSearching(true);
-    setSearchError(null);
-    
-    try {
-      let response;
-      if (searchSource === "yahoo-finance") {
-        // Try Yahoo Finance search first
-        try {
-          response = await searchWithYahoo(query);
-          setSearchSource("yahoo-finance");
-        } catch (yahooError) {
-          console.warn("Yahoo Finance search failed, falling back to static search:", yahooError);
-          // Fallback to static search
-          response = await searchSymbols(query, false);
-          setSearchSource("static");
-        }
-      } else {
-        // Use static search
-        response = await searchSymbols(query, false);
-        setSearchSource("static");
-      }
-      
-      setSymbolOptions(response.data.data.symbols);
-    } catch (err) {
-      console.error("Failed to search symbols:", err);
-      setSearchError("Failed to search symbols. Please try again.");
-      setSymbolOptions([]);
-    } finally {
-      setIsSearching(false);
-    }
-  };
 
   const handleInputChange = (field: keyof BacktestFormData, value: string | number): void => {
     console.log("Input changed");
@@ -200,22 +136,6 @@ const Backtesting: React.FC = () => {
     });
   };
 
-  const handleAddSymbol = (symbol: string): void => {
-    if (symbol && !formData.symbols.includes(symbol)) {
-      setFormData(prev => ({
-        ...prev,
-        symbols: [...prev.symbols, symbol]
-      }));
-      setSymbolSearchQuery("");
-    }
-  };
-
-  const handleRemoveSymbol = (symbolToRemove: string): void => {
-    setFormData(prev => ({
-      ...prev,
-      symbols: prev.symbols.filter(symbol => symbol !== symbolToRemove)
-    }));
-  };
 
   const handleRunBacktest = async (): Promise<void> => {
     if (formData.symbols.length === 0) {
@@ -228,11 +148,14 @@ const Backtesting: React.FC = () => {
     setResults(null);
 
     try {
-      const response = await runBacktest({
+      // Merge strategy parameters from the reusable component with form data
+      const backtestData = {
         ...formData,
+        ...strategyParameters,
         symbols: formData.symbols.length === 1 ? formData.symbols[0] : formData.symbols
-      });
+      };
       
+      const response = await runBacktest(backtestData);
       setResults(response.data);
     } catch (err: any) {
       setError(err.response?.data?.error || "Failed to run backtest");
@@ -277,128 +200,34 @@ const Backtesting: React.FC = () => {
 
             <Stack spacing={3}>
               {/* Strategy Selection */}
-              <FormControl fullWidth>
-                <InputLabel>Strategy</InputLabel>
-                <Select
-                  value={formData.strategy}
-                  label="Strategy"
-                  onChange={(e: SelectChangeEvent) => handleInputChange('strategy', e.target.value)}
-                >
-                  {availableStrategies.map((strategy) => (
-                    <MenuItem key={strategy.name} value={strategy.name}>
-                      {strategy.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <StrategySelector
+                selectedStrategy={formData.strategy}
+                onStrategyChange={(strategy) => handleInputChange('strategy', strategy)}
+                strategyParameters={strategyParameters}
+                onParametersChange={setStrategyParameters}
+                title="Select Strategy for Backtesting"
+                description="Choose a trading strategy to test against historical data."
+                compact={true}
+                showTips={false}
+                availableStrategies={availableStrategies.map(s => ({
+                  name: s.name,
+                  description: s.description || '',
+                  parameters: s.parameters || {},
+                  enabled: true,
+                  symbols: []
+                }))}
+              />
 
               {/* Symbol Selection */}
-              <Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="subtitle2">
-                    Symbols
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Chip
-                      label={searchSource === "yahoo-finance" ? "Live Data" : "Static"}
-                      size="small"
-                      color={searchSource === "yahoo-finance" ? "success" : "default"}
-                      variant="outlined"
-                    />
-                    {isSearching && <CircularProgress size={16} />}
-                  </Box>
-                </Box>
-                
-                {searchError && (
-                  <Alert severity="warning" sx={{ mb: 1 }}>
-                    {searchError}
-                  </Alert>
-                )}
-                
-                <Autocomplete<SymbolOption, false, false, true>
-                  freeSolo
-                  options={symbolOptions}
-                  getOptionLabel={(option) => typeof option === 'string' ? option : option.symbol}
-                  value={symbolSearchQuery}
-                  loading={isSearching}
-                  onInputChange={(_, newValue) => {
-                    setSymbolSearchQuery(newValue || "");
-                    // Debounce search to avoid too many API calls
-                    if (searchTimeout) {
-                      clearTimeout(searchTimeout);
-                    }
-                    const timeoutId = setTimeout(() => {
-                      handleSymbolSearch(newValue || "");
-                    }, 300);
-                    setSearchTimeout(timeoutId);
-                  }}
-                  onChange={(_, newValue) => {
-                    if (newValue && typeof newValue === 'object') {
-                      handleAddSymbol(newValue.symbol);
-                    }
-                  }}
-                  renderOption={(props, option) => (
-                    <li {...props}>
-                      <Box sx={{ width: '100%' }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Typography variant="body2" fontWeight="bold">
-                            {option.symbol}
-                          </Typography>
-                          {option.type && (
-                            <Chip
-                              label={option.type}
-                              size="small"
-                              variant="outlined"
-                              sx={{ ml: 1 }}
-                            />
-                          )}
-                        </Box>
-                        <Typography variant="caption" color="text.secondary">
-                          {option.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                          {option.exchange} {option.market && `• ${option.market}`}
-                        </Typography>
-                      </Box>
-                    </li>
-                  )}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      placeholder="Search symbols (e.g., AAPL, Tesla, Microsoft)"
-                      size="small"
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {isSearching ? <CircularProgress color="inherit" size={20} /> : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                    />
-                  )}
-                />
-                
-                <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {formData.symbols.map((symbol) => (
-                    <Chip
-                      key={symbol}
-                      label={symbol}
-                      onDelete={() => handleRemoveSymbol(symbol)}
-                      color="primary"
-                      size="small"
-                    />
-                  ))}
-                </Box>
-                
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                  {searchSource === "yahoo-finance" 
-                    ? "🔴 Live search powered by Yahoo Finance" 
-                    : "📊 Using static symbol database"
-                  }
-                </Typography>
-              </Box>
+              <StockPicker
+                selectedStocks={formData.symbols}
+                onStocksChange={(stocks) => setFormData(prev => ({ ...prev, symbols: stocks }))}
+                maxStocks={10}
+                title="Select Symbols for Backtesting"
+                description="Choose stocks to test your strategy against. You can search for specific symbols or select from popular options."
+                compact={true}
+                showTips={false}
+              />
 
               {/* Date Range */}
               <Box sx={{ display: 'flex', gap: 2 }}>
@@ -420,12 +249,6 @@ const Backtesting: React.FC = () => {
                 />
               </Box>
 
-              {/* Strategy Parameters */}
-              <StrategyParamsSelector 
-                strategy={formData.strategy}
-                formData={formData}
-                onInputChange={handleInputChange}
-              />
 
               {/* Common Parameters */}
               <Divider sx={{ mt: 2, mb: 2 }} />
