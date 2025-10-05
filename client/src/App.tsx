@@ -7,6 +7,7 @@ import Login from "./components/Login/Login";
 import Dashboard from "./components/Dashboard";
 import Settings from "./components/Settings";
 import Backtesting from "./components/Backtesting/Backtesting";
+import { Strategies } from "./components/Strategies";
 import ThemeProvider from "./components/ThemeProvider";
 import { QueryProvider } from "./providers/QueryProvider";
 import { useUser } from "./hooks";
@@ -27,6 +28,7 @@ const AppContent: React.FC = () => {
             <Route path="/" element={<Dashboard />} />
             <Route path="/settings" element={<Settings user={user} />} />
             <Route path="/backtesting" element={<Backtesting />} />
+            <Route path="/strategies" element={<Strategies />} />
           </Routes>
         </AppLayout>
       </ThemeProvider>

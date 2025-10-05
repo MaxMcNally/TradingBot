@@ -35,13 +35,15 @@ import {
   Settings,
   Refresh,
   Tune,
+  Save as SaveIcon,
 } from "@mui/icons-material";
 import { 
   BacktestFormData, 
   BacktestResponse
 } from "./Backtesting.types";
 import { StockPicker, StrategySelector } from "../shared";
-import { useStrategies, useBacktest } from "../../hooks";
+import { useStrategies, useBacktest, useUserStrategies } from "../../hooks";
+import SaveStrategyDialog from "./SaveStrategyDialog";
 
 // Utility functions
 const formatPercentage = (value: number | undefined | null): string => {
@@ -113,10 +115,14 @@ const BacktestingSimple: React.FC = () => {
   
   // Strategy parameters for the reusable StrategySelector
   const [strategyParameters, setStrategyParameters] = useState<Record<string, any>>({});
+  
+  // Save strategy dialog state
+  const [saveStrategyDialogOpen, setSaveStrategyDialogOpen] = useState(false);
 
   // Use hooks for strategies and backtesting
   const { strategies: availableStrategies, isLoading: strategiesLoading, isError: strategiesError } = useStrategies();
   const { runBacktest: runBacktestMutation, isLoading: backtestLoading } = useBacktest();
+  const { saveFromBacktest, isCreating: isSavingStrategy } = useUserStrategies();
 
   // Reset strategy parameters when strategy changes
   useEffect(() => {
@@ -197,7 +203,15 @@ const BacktestingSimple: React.FC = () => {
     }
   };
 
-
+  const handleSaveStrategy = async (strategyData: any) => {
+    try {
+      await saveFromBacktest(strategyData);
+      setSaveStrategyDialogOpen(false);
+    } catch (error) {
+      console.error('Error saving strategy:', error);
+      throw error;
+    }
+  };
 
   
   if (strategiesLoading) {
@@ -749,11 +763,22 @@ const BacktestingSimple: React.FC = () => {
                   <Timeline sx={{ mr: 1, verticalAlign: 'middle' }} />
                   Backtest Results
                 </Typography>
-                <Tooltip title="Refresh Results">
-                  <IconButton onClick={() => window.location.reload()}>
-                    <Refresh />
-                  </IconButton>
-                </Tooltip>
+                <Box display="flex" gap={1}>
+                  <Button
+                    variant="contained"
+                    startIcon={<SaveIcon />}
+                    onClick={() => setSaveStrategyDialogOpen(true)}
+                    color="primary"
+                    size="small"
+                  >
+                    Save Strategy
+                  </Button>
+                  <Tooltip title="Refresh Results">
+                    <IconButton onClick={() => window.location.reload()}>
+                      <Refresh />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
               </Box>
               
               <Stack spacing={3}>
@@ -947,6 +972,16 @@ const BacktestingSimple: React.FC = () => {
         </TabPanel>
 
       </Paper>
+
+      {/* Save Strategy Dialog */}
+      <SaveStrategyDialog
+        open={saveStrategyDialogOpen}
+        onClose={() => setSaveStrategyDialogOpen(false)}
+        onSave={handleSaveStrategy}
+        formData={formData}
+        results={results}
+        isLoading={isSavingStrategy}
+      />
     </Box>
   );
 };

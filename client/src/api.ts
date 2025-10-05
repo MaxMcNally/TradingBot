@@ -113,6 +113,37 @@ export interface Strategy {
   parameters?: Record<string, any>;
 }
 
+// User Strategy types
+export interface UserStrategy {
+  id: number;
+  user_id: number;
+  name: string;
+  description?: string;
+  strategy_type: string;
+  config: any;
+  backtest_results?: any;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateStrategyData {
+  name: string;
+  description?: string;
+  strategy_type: string;
+  config: any;
+  backtest_results?: any;
+}
+
+export interface UpdateStrategyData {
+  name?: string;
+  description?: string;
+  strategy_type?: string;
+  config?: any;
+  backtest_results?: any;
+  is_active?: boolean;
+}
+
 export interface SymbolOption {
   symbol: string;
   name: string;
@@ -174,3 +205,28 @@ export const searchWithYahoo = (query: string): Promise<AxiosResponse<ApiRespons
 
 export const getPopularSymbols = (): Promise<AxiosResponse<ApiResponse<{ symbols: SymbolOption[] }>>> => 
   api.get('/symbols/popular');
+
+// User Strategies API
+export const getUserStrategies = (userId: number, includeInactive: boolean = false): Promise<AxiosResponse<{ strategies: UserStrategy[]; count: number }>> => 
+  api.get(`/strategies/users/${userId}/strategies?includeInactive=${includeInactive}`);
+
+export const getStrategyById = (strategyId: number): Promise<AxiosResponse<{ strategy: UserStrategy }>> => 
+  api.get(`/strategies/strategies/${strategyId}`);
+
+export const createStrategy = (userId: number, data: CreateStrategyData): Promise<AxiosResponse<{ message: string; strategy: UserStrategy }>> => 
+  api.post(`/strategies/users/${userId}/strategies`, data);
+
+export const updateStrategy = (strategyId: number, data: UpdateStrategyData): Promise<AxiosResponse<{ message: string; strategy: UserStrategy }>> => 
+  api.put(`/strategies/strategies/${strategyId}`, data);
+
+export const deleteStrategy = (strategyId: number): Promise<AxiosResponse<{ message: string }>> => 
+  api.delete(`/strategies/strategies/${strategyId}`);
+
+export const deactivateStrategy = (strategyId: number): Promise<AxiosResponse<{ message: string }>> => 
+  api.patch(`/strategies/strategies/${strategyId}/deactivate`);
+
+export const activateStrategy = (strategyId: number): Promise<AxiosResponse<{ message: string }>> => 
+  api.patch(`/strategies/strategies/${strategyId}/activate`);
+
+export const saveStrategyFromBacktest = (userId: number, data: CreateStrategyData): Promise<AxiosResponse<{ message: string; strategy: UserStrategy }>> => 
+  api.post(`/strategies/users/${userId}/strategies/from-backtest`, data);

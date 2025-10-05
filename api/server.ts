@@ -9,6 +9,7 @@ import {backtestRouter} from "./routes/backtest";
 import {symbolRouter} from "./routes/symbols";
 import {cacheRouter} from "./routes/cache";
 import tradingRouter from "./routes/trading";
+import {strategyRouter} from "./routes/strategies";
 import { initDatabase } from "./initDb";
 import { sessionMonitor } from "./services/sessionMonitor";
 import testRouter from "./routes/test";
@@ -39,6 +40,7 @@ app.use("/api/backtest", backtestRouter);
 app.use("/api/symbols", symbolRouter);
 app.use("/api/cache", cacheRouter);
 app.use("/api/trading", tradingRouter);
+app.use("/api/strategies", strategyRouter);
 app.use("/api/test", testRouter);
 app.get("/ping", (req, res) => {
   console.log("Ping route hit ✅");
