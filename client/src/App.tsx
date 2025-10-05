@@ -6,25 +6,26 @@ import Dashboard from "./components/Dashboard";
 import Settings from "./components/Settings";
 import Backtesting from "./components/Backtesting";
 import ThemeProvider from "./components/ThemeProvider";
-function App() {
-  const [user, setUser] = useState(null);
+import { User } from "./components/Login/Login.types";
+
+const App: React.FC = () => {
+  const [user, setUser] = useState<User | null>(null);
 
   if (!user) return <Login setUser={setUser} />;
 
   return (
-
     <Router>
-    <ThemeProvider>
-      <AppLayout>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/settings" element={<Settings user={user} />} />
-          <Route path="/backtesting" element={<Backtesting />} />
-        </Routes>
-      </AppLayout>
+      <ThemeProvider>
+        <AppLayout>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/settings" element={<Settings user={user} />} />
+            <Route path="/backtesting" element={<Backtesting />} />
+          </Routes>
+        </AppLayout>
       </ThemeProvider>
     </Router>
   );
-}
+};
 
 export default App;

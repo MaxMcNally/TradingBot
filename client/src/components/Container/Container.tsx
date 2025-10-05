@@ -1,7 +1,8 @@
 import React from 'react';
 import { Box } from '@mui/material';
+import { ContainerProps } from './Container.types';
 
-const Container = ({ children, maxWidth = 'sm', sx = {} }) => {
+const Container: React.FC<ContainerProps> = ({ children, maxWidth = 'sm', sx = {} }) => {
   return (
     <Box
       sx={{

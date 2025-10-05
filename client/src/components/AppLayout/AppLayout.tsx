@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Container, CssBaseline } from '@mui/material';
+import { AppLayoutProps } from './AppLayout.types';
 
 /**
  * AppLayout
@@ -7,11 +8,10 @@ import { Box, Container, CssBaseline } from '@mui/material';
  * - Provides optional header/footer/sidebar placeholders
  * - Full-page background
  */
-const AppLayout = ({ children, header, footer, sidebar}) => {
+const AppLayout: React.FC<AppLayoutProps> = ({ children, header, footer, sidebar }) => {
   return (
     <>
       <CssBaseline />
-
 
       <Box
         sx={{

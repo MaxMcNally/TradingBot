@@ -1,5 +1,6 @@
 import React from 'react';
 import { ThemeProvider as MuiThemeProvider, createTheme, CssBaseline } from '@mui/material';
+import { ThemeProviderProps } from './ThemeProvider.types';
 
 const theme = createTheme({
   palette: {
@@ -20,7 +21,7 @@ const theme = createTheme({
   },
 });
 
-const ThemeProvider = ({ children }) => {
+const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   return (
     <MuiThemeProvider theme={theme}>
       <CssBaseline />

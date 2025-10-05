@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { login, signup } from "../api";
+import { login, signup } from "../../api";
 import {
   TextField,
   Button,
@@ -12,18 +12,19 @@ import {
   Link
 } from "@mui/material";
 import { Login as LoginIcon, PersonAdd } from "@mui/icons-material";
+import { LoginProps, LoginFormData, User } from "./Login.types";
 
-const Login = ({ setUser }) => {
-  const [formData, setFormData] = useState({
+const Login: React.FC<LoginProps> = ({ setUser }) => {
+  const [formData, setFormData] = useState<LoginFormData>({
     username: "",
     password: "",
     email: ""
   });
-  const [isSignup, setIsSignup] = useState(false);
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSignup, setIsSignup] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const handleInputChange = (field) => (e) => {
+  const handleInputChange = (field: keyof LoginFormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
       ...prev,
       [field]: e.target.value
@@ -32,7 +33,7 @@ const Login = ({ setUser }) => {
     if (error) setError("");
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     
     if (!formData.username || !formData.password) {
@@ -65,14 +66,14 @@ const Login = ({ setUser }) => {
       
       setUser(res.data.user);
       setError("");
-    } catch (err) {
+    } catch (err: any) {
       setError(err.response?.data?.error || "An error occurred");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const toggleMode = () => {
+  const toggleMode = (): void => {
     setIsSignup(!isSignup);
     setError("");
     setFormData({ username: "", password: "", email: "" });

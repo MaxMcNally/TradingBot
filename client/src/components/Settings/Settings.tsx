@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { getSettings, saveSetting } from "../api";
+import { getSettings, saveSetting } from "../../api";
 import { TextField, Button, Box } from "@mui/material";
+import { SettingsProps, Setting } from "./Settings.types";
 
-const Settings = ({ user }) => {
-  const [settings, setSettings] = useState([]);
-  const [key, setKey] = useState("");
-  const [value, setValue] = useState("");
+const Settings: React.FC<SettingsProps> = ({ user }) => {
+  const [settings, setSettings] = useState<Setting[]>([]);
+  const [key, setKey] = useState<string>("");
+  const [value, setValue] = useState<string>("");
 
   useEffect(() => {
     if (user) {
@@ -13,7 +14,7 @@ const Settings = ({ user }) => {
     }
   }, [user]);
 
-  const handleSave = async () => {
+  const handleSave = async (): Promise<void> => {
     await saveSetting({ user_id: user.id, setting_key: key, setting_value: value });
     setSettings([...settings.filter(s => s.setting_key !== key), { setting_key: key, setting_value: value }]);
     setKey("");

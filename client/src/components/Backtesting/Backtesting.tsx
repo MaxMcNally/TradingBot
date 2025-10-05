@@ -13,7 +13,6 @@ import {
   Chip,
   Card,
   CardContent,
-  CardActions,
   Table,
   TableBody,
   TableCell,
@@ -25,21 +24,26 @@ import {
   Autocomplete,
   Divider,
   Stack,
-  LinearProgress
+  LinearProgress,
+  SelectChangeEvent
 } from "@mui/material";
 import {
   PlayArrow,
-  Refresh,
-  TrendingUp,
-  TrendingDown,
   Assessment,
   Timeline
 } from "@mui/icons-material";
-import { runBacktest, getStrategies, searchSymbols, getPopularSymbols } from "../api";
+import { runBacktest, getStrategies, searchSymbols, searchWithYahoo, getPopularSymbols } from "../../api";
+import { 
+  BacktestFormData, 
+  BacktestResponse, 
+  Strategy, 
+  SymbolOption, 
+  SearchSource 
+} from "./Backtesting.types";
 
-const Backtesting = () => {
+const Backtesting: React.FC = () => {
   // State management
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<BacktestFormData>({
     strategy: "meanReversion",
     symbols: [],
     startDate: "2023-01-01",
@@ -50,19 +54,32 @@ const Backtesting = () => {
     sharesPerTrade: 100
   });
 
-  const [availableStrategies, setAvailableStrategies] = useState([]);
-  const [symbolOptions, setSymbolOptions] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [results, setResults] = useState(null);
-  const [error, setError] = useState(null);
-  const [symbolSearchQuery, setSymbolSearchQuery] = useState("");
+  const [availableStrategies, setAvailableStrategies] = useState<Strategy[]>([]);
+  const [symbolOptions, setSymbolOptions] = useState<SymbolOption[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [results, setResults] = useState<BacktestResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [symbolSearchQuery, setSymbolSearchQuery] = useState<string>("");
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [searchSource, setSearchSource] = useState<SearchSource>("yahoo-finance");
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Load available strategies on component mount
   useEffect(() => {
     loadStrategies();
   }, []);
 
-  const loadStrategies = async () => {
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
+  }, [searchTimeout]);
+
+  const loadStrategies = async (): Promise<void> => {
     try {
       const response = await getStrategies();
       setAvailableStrategies(response.data.data.strategies);
@@ -71,34 +88,61 @@ const Backtesting = () => {
     }
   };
 
-  const handleSymbolSearch = async (query) => {
+  const handleSymbolSearch = async (query: string): Promise<void> => {
     if (query.length < 1) {
       // Load popular symbols when query is empty
       try {
         const response = await getPopularSymbols();
         setSymbolOptions(response.data.data.symbols);
+        setSearchSource("static");
+        setSearchError(null);
       } catch (err) {
         console.error("Failed to load popular symbols:", err);
+        setSearchError("Failed to load popular symbols");
       }
       return;
     }
     
+    setIsSearching(true);
+    setSearchError(null);
+    
     try {
-      const response = await searchSymbols(query);
+      let response;
+      if (searchSource === "yahoo-finance") {
+        // Try Yahoo Finance search first
+        try {
+          response = await searchWithYahoo(query);
+          setSearchSource("yahoo-finance");
+        } catch (yahooError) {
+          console.warn("Yahoo Finance search failed, falling back to static search:", yahooError);
+          // Fallback to static search
+          response = await searchSymbols(query, false);
+          setSearchSource("static");
+        }
+      } else {
+        // Use static search
+        response = await searchSymbols(query, false);
+        setSearchSource("static");
+      }
+      
       setSymbolOptions(response.data.data.symbols);
     } catch (err) {
       console.error("Failed to search symbols:", err);
+      setSearchError("Failed to search symbols. Please try again.");
+      setSymbolOptions([]);
+    } finally {
+      setIsSearching(false);
     }
   };
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = (field: keyof BacktestFormData, value: string | number): void => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
-  const handleAddSymbol = (symbol) => {
+  const handleAddSymbol = (symbol: string): void => {
     if (symbol && !formData.symbols.includes(symbol)) {
       setFormData(prev => ({
         ...prev,
@@ -108,14 +152,14 @@ const Backtesting = () => {
     }
   };
 
-  const handleRemoveSymbol = (symbolToRemove) => {
+  const handleRemoveSymbol = (symbolToRemove: string): void => {
     setFormData(prev => ({
       ...prev,
       symbols: prev.symbols.filter(symbol => symbol !== symbolToRemove)
     }));
   };
 
-  const handleRunBacktest = async () => {
+  const handleRunBacktest = async (): Promise<void> => {
     if (formData.symbols.length === 0) {
       setError("Please select at least one symbol");
       return;
@@ -132,21 +176,21 @@ const Backtesting = () => {
       });
       
       setResults(response.data);
-    } catch (err) {
+    } catch (err: any) {
       setError(err.response?.data?.error || "Failed to run backtest");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const formatCurrency = (amount) => {
+  const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
     }).format(amount);
   };
 
-  const formatPercentage = (value) => {
+  const formatPercentage = (value: number): string => {
     return `${(value * 100).toFixed(2)}%`;
   };
 
@@ -176,7 +220,7 @@ const Backtesting = () => {
                 <Select
                   value={formData.strategy}
                   label="Strategy"
-                  onChange={(e) => handleInputChange('strategy', e.target.value)}
+                  onChange={(e: SelectChangeEvent) => handleInputChange('strategy', e.target.value)}
                 >
                   {availableStrategies.map((strategy) => (
                     <MenuItem key={strategy.name} value={strategy.name}>
@@ -188,31 +232,70 @@ const Backtesting = () => {
 
               {/* Symbol Selection */}
               <Box>
-                <Typography variant="subtitle2" gutterBottom>
-                  Symbols
-                </Typography>
-                <Autocomplete
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Typography variant="subtitle2">
+                    Symbols
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Chip
+                      label={searchSource === "yahoo-finance" ? "Live Data" : "Static"}
+                      size="small"
+                      color={searchSource === "yahoo-finance" ? "success" : "default"}
+                      variant="outlined"
+                    />
+                    {isSearching && <CircularProgress size={16} />}
+                  </Box>
+                </Box>
+                
+                {searchError && (
+                  <Alert severity="warning" sx={{ mb: 1 }}>
+                    {searchError}
+                  </Alert>
+                )}
+                
+                <Autocomplete<SymbolOption, false, false, true>
                   freeSolo
                   options={symbolOptions}
-                  getOptionLabel={(option) => option.symbol || option}
+                  getOptionLabel={(option) => typeof option === 'string' ? option : option.symbol}
                   value={symbolSearchQuery}
+                  loading={isSearching}
                   onInputChange={(event, newValue) => {
-                    setSymbolSearchQuery(newValue);
-                    handleSymbolSearch(newValue);
+                    setSymbolSearchQuery(newValue || "");
+                    // Debounce search to avoid too many API calls
+                    if (searchTimeout) {
+                      clearTimeout(searchTimeout);
+                    }
+                    const timeoutId = setTimeout(() => {
+                      handleSymbolSearch(newValue || "");
+                    }, 300);
+                    setSearchTimeout(timeoutId);
                   }}
-                  onChange={(event, newValue) => {
+                  onChange={(_, newValue) => {
                     if (newValue && typeof newValue === 'object') {
                       handleAddSymbol(newValue.symbol);
                     }
                   }}
                   renderOption={(props, option) => (
                     <li {...props}>
-                      <Box>
-                        <Typography variant="body2" fontWeight="bold">
-                          {option.symbol}
-                        </Typography>
+                      <Box sx={{ width: '100%' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Typography variant="body2" fontWeight="bold">
+                            {option.symbol}
+                          </Typography>
+                          {option.type && (
+                            <Chip
+                              label={option.type}
+                              size="small"
+                              variant="outlined"
+                              sx={{ ml: 1 }}
+                            />
+                          )}
+                        </Box>
                         <Typography variant="caption" color="text.secondary">
-                          {option.name} ({option.exchange})
+                          {option.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                          {option.exchange} {option.market && `• ${option.market}`}
                         </Typography>
                       </Box>
                     </li>
@@ -220,11 +303,21 @@ const Backtesting = () => {
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      placeholder="Search symbols (e.g., AAPL, TSLA)"
+                      placeholder="Search symbols (e.g., AAPL, Tesla, Microsoft)"
                       size="small"
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {isSearching ? <CircularProgress color="inherit" size={20} /> : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
                     />
                   )}
                 />
+                
                 <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                   {formData.symbols.map((symbol) => (
                     <Chip
@@ -236,6 +329,13 @@ const Backtesting = () => {
                     />
                   ))}
                 </Box>
+                
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  {searchSource === "yahoo-finance" 
+                    ? "🔴 Live search powered by Yahoo Finance" 
+                    : "📊 Using static symbol database"
+                  }
+                </Typography>
               </Box>
 
               {/* Date Range */}
