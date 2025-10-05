@@ -37,10 +37,6 @@ import {
   Pause,
 } from '@mui/icons-material';
 import {
-  getUserTradingStats,
-  getUserPortfolioSummary,
-  getUserRecentTrades,
-  getUserTradingSessions,
   formatCurrency,
   formatPercentage,
   formatDate,
@@ -52,6 +48,13 @@ import {
   UserTradingStats,
   UserPortfolioSummary,
 } from '../../api/tradingApi';
+import { 
+  useTradingStats, 
+  usePortfolioSummary, 
+  useTrades, 
+  useTradingSessions,
+  useActiveTradingSession 
+} from '../../hooks';
 
 interface TradingResultsProps {
   userId: number;
@@ -81,57 +84,31 @@ function TabPanel(props: TabPanelProps) {
 
 const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
   const [activeTab, setActiveTab] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Data states
-  const [stats, setStats] = useState<UserTradingStats | null>(null);
-  const [portfolio, setPortfolio] = useState<UserPortfolioSummary | null>(null);
-  const [recentTrades, setRecentTrades] = useState<Trade[]>([]);
-  const [sessions, setSessions] = useState<TradingSession[]>([]);
-  const [activeSession, setActiveSession] = useState<TradingSession | null>(null);
   
   // Dialog states
   const [sessionDetailsOpen, setSessionDetailsOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<TradingSession | null>(null);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  // Use hooks for data fetching
+  const { stats, isLoading: statsLoading, isError: statsError } = useTradingStats(userId);
+  const { portfolio, isLoading: portfolioLoading, isError: portfolioError } = usePortfolioSummary(userId);
+  const { trades: recentTrades, isLoading: tradesLoading, isError: tradesError } = useTrades(userId);
+  const { sessions, isLoading: sessionsLoading, isError: sessionsError } = useTradingSessions(userId);
+  const { data: activeSession, isLoading: activeSessionLoading, isError: activeSessionError } = useActiveTradingSession(userId);
 
-      const [
-        statsResponse,
-        portfolioResponse,
-        tradesResponse,
-        sessionsResponse,
-      ] = await Promise.all([
-        getUserTradingStats(userId),
-        getUserPortfolioSummary(userId),
-        getUserRecentTrades(userId, 20),
-        getUserTradingSessions(userId, 10),
-      ]);
+  // Combined loading and error states
+  const loading = statsLoading || portfolioLoading || tradesLoading || sessionsLoading || activeSessionLoading;
+  const error = statsError || portfolioError || tradesError || sessionsError || activeSessionError;
 
-      setStats(statsResponse.data);
-      setPortfolio(portfolioResponse.data);
-      setRecentTrades(tradesResponse.data);
-      setSessions(sessionsResponse.data);
-      
-      // Find active session
-      const active = sessionsResponse.data.find(s => s.status === 'ACTIVE');
-      setActiveSession(active || null);
+  // Safety check for userId
+  if (!userId || isNaN(userId)) {
+    return (
+      <Alert severity="error">
+        Invalid user ID. Please log in again.
+      </Alert>
+    );
+  }
 
-    } catch (err) {
-      console.error('Error fetching trading data:', err);
-      setError('Failed to load trading data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, [userId]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);

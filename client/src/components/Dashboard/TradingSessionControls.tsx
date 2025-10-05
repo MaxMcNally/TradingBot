@@ -77,10 +77,17 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
   const [activeStep, setActiveStep] = useState(0);
 
   useEffect(() => {
-    checkActiveSession();
+    if (userId && !isNaN(userId)) {
+      checkActiveSession();
+    }
   }, [userId]);
 
   const checkActiveSession = async () => {
+    if (!userId || isNaN(userId)) {
+      console.warn('Invalid userId:', userId);
+      return;
+    }
+    
     try {
       const response = await getActiveTradingSession(userId);
       setActiveSession(response.data);
@@ -91,6 +98,11 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
   };
 
   const handleStartSession = async () => {
+    if (!userId || isNaN(userId)) {
+      setError('Invalid user ID');
+      return;
+    }
+
     if (selectedStocks.length === 0) {
       setError('Please select at least one stock to trade');
       return;
@@ -339,6 +351,19 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
         return 'Unknown step';
     }
   };
+
+  // Safety check for userId
+  if (!userId || isNaN(userId)) {
+    return (
+      <Card>
+        <CardContent>
+          <Alert severity="error">
+            Invalid user ID. Please log in again.
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

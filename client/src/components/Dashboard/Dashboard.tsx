@@ -150,7 +150,7 @@ const Dashboard: React.FC = () => {
 
         {/* Trading Results Tab */}
         <TabPanel value={activeTab} index={0}>
-          <TradingResults userId={parseInt(user.id)} />
+          <TradingResults userId={Number(user.id)} />
         </TabPanel>
 
         {/* Stock Selection Tab */}
@@ -240,7 +240,7 @@ const Dashboard: React.FC = () => {
           <Grid container spacing={3}>
             <Grid item xs={12} lg={8}>
               <TradingSessionControls
-                userId={parseInt(user.id)}
+                userId={Number(user.id)}
                 selectedStocks={selectedStocks}
                 selectedStrategy={selectedStrategy}
                 strategyParameters={strategyParameters}
