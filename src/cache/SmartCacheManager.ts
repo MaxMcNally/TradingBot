@@ -139,8 +139,8 @@ export class SmartCacheManager {
     // Check for gap after all ranges
     if (currentDate <= toDate) {
       gaps.push({
-        start: currentDate.toISOString().split('T')[0],
-        end: to.toISOString().split('T')[0],
+        start: new Date(currentDate).toISOString().split('T')[0],
+        end: new Date(to).toISOString().split('T')[0],
         type: 'after'
       });
     }
