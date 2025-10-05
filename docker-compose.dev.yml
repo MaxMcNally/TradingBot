@@ -1,0 +1,90 @@
+version: "3.9"
+
+services:
+  # API Service (Development)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    container_name: tradingbot-api-dev
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./api:/app/api
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+      - ./yarn.lock:/app/yarn.lock
+      - /app/node_modules
+      - /app/api/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=8001
+      - FRONTEND_URL=http://localhost:5173
+    networks:
+      - tradingbot-network
+    command: ["yarn", "dev:server"]
+    depends_on:
+      - redis
+
+  # React Client (Development)
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      target: base
+    container_name: tradingbot-client-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      - VITE_API_URL=http://localhost:8001
+    networks:
+      - tradingbot-network
+    command: ["yarn", "dev"]
+    depends_on:
+      - api
+
+  # Core Trading Logic (Development)
+  core:
+    build:
+      context: .
+      dockerfile: src/Dockerfile
+      target: base
+    container_name: tradingbot-core-dev
+    volumes:
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+      - ./yarn.lock:/app/yarn.lock
+      - /app/node_modules
+      - ./db:/app/db
+      - ./backtest_data:/app/backtest_data
+    environment:
+      - NODE_ENV=development
+    networks:
+      - tradingbot-network
+    command: ["yarn", "bot:cli", "start"]
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: tradingbot-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - tradingbot-network
+    command: redis-server --appendonly yes
+
+volumes:
+  redis_dev_data:
+    driver: local
+
+networks:
+  tradingbot-network:
+    driver: bridge
