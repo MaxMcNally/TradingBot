@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -8,20 +9,20 @@ import { useUser } from '../../hooks';
 import { copyPublicStrategy } from '../../api';
 
 // Mock the hooks
-jest.mock('../../hooks', () => ({
-  usePublicStrategies: jest.fn(),
-  useUserStrategies: jest.fn(),
-  useUser: jest.fn(),
+vi.mock('../../hooks', () => ({
+  usePublicStrategies: vi.fn(),
+  useUserStrategies: vi.fn(),
+  useUser: vi.fn(),
 }));
 
-jest.mock('../../api', () => ({
-  copyPublicStrategy: jest.fn(),
+vi.mock('../../api', () => ({
+  copyPublicStrategy: vi.fn(),
 }));
 
-const mockUsePublicStrategies = usePublicStrategies as jest.MockedFunction<typeof usePublicStrategies>;
-const mockUseUserStrategies = useUserStrategies as jest.MockedFunction<typeof useUserStrategies>;
-const mockUseUser = useUser as jest.MockedFunction<typeof useUser>;
-const mockCopyPublicStrategy = copyPublicStrategy as jest.MockedFunction<typeof copyPublicStrategy>;
+const mockUsePublicStrategies = usePublicStrategies as vi.MockedFunction<typeof usePublicStrategies>;
+const mockUseUserStrategies = useUserStrategies as vi.MockedFunction<typeof useUserStrategies>;
+const mockUseUser = useUser as vi.MockedFunction<typeof useUser>;
+const mockCopyPublicStrategy = copyPublicStrategy as vi.MockedFunction<typeof copyPublicStrategy>;
 
 // Create a wrapper with providers
 const createWrapper = () => {
@@ -88,7 +89,7 @@ const mockPublicStrategies = [
 
 describe('StrategiesMarketplace', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // Default mock implementations
     mockUseUser.mockReturnValue({
@@ -102,7 +103,7 @@ describe('StrategiesMarketplace', () => {
       isLoading: false,
       isError: false,
       error: null,
-      refetch: jest.fn()
+      refetch: vi.fn()
     } as any);
 
     mockUseUserStrategies.mockReturnValue({
@@ -110,12 +111,12 @@ describe('StrategiesMarketplace', () => {
       isLoading: false,
       isError: false,
       error: null,
-      refetch: jest.fn(),
-      createStrategy: jest.fn(),
-      updateStrategy: jest.fn(),
-      deleteStrategy: jest.fn(),
-      deactivateStrategy: jest.fn(),
-      activateStrategy: jest.fn(),
+      refetch: vi.fn(),
+      createStrategy: vi.fn(),
+      updateStrategy: vi.fn(),
+      deleteStrategy: vi.fn(),
+      deactivateStrategy: vi.fn(),
+      activateStrategy: vi.fn(),
       isCreating: false,
       isUpdating: false,
       isDeleting: false
@@ -137,7 +138,7 @@ describe('StrategiesMarketplace', () => {
       isLoading: true,
       isError: false,
       error: null,
-      refetch: jest.fn()
+      refetch: vi.fn()
     } as any);
 
     render(<StrategiesMarketplace />, { wrapper: createWrapper() });
@@ -151,7 +152,7 @@ describe('StrategiesMarketplace', () => {
       isLoading: false,
       isError: true,
       error: new Error('Failed to load strategies'),
-      refetch: jest.fn()
+      refetch: vi.fn()
     } as any);
 
     render(<StrategiesMarketplace />, { wrapper: createWrapper() });
@@ -166,7 +167,7 @@ describe('StrategiesMarketplace', () => {
       isLoading: false,
       isError: false,
       error: null,
-      refetch: jest.fn()
+      refetch: vi.fn()
     } as any);
 
     render(<StrategiesMarketplace />, { wrapper: createWrapper() });
@@ -284,7 +285,7 @@ describe('StrategiesMarketplace', () => {
   });
 
   it('should handle copy strategy error', async () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
     mockCopyPublicStrategy.mockRejectedValue(new Error('Copy failed'));
 
     render(<StrategiesMarketplace />, { wrapper: createWrapper() });
@@ -330,7 +331,7 @@ describe('StrategiesMarketplace', () => {
       error: null
     } as any);
 
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
 
     render(<StrategiesMarketplace />, { wrapper: createWrapper() });
 

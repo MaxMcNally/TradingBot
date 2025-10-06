@@ -1,15 +1,16 @@
+import { vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useStrategies, useBacktest } from './useStrategies';
 import * as api from '../../api';
 
 // Mock the API module
-jest.mock('../../api', () => ({
-  getStrategies: jest.fn(),
-  runBacktest: jest.fn(),
+vi.mock('../../api', () => ({
+  getStrategies: vi.fn(),
+  runBacktest: vi.fn(),
 }));
 
-const mockApi = api as jest.Mocked<typeof api>;
+const mockApi = api as vi.Mocked<typeof api>;
 
 // Create a wrapper for React Query
 const createWrapper = () => {
@@ -27,7 +28,7 @@ const createWrapper = () => {
 
 describe('useStrategies', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should return strategies data when getStrategies succeeds', async () => {
@@ -69,7 +70,7 @@ describe('useStrategies', () => {
 
 describe('useBacktest', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should run backtest successfully', async () => {

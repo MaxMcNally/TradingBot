@@ -1,13 +1,14 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { vi } from 'vitest';
 import Settings from './Settings';
 import * as api from '../../api';
 
 // Mock the API module
-jest.mock('../../api', () => ({
-  getSettings: jest.fn(),
-  saveSetting: jest.fn(),
+vi.mock('../../api', () => ({
+  getSettings: vi.fn(),
+  saveSetting: vi.fn(),
 }));
 
 describe('Settings Component', () => {
@@ -18,7 +19,7 @@ describe('Settings Component', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders settings form correctly', () => {
@@ -35,7 +36,7 @@ describe('Settings Component', () => {
       { setting_key: 'notifications', setting_value: 'true' }
     ];
 
-    (api.getSettings as jest.Mock).mockResolvedValue({
+    (api.getSettings as vi.Mock).mockResolvedValue({
       data: mockSettings
     });
 
@@ -47,11 +48,11 @@ describe('Settings Component', () => {
   });
 
   it('saves settings when form is submitted', async () => {
-    (api.getSettings as jest.Mock).mockResolvedValue({
+    (api.getSettings as vi.Mock).mockResolvedValue({
       data: []
     });
 
-    (api.saveSetting as jest.Mock).mockResolvedValue({
+    (api.saveSetting as vi.Mock).mockResolvedValue({
       data: { success: true }
     });
 
@@ -83,7 +84,7 @@ describe('Settings Component', () => {
       { setting_key: 'theme', setting_value: 'dark' }
     ];
 
-    (api.getSettings as jest.Mock).mockResolvedValue({
+    (api.getSettings as vi.Mock).mockResolvedValue({
       data: mockSettings
     });
 

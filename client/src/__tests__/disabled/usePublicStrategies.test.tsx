@@ -1,16 +1,17 @@
+import { vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { usePublicStrategies } from './usePublicStrategies';
 import { getPublicStrategies, getPublicStrategiesByType } from '../../api';
 
 // Mock the API functions
-jest.mock('../../api', () => ({
-  getPublicStrategies: jest.fn(),
-  getPublicStrategiesByType: jest.fn(),
+vi.mock('../../api', () => ({
+  getPublicStrategies: vi.fn(),
+  getPublicStrategiesByType: vi.fn(),
 }));
 
-const mockGetPublicStrategies = getPublicStrategies as jest.MockedFunction<typeof getPublicStrategies>;
-const mockGetPublicStrategiesByType = getPublicStrategiesByType as jest.MockedFunction<typeof getPublicStrategiesByType>;
+const mockGetPublicStrategies = getPublicStrategies as vi.MockedFunction<typeof getPublicStrategies>;
+const mockGetPublicStrategiesByType = getPublicStrategiesByType as vi.MockedFunction<typeof getPublicStrategiesByType>;
 
 // Create a wrapper for React Query
 const createWrapper = () => {
@@ -28,7 +29,7 @@ const createWrapper = () => {
 
 describe('usePublicStrategies', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should fetch all public strategies when no strategyType is provided', async () => {

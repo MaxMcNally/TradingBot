@@ -2,34 +2,35 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { vi } from 'vitest';
 import Dashboard from './Dashboard';
 import { useUser } from '../../hooks';
 
 // Mock the hooks
-jest.mock('../../hooks', () => ({
-  useUser: jest.fn(),
+vi.mock('../../hooks', () => ({
+  useUser: vi.fn(),
 }));
 
 // Mock the child components
-jest.mock('./TradingResults', () => {
+vi.mock('./TradingResults', () => {
   return function MockTradingResults({ userId }: { userId: number }) {
     return <div data-testid="trading-results">Trading Results for User {userId}</div>;
   };
 });
 
-jest.mock('./TradingSessionControls', () => {
+vi.mock('./TradingSessionControls', () => {
   return function MockTradingSessionControls() {
     return <div data-testid="trading-session-controls">Trading Session Controls</div>;
   };
 });
 
-jest.mock('./TestDataManager', () => {
+vi.mock('./TestDataManager', () => {
   return function MockTestDataManager() {
     return <div data-testid="test-data-manager">Test Data Manager</div>;
   };
 });
 
-jest.mock('../shared', () => ({
+vi.mock('../shared', () => ({
   StockPicker: function MockStockPicker() {
     return <div data-testid="stock-picker">Stock Picker</div>;
   },
@@ -63,11 +64,11 @@ describe('Dashboard Component', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders dashboard with tabs correctly', () => {
-    (useUser as jest.Mock).mockReturnValue({
+    (useUser as vi.Mock).mockReturnValue({
       user: mockUser,
       isLoading: false,
       error: null,
@@ -87,7 +88,7 @@ describe('Dashboard Component', () => {
   });
 
   it('shows loading state when user is loading', () => {
-    (useUser as jest.Mock).mockReturnValue({
+    (useUser as vi.Mock).mockReturnValue({
       user: null,
       isLoading: true,
       error: null,
@@ -99,7 +100,7 @@ describe('Dashboard Component', () => {
   });
 
   it('shows error state when user loading fails', () => {
-    (useUser as jest.Mock).mockReturnValue({
+    (useUser as vi.Mock).mockReturnValue({
       user: null,
       isLoading: false,
       error: 'Failed to load user',
@@ -111,7 +112,7 @@ describe('Dashboard Component', () => {
   });
 
   it('switches between tabs correctly', () => {
-    (useUser as jest.Mock).mockReturnValue({
+    (useUser as vi.Mock).mockReturnValue({
       user: mockUser,
       isLoading: false,
       error: null,
@@ -158,7 +159,7 @@ describe('Dashboard Component', () => {
       email: 'test@example.com',
     };
 
-    (useUser as jest.Mock).mockReturnValue({
+    (useUser as vi.Mock).mockReturnValue({
       user: userWithoutName,
       isLoading: false,
       error: null,
@@ -170,7 +171,7 @@ describe('Dashboard Component', () => {
   });
 
   it('passes correct userId to TradingResults component', () => {
-    (useUser as jest.Mock).mockReturnValue({
+    (useUser as vi.Mock).mockReturnValue({
       user: mockUser,
       isLoading: false,
       error: null,
@@ -182,7 +183,7 @@ describe('Dashboard Component', () => {
   });
 
   it('maintains tab state when switching between tabs', () => {
-    (useUser as jest.Mock).mockReturnValue({
+    (useUser as vi.Mock).mockReturnValue({
       user: mockUser,
       isLoading: false,
       error: null,
@@ -205,7 +206,7 @@ describe('Dashboard Component', () => {
   });
 
   it('has proper accessibility attributes for tabs', () => {
-    (useUser as jest.Mock).mockReturnValue({
+    (useUser as vi.Mock).mockReturnValue({
       user: mockUser,
       isLoading: false,
       error: null,

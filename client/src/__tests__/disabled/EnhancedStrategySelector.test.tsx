@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -7,16 +8,16 @@ import { usePublicStrategies } from '../../hooks';
 import { getAvailableStrategies } from '../../api/tradingApi';
 
 // Mock the hooks and API
-jest.mock('../../hooks', () => ({
-  usePublicStrategies: jest.fn(),
+vi.mock('../../hooks', () => ({
+  usePublicStrategies: vi.fn(),
 }));
 
-jest.mock('../../api/tradingApi', () => ({
-  getAvailableStrategies: jest.fn(),
+vi.mock('../../api/tradingApi', () => ({
+  getAvailableStrategies: vi.fn(),
 }));
 
-const mockUsePublicStrategies = usePublicStrategies as jest.MockedFunction<typeof usePublicStrategies>;
-const mockGetAvailableStrategies = getAvailableStrategies as jest.MockedFunction<typeof getAvailableStrategies>;
+const mockUsePublicStrategies = usePublicStrategies as vi.MockedFunction<typeof usePublicStrategies>;
+const mockGetAvailableStrategies = getAvailableStrategies as vi.MockedFunction<typeof getAvailableStrategies>;
 
 // Create a wrapper with providers
 const createWrapper = () => {
@@ -91,12 +92,12 @@ const mockPublicStrategies = [
 describe('EnhancedStrategySelector', () => {
   const defaultProps = {
     selectedStrategy: '',
-    onStrategyChange: jest.fn(),
-    onParametersChange: jest.fn(),
+    onStrategyChange: vi.fn(),
+    onParametersChange: vi.fn(),
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // Default mock implementations
     mockGetAvailableStrategies.mockResolvedValue({
@@ -108,7 +109,7 @@ describe('EnhancedStrategySelector', () => {
       isLoading: false,
       isError: false,
       error: null,
-      refetch: jest.fn()
+      refetch: vi.fn()
     } as any);
   });
 
@@ -269,7 +270,7 @@ describe('EnhancedStrategySelector', () => {
       isLoading: true,
       isError: false,
       error: null,
-      refetch: jest.fn()
+      refetch: vi.fn()
     } as any);
 
     render(<EnhancedStrategySelector {...defaultProps} />, { wrapper: createWrapper() });
@@ -287,7 +288,7 @@ describe('EnhancedStrategySelector', () => {
       isLoading: false,
       isError: true,
       error: new Error('Failed to load public strategies'),
-      refetch: jest.fn()
+      refetch: vi.fn()
     } as any);
 
     render(<EnhancedStrategySelector {...defaultProps} />, { wrapper: createWrapper() });
@@ -305,7 +306,7 @@ describe('EnhancedStrategySelector', () => {
       isLoading: false,
       isError: false,
       error: null,
-      refetch: jest.fn()
+      refetch: vi.fn()
     } as any);
 
     render(<EnhancedStrategySelector {...defaultProps} />, { wrapper: createWrapper() });
@@ -371,7 +372,7 @@ describe('EnhancedStrategySelector', () => {
   });
 
   it('should handle refresh button click', async () => {
-    const mockRefetch = jest.fn();
+    const mockRefetch = vi.fn();
     mockUsePublicStrategies.mockReturnValue({
       strategies: mockPublicStrategies,
       isLoading: false,

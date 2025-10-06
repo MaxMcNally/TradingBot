@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -7,21 +8,21 @@ import { useUser } from '../../hooks';
 import * as tradingApi from '../../api/tradingApi';
 
 // Mock the hooks
-jest.mock('../../hooks', () => ({
-  useUser: jest.fn(),
+vi.mock('../../hooks', () => ({
+  useUser: vi.fn(),
 }));
 
 // Mock the trading API
-jest.mock('../../api/tradingApi', () => ({
-  checkActiveSession: jest.fn(),
-  startTradingSession: jest.fn(),
-  stopTradingSession: jest.fn(),
-  pauseTradingSession: jest.fn(),
-  resumeTradingSession: jest.fn(),
+vi.mock('../../api/tradingApi', () => ({
+  checkActiveSession: vi.fn(),
+  startTradingSession: vi.fn(),
+  stopTradingSession: vi.fn(),
+  pauseTradingSession: vi.fn(),
+  resumeTradingSession: vi.fn(),
 }));
 
 // Mock the child components
-jest.mock('../shared', () => ({
+vi.mock('../shared', () => ({
   StockPicker: function MockStockPicker({ selectedStocks, onStocksChange }: any) {
     return (
       <div data-testid="stock-picker">
@@ -90,15 +91,15 @@ describe('TradingSessionControls Component', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
-    (useUser as jest.Mock).mockReturnValue({
+    (useUser as vi.Mock).mockReturnValue({
       user: mockUser,
       isLoading: false,
       error: null,
     });
 
-    (tradingApi.checkActiveSession as jest.Mock).mockResolvedValue({
+    (tradingApi.checkActiveSession as vi.Mock).mockResolvedValue({
       data: { session: null }
     });
   });
@@ -111,7 +112,7 @@ describe('TradingSessionControls Component', () => {
   });
 
   it('shows loading state when user is loading', () => {
-    (useUser as jest.Mock).mockReturnValue({
+    (useUser as vi.Mock).mockReturnValue({
       user: null,
       isLoading: true,
       error: null,
@@ -123,7 +124,7 @@ describe('TradingSessionControls Component', () => {
   });
 
   it('shows error state when user loading fails', () => {
-    (useUser as jest.Mock).mockReturnValue({
+    (useUser as vi.Mock).mockReturnValue({
       user: null,
       isLoading: false,
       error: 'Failed to load user',
@@ -155,7 +156,7 @@ describe('TradingSessionControls Component', () => {
   });
 
   it('shows active session controls when session is active', async () => {
-    (tradingApi.checkActiveSession as jest.Mock).mockResolvedValue({
+    (tradingApi.checkActiveSession as vi.Mock).mockResolvedValue({
       data: { session: mockActiveSession }
     });
 
@@ -223,7 +224,7 @@ describe('TradingSessionControls Component', () => {
   });
 
   it('starts trading session with correct parameters', async () => {
-    (tradingApi.startTradingSession as jest.Mock).mockResolvedValue({
+    (tradingApi.startTradingSession as vi.Mock).mockResolvedValue({
       data: { session: mockActiveSession }
     });
 
@@ -257,7 +258,7 @@ describe('TradingSessionControls Component', () => {
   });
 
   it('starts trading session with scheduled end time', async () => {
-    (tradingApi.startTradingSession as jest.Mock).mockResolvedValue({
+    (tradingApi.startTradingSession as vi.Mock).mockResolvedValue({
       data: { session: mockActiveSession }
     });
 
@@ -294,10 +295,10 @@ describe('TradingSessionControls Component', () => {
   });
 
   it('stops active trading session', async () => {
-    (tradingApi.checkActiveSession as jest.Mock).mockResolvedValue({
+    (tradingApi.checkActiveSession as vi.Mock).mockResolvedValue({
       data: { session: mockActiveSession }
     });
-    (tradingApi.stopTradingSession as jest.Mock).mockResolvedValue({
+    (tradingApi.stopTradingSession as vi.Mock).mockResolvedValue({
       data: { success: true }
     });
 
@@ -326,7 +327,7 @@ describe('TradingSessionControls Component', () => {
   });
 
   it('shows error when starting session fails', async () => {
-    (tradingApi.startTradingSession as jest.Mock).mockRejectedValue(
+    (tradingApi.startTradingSession as vi.Mock).mockRejectedValue(
       new Error('Failed to start session')
     );
 
@@ -348,10 +349,10 @@ describe('TradingSessionControls Component', () => {
   });
 
   it('shows error when stopping session fails', async () => {
-    (tradingApi.checkActiveSession as jest.Mock).mockResolvedValue({
+    (tradingApi.checkActiveSession as vi.Mock).mockResolvedValue({
       data: { session: mockActiveSession }
     });
-    (tradingApi.stopTradingSession as jest.Mock).mockRejectedValue(
+    (tradingApi.stopTradingSession as vi.Mock).mockRejectedValue(
       new Error('Failed to stop session')
     );
 

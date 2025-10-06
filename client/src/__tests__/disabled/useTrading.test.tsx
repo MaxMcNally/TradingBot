@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { 
@@ -10,20 +11,20 @@ import {
 import * as tradingApi from '../../api/tradingApi';
 
 // Mock the trading API module
-jest.mock('../../api/tradingApi', () => ({
-  getUserTradingStats: jest.fn(),
-  getUserPortfolioSummary: jest.fn(),
-  getUserRecentTrades: jest.fn(),
-  getUserTradingSessions: jest.fn(),
-  getUserPortfolioHistory: jest.fn(),
-  getActiveTradingSession: jest.fn(),
-  startTradingSession: jest.fn(),
-  stopTradingSession: jest.fn(),
-  pauseTradingSession: jest.fn(),
-  resumeTradingSession: jest.fn(),
+vi.mock('../../api/tradingApi', () => ({
+  getUserTradingStats: vi.fn(),
+  getUserPortfolioSummary: vi.fn(),
+  getUserRecentTrades: vi.fn(),
+  getUserTradingSessions: vi.fn(),
+  getUserPortfolioHistory: vi.fn(),
+  getActiveTradingSession: vi.fn(),
+  startTradingSession: vi.fn(),
+  stopTradingSession: vi.fn(),
+  pauseTradingSession: vi.fn(),
+  resumeTradingSession: vi.fn(),
 }));
 
-const mockTradingApi = tradingApi as jest.Mocked<typeof tradingApi>;
+const mockTradingApi = tradingApi as vi.Mocked<typeof tradingApi>;
 
 // Create a wrapper for React Query
 const createWrapper = () => {
@@ -41,7 +42,7 @@ const createWrapper = () => {
 
 describe('useTradingStats', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should return trading stats when API succeeds', async () => {
@@ -88,7 +89,7 @@ describe('useTradingStats', () => {
 
 describe('useTradingSessionManagement', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should start trading session successfully', async () => {
