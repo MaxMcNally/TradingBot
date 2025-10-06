@@ -212,24 +212,32 @@ workflows:
           filters:
             tags:
               only: /^v.*/
+            branches:
+              ignore: /.*/
       - test-backend:
           requires:
             - install-dependencies
           filters:
             tags:
               only: /^v.*/
+            branches:
+              ignore: /.*/
       - test-frontend:
           requires:
             - install-dependencies
           filters:
             tags:
               only: /^v.*/
+            branches:
+              ignore: /.*/
       - lint:
           requires:
             - install-dependencies
           filters:
             tags:
               only: /^v.*/
+            branches:
+              ignore: /.*/
       - build-images:
           requires:
             - test-backend
@@ -238,15 +246,19 @@ workflows:
           filters:
             tags:
               only: /^v.*/
+            branches:
+              ignore: /.*/
       - deploy-railway-production:
           requires:
             - build-images
           filters:
             tags:
               only: /^v.*/
-          context: npx railway-production
+            branches:
+              ignore: /.*/
+          context: railway-production
 
 # Define contexts for environment variables
 contexts:
-  - npx railway-qa
-  - npx railway-production
+  - railway-qa
+  - railway-production
