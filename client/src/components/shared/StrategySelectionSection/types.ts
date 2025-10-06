@@ -11,3 +11,4 @@ export interface StrategySelectionSectionProps {
   showTips?: boolean;
   availableStrategies?: any[];
 }
+

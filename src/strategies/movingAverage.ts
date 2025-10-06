@@ -1,31 +1,34 @@
-export type Signal = 'BUY' | 'SELL' | null;
+import { AbstractStrategy, Signal } from './baseStrategy';
 
-export class MovingAverageStrategy {
+export { Signal };
+
+export class MovingAverageStrategy extends AbstractStrategy {
   private shortWindow: number;
   private longWindow: number;
-  private prices: number[] = [];
 
   constructor(shortWindow: number = 5, longWindow: number = 10) {
+    super();
     this.shortWindow = shortWindow;
     this.longWindow = longWindow;
   }
 
   addPrice(price: number): void {
-    this.prices.push(price);
-    if (this.prices.length > this.longWindow) {
-      this.prices.shift();
-    }
+    this.addPriceToHistory(price, this.longWindow);
   }
 
   getSignal(): Signal {
     if (this.prices.length < this.longWindow) return null;
 
-    const shortMA = avg(this.prices.slice(-this.shortWindow));
-    const longMA = avg(this.prices);
+    const shortMA = this.getAverage(this.prices.slice(-this.shortWindow));
+    const longMA = this.getAverage(this.prices);
 
     if (shortMA > longMA) return 'BUY';
     if (shortMA < longMA) return 'SELL';
     return null;
+  }
+
+  getStrategyName(): string {
+    return 'MovingAverage';
   }
 }
 

@@ -16,3 +16,4 @@ export interface EnhancedStrategySelectorProps {
   compact?: boolean;
   availableStrategies?: TradingStrategy[];
 }
+

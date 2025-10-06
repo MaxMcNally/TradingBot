@@ -36,13 +36,16 @@ export interface MomentumResult {
   maxDrawdown: number;
 }
 
-export class MomentumStrategy {
+import { AbstractStrategy, Signal } from './baseStrategy';
+
+export class MomentumStrategy extends AbstractStrategy {
   private config: MomentumConfig;
-  private prices: number[] = [];
   private currentPosition: 'LONG' | 'SHORT' | 'NONE' = 'NONE';
   private entryPrice: number = 0;
+  private lastSignal: Signal = null;
 
   constructor(config: MomentumConfig) {
+    super();
     this.config = config;
   }
 
@@ -51,18 +54,14 @@ export class MomentumStrategy {
    * @param price - The current price
    * @returns Trading signal: 'BUY', 'SELL', or null
    */
-  addPrice(price: number): 'BUY' | 'SELL' | null {
-    this.prices.push(price);
-    
-    // Keep only the last 'rsiWindow' prices (need the longest window)
+  addPrice(price: number): void {
     const maxWindow = Math.max(this.config.rsiWindow, this.config.momentumWindow);
-    if (this.prices.length > maxWindow) {
-      this.prices.shift();
-    }
+    this.addPriceToHistory(price, maxWindow);
 
     // Need at least 'rsiWindow' prices to calculate RSI
     if (this.prices.length < this.config.rsiWindow) {
-      return null;
+      this.lastSignal = null;
+      return;
     }
 
     const rsi = this.calculateRSI();
@@ -74,13 +73,15 @@ export class MomentumStrategy {
       if (rsi <= this.config.rsiOversold && momentum > 0) {
         this.currentPosition = 'LONG';
         this.entryPrice = price;
-        return 'BUY';
+        this.lastSignal = 'BUY';
+        return;
       }
       // Strong momentum breakout
       if (momentum >= this.config.momentumThreshold && rsi < this.config.rsiOverbought) {
         this.currentPosition = 'LONG';
         this.entryPrice = price;
-        return 'BUY';
+        this.lastSignal = 'BUY';
+        return;
       }
     }
 
@@ -90,17 +91,35 @@ export class MomentumStrategy {
       if (rsi >= this.config.rsiOverbought) {
         this.currentPosition = 'NONE';
         this.entryPrice = 0;
-        return 'SELL';
+        this.lastSignal = 'SELL';
+        return;
       }
       // Momentum exhaustion (negative momentum)
       if (momentum <= -this.config.momentumThreshold) {
         this.currentPosition = 'NONE';
         this.entryPrice = 0;
-        return 'SELL';
+        this.lastSignal = 'SELL';
+        return;
       }
     }
 
-    return null;
+    this.lastSignal = null;
+  }
+
+  /**
+   * Get the current trading signal
+   * @returns Trading signal: 'BUY', 'SELL', or null
+   */
+  getSignal(): Signal {
+    return this.lastSignal;
+  }
+
+  /**
+   * Get the strategy name
+   * @returns Strategy name
+   */
+  getStrategyName(): string {
+    return 'Momentum';
   }
 
   /**
@@ -238,7 +257,8 @@ export function runMomentumStrategy(
 
   for (let i = 0; i < data.length; i++) {
     const dayData = data[i];
-    const signal = strategy.addPrice(dayData.close);
+    strategy.addPrice(dayData.close);
+    const signal = strategy.getSignal();
     const { rsi, momentum } = strategy.getCurrentIndicators();
 
     if (signal === 'BUY' && cash >= dayData.close) {
@@ -349,3 +369,4 @@ export function runMomentumStrategy(
  * - Requires strong trend confirmation
  * - May miss early trend entries
  */
+
