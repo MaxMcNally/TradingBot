@@ -182,7 +182,7 @@ jobs:
 
 # Define workflows
 workflows:
-  # Default workflow - runs on all branches except main
+  # Default workflow - runs on all branches
   default:
     jobs:
       - install-dependencies
