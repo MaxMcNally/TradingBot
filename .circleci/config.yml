@@ -200,9 +200,6 @@ workflows:
             - test-backend
             - test-frontend
             - lint
-    filters:
-      branches:
-        ignore: main
 
   # Main branch workflow - Deploy to QA after PR merge
   main:
