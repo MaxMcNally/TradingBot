@@ -41,7 +41,7 @@ import {
   BacktestFormData, 
   BacktestResponse
 } from "./Backtesting.types";
-import { StockPicker, StrategySelector, EnhancedStrategySelector } from "../shared";
+import { StockPicker, EnhancedStrategySelector } from "../shared";
 import { useStrategies, useBacktest, useUserStrategies } from "../../hooks";
 import SaveStrategyDialog from "./SaveStrategyDialog";
 
@@ -191,7 +191,7 @@ const BacktestingSimple: React.FC = () => {
         endDate: formData.endDate,
         initialCapital: formData.initialCapital,
         sharesPerTrade: formData.sharesPerTrade,
-        parameters: strategyParameters
+        ...strategyParameters  // Spread the parameters at the top level
       });
 
       if (response) {

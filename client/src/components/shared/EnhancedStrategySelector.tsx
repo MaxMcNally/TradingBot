@@ -178,17 +178,22 @@ const EnhancedStrategySelector: React.FC<EnhancedStrategySelectorProps> = ({
     }
   };
 
-  const handlePublicStrategyChange = (strategyName: string) => {
-    onStrategyChange(strategyName);
-    // For public strategies, we'll use default parameters
-    // In a real implementation, you might want to load the strategy config
-    const defaultParams: Record<string, any> = {
-      window: 20,
-      threshold: 0.05,
-      shortWindow: 10,
-      longWindow: 30
-    };
-    onParametersChange(defaultParams);
+  const handlePublicStrategyChange = (strategyType: string) => {
+    onStrategyChange(strategyType);
+    // Find the public strategy and use its actual config
+    const publicStrategy = publicStrategies.find(s => s.strategy_type === strategyType);
+    if (publicStrategy && publicStrategy.config) {
+      onParametersChange(publicStrategy.config);
+    } else {
+      // Fallback to default parameters if no config is available
+      const defaultParams: Record<string, any> = {
+        window: 20,
+        threshold: 0.05,
+        shortWindow: 10,
+        longWindow: 30
+      };
+      onParametersChange(defaultParams);
+    }
   };
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -329,13 +334,43 @@ const EnhancedStrategySelector: React.FC<EnhancedStrategySelectorProps> = ({
               value={selectedStrategy}
               onChange={(e) => handlePublicStrategyChange(e.target.value)}
             >
-              {publicStrategies.map((strategy) => renderStrategyCard({
-                name: strategy.name,
-                description: strategy.description || 'No description available',
-                parameters: strategy.config || {},
-                enabled: true,
-                symbols: []
-              }, true))}
+              {publicStrategies.map((strategy) => (
+                <Card 
+                  key={strategy.id}
+                  sx={{ 
+                    mb: 2, 
+                    border: selectedStrategy === strategy.strategy_type ? 2 : 1, 
+                    borderColor: selectedStrategy === strategy.strategy_type ? 'primary.main' : 'divider' 
+                  }}
+                >
+                  <CardContent>
+                    <Box display="flex" alignItems="center" width="100%" mb={2}>
+                      <FormControlLabel
+                        value={strategy.strategy_type} // Use strategy_type as the value for API compatibility
+                        control={<Radio />}
+                        label={
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Typography variant="subtitle1">{strategy.name}</Typography>
+                            {selectedStrategy === strategy.strategy_type && (
+                              <Chip label="Selected" size="small" color="primary" />
+                            )}
+                          </Box>
+                        }
+                      />
+                      <Chip 
+                        label="Public" 
+                        size="small" 
+                        color="primary" 
+                        sx={{ ml: 1 }}
+                        icon={<PublicIcon />}
+                      />
+                    </Box>
+                    <Typography variant="body2" color="textSecondary">
+                      {strategy.description || 'No description available'}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              ))}
             </RadioGroup>
           </FormControl>
         )}
