@@ -5,7 +5,7 @@ jobs:
   # Install dependencies and cache them
   install-dependencies:
     docker:
-      - image: cimg/node:20.0
+      - image: cimg/node:20.19
     steps:
       - checkout
       - restore_cache:
@@ -27,7 +27,7 @@ jobs:
   # Run backend tests
   test-backend:
     docker:
-      - image: cimg/node:20.0
+      - image: cimg/node:20.19
     steps:
       - checkout
       - restore_cache:
@@ -52,7 +52,7 @@ jobs:
   # Run frontend tests
   test-frontend:
     docker:
-      - image: cimg/node:20.0
+      - image: cimg/node:20.19
     steps:
       - checkout
       - restore_cache:
@@ -113,7 +113,7 @@ jobs:
   # Deploy to Railway QA environment
   deploy-railway-qa:
     docker:
-      - image: cimg/node:20.0
+      - image: cimg/node:20.19
     steps:
       - checkout
       - run:
@@ -150,7 +150,7 @@ jobs:
   # Deploy to Railway production environment
   deploy-railway-production:
     docker:
-      - image: cimg/node:20.0
+      - image: cimg/node:20.19
     steps:
       - checkout
       - run:
