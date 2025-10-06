@@ -21,6 +21,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { HeaderProps } from './Header.types';
+import ThemeToggle from '../ThemeToggle';
 
 const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
   const navigate = useNavigate();
@@ -105,6 +106,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
 
         {/* User Menu */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <ThemeToggle size="small" />
           <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>
             {user?.name || user?.username || 'User'}
           </Typography>
