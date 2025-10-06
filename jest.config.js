@@ -6,11 +6,15 @@ module.exports = {
     '**/__tests__/**/*.ts',
     '**/?(*.)+(spec|test).ts'
   ],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/__tests__/disabled/'
+  ],
   transform: {
     '^.+\\.ts$': 'ts-jest',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(yahoo-finance2)/)'
+    'node_modules/(?!(yahoo-finance2|node-fetch)/)'
   ],
   collectCoverageFrom: [
     'src/**/*.ts',
@@ -23,8 +27,15 @@ module.exports = {
   coverageReporters: ['text', 'lcov', 'html'],
   setupFilesAfterEnv: [],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1'
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '^node-fetch$': '<rootDir>/node_modules/node-fetch/src/index.js'
   },
   testTimeout: 10000,
-  verbose: true
+  verbose: true,
+  extensionsToTreatAsEsm: ['.ts'],
+  globals: {
+    'ts-jest': {
+      useESM: true
+    }
+  }
 };
