@@ -182,7 +182,7 @@ jobs:
 
 # Define workflows
 workflows:
-  # Default workflow - runs on all branches
+  # Default workflow - runs on feature branches only
   default:
     jobs:
       - install-dependencies
@@ -200,6 +200,9 @@ workflows:
             - test-backend
             - test-frontend
             - lint
+    filters:
+      branches:
+        ignore: main
 
   # Main branch workflow - Deploy to QA after PR merge
   main:
