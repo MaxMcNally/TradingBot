@@ -111,13 +111,12 @@ const StrategyParameters: React.FC<StrategyParametersProps> = ({
             <TextField
               label="Threshold"
               type="number"
-              inputProps={{ step: "0.01" }}
+              inputProps={{ step: "0.01", min: 0.01, max: 0.2 }}
               value={localParameters.threshold || 0.05}
               onChange={(e) => handleParameterChange('threshold', parseFloat(e.target.value))}
               size="small"
               fullWidth
               helperText="Number of standard deviations for signal generation"
-              inputProps={{ min: 0.01, max: 0.2 }}
             />
           </Stack>
         );
@@ -251,13 +250,12 @@ const StrategyParameters: React.FC<StrategyParametersProps> = ({
             <TextField
               label="Multiplier"
               type="number"
-              inputProps={{ step: "0.1" }}
+              inputProps={{ step: "0.1", min: 1.0, max: 3.0 }}
               value={localParameters.multiplier || 2.0}
               onChange={(e) => handleParameterChange('multiplier', parseFloat(e.target.value))}
               size="small"
               fullWidth
               helperText="Standard deviation multiplier for bands"
-              inputProps={{ min: 1.0, max: 3.0 }}
             />
           </Stack>
         );
@@ -279,13 +277,12 @@ const StrategyParameters: React.FC<StrategyParametersProps> = ({
             <TextField
               label="Breakout Threshold"
               type="number"
-              inputProps={{ step: "0.01" }}
+              inputProps={{ step: "0.01", min: 0.005, max: 0.05 }}
               value={localParameters.breakoutThreshold || 0.01}
               onChange={(e) => handleParameterChange('breakoutThreshold', parseFloat(e.target.value))}
               size="small"
               fullWidth
               helperText="Percentage threshold for breakout confirmation"
-              inputProps={{ min: 0.005, max: 0.05 }}
             />
           </Stack>
         );

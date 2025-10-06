@@ -43,7 +43,9 @@ import {
 import { 
   TabPanel,
   StockSelectionSection,
-  StrategySelectionSection
+  StrategySelectionSection,
+  StrategySelector,
+  StockPicker
 } from "../shared";
 import { useStrategies, useBacktest } from "../../hooks";
 
