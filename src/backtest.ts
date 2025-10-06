@@ -10,6 +10,8 @@ import {
   runBreakoutStrategy
 } from "./strategies";
 import {YahooDataProvider} from "./dataProviders/yahooProvider"
+import {PolygonProvider} from "./dataProviders/PolygonProvider"
+import {PolygonFlatFilesProvider} from "./dataProviders/PolygonFlatFilesProvider"
 import {SmartCacheManager} from "./cache/SmartCacheManager"
 
 const argv = yargs(hideBin(process.argv))
@@ -17,6 +19,7 @@ const argv = yargs(hideBin(process.argv))
   .option("start", { type: "string", demandOption: true })
   .option("end", { type: "string", demandOption: true })
   .option("strategy", { type: "string", default: "meanReversion", description: "Strategy to use" })
+  .option("provider", { type: "string", default: "yahoo", choices: ["yahoo", "polygon", "polygon-flatfiles"], description: "Data provider to use" })
   // Common parameters
   .option("capital", { type: "number", default: 10000, description: "Initial capital" })
   .option("shares", { type: "number", default: 100, description: "Shares per trade" })
@@ -46,8 +49,41 @@ const argv = yargs(hideBin(process.argv))
   .parseSync();
 
 async function main() {
-  const yahooProvider = new YahooDataProvider()
-  const smartCache = new SmartCacheManager(yahooProvider, "yahoo")
+  // Validate API key requirement for Polygon REST API provider
+  if (argv.provider === "polygon" && !process.env.POLYGON_API_KEY) {
+    console.error("Error: POLYGON_API_KEY environment variable is required when using polygon provider");
+    console.error("Please set your Polygon API key: export POLYGON_API_KEY=your_api_key_here");
+    process.exit(1);
+  }
+
+  // Validate S3 credentials for flat files provider
+  if (argv.provider === "polygon-flatfiles" && (!process.env.POLYGON_AWS_ACCESS_KEY_ID || !process.env.POLYGON_AWS_SECRET_ACCESS_KEY)) {
+    console.error("Error: S3 credentials are required for polygon-flatfiles provider");
+    console.error("Please set your S3 credentials:");
+    console.error("  export POLYGON_AWS_ACCESS_KEY_ID=your_s3_access_key");
+    console.error("  export POLYGON_AWS_SECRET_ACCESS_KEY=your_s3_secret_key");
+    process.exit(1);
+  }
+
+  // Initialize data provider based on configuration
+  let dataProvider;
+  let cacheKey;
+  
+  if (argv.provider === "polygon") {
+    dataProvider = new PolygonProvider(process.env.POLYGON_API_KEY!);
+    cacheKey = "polygon";
+  } else if (argv.provider === "polygon-flatfiles") {
+    dataProvider = new PolygonFlatFilesProvider({
+      accessKeyId: process.env.POLYGON_AWS_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.POLYGON_AWS_SECRET_ACCESS_KEY!,
+    });
+    cacheKey = "polygon-flatfiles";
+  } else {
+    dataProvider = new YahooDataProvider();
+    cacheKey = "yahoo";
+  }
+  
+  const smartCache = new SmartCacheManager(dataProvider, cacheKey)
   
   // Pre-populate cache if requested
   if (argv.prepopulate) {
@@ -57,7 +93,7 @@ async function main() {
   
   // Get data (with or without cache based on --no-cache flag)
   const data = argv.noCache 
-    ? await yahooProvider.getHistorical(argv.symbol, "1d", argv.start, argv.end)
+    ? await dataProvider.getHistorical(argv.symbol, "1d", argv.start, argv.end)
     : await smartCache.getHistoricalSmart(argv.symbol, "1d", argv.start, argv.end);
   
   if(data){
@@ -147,6 +183,7 @@ async function main() {
     
     console.log(`\n=== Backtest Results for ${argv.symbol} ===`);
     console.log(`Period: ${argv.start} to ${argv.end}`);
+    console.log(`Data Provider: ${argv.provider.toUpperCase()}`);
     console.log(`Strategy: ${strategyDescription}`);
     console.log(`Initial Capital: $${argv.capital.toLocaleString()}`);
     console.log(`Final Portfolio Value: $${result.finalPortfolioValue.toLocaleString()}`);
@@ -176,6 +213,7 @@ async function main() {
     if (argv.cacheStats && !argv.noCache) {
       console.log(`\n=== Cache Statistics ===`);
       const cacheAnalysis = await smartCache.getCacheAnalysis(argv.symbol);
+      console.log(`Provider: ${argv.provider.toUpperCase()}`);
       console.log(`Symbol: ${argv.symbol}`);
       console.log(`Cached ranges: ${cacheAnalysis.totalRanges}`);
       if (cacheAnalysis.coverage) {

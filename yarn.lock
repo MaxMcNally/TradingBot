@@ -72,7 +72,7 @@
 
 "@aws-sdk/client-s3@^3.901.0":
   version "3.901.0"
-  resolved "https://registry.npmjs.org/@aws-sdk/client-s3/-/client-s3-3.901.0.tgz"
+  resolved "https://registry.npmjs.org/@aws-sdk/client-s3/-/client-s3-3.901.0.tgz#42e9faf3b9943c56e86ade41a36950dfb231d095"
   integrity sha512-wyKhZ51ur1tFuguZ6PgrUsot9KopqD0Tmxw8O8P/N3suQDxFPr0Yo7Y77ezDRDZQ95Ml3C0jlvx79HCo8VxdWA==
   dependencies:
     "@aws-crypto/sha1-browser" "5.2.0"
