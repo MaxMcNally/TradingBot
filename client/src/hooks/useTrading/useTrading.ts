@@ -154,8 +154,17 @@ export const useActiveTradingSession = (userId: number) => {
   return useQuery({
     queryKey: ['activeTradingSession', userId],
     queryFn: async () => {
-      const response = await getActiveTradingSession(userId);
-      return response.data;
+      try {
+        const response = await getActiveTradingSession(userId);
+        return response.data;
+      } catch (error: any) {
+        // If it's a 404, that means no active session - this is normal, not an error
+        if (error?.response?.status === 404) {
+          return null; // Return null instead of throwing
+        }
+        // For other errors, re-throw them
+        throw error;
+      }
     },
     enabled: !!userId,
     staleTime: 10 * 1000, // 10 seconds

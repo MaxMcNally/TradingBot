@@ -528,7 +528,7 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
               color="primary"
               startIcon={<PlayArrow />}
               onClick={() => setShowStartDialog(true)}
-              disabled={loading || !!activeSession}
+              disabled={loading || !!activeSession || selectedStocks.length === 0 || !selectedStrategy}
               fullWidth
               size="large"
             >

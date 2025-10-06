@@ -619,7 +619,7 @@ const BacktestingSimple: React.FC = () => {
                         variant="contained"
                         startIcon={<PlayArrow />}
                         onClick={handleRunBacktest}
-                        disabled={backtestLoading || formData.symbols.length === 0}
+                        disabled={backtestLoading || formData.symbols.length === 0 || !formData.strategy}
                         fullWidth
                         size="large"
                       >
