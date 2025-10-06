@@ -11,7 +11,7 @@ import {
 } from "./strategies";
 import {YahooDataProvider} from "./dataProviders/yahooProvider"
 import {PolygonProvider} from "./dataProviders/PolygonProvider"
-import {PolygonFlatFilesProvider} from "./dataProviders/PolygonFlatFilesProvider"
+import {PolygonFlatFilesCLIProvider} from "./dataProviders/PolygonFlatFilesCLIProvider"
 import {SmartCacheManager} from "./cache/SmartCacheManager"
 
 const argv = yargs(hideBin(process.argv))
@@ -73,7 +73,7 @@ async function main() {
     dataProvider = new PolygonProvider(process.env.POLYGON_API_KEY!);
     cacheKey = "polygon";
   } else if (argv.provider === "polygon-flatfiles") {
-    dataProvider = new PolygonFlatFilesProvider({
+    dataProvider = new PolygonFlatFilesCLIProvider({
       accessKeyId: process.env.POLYGON_AWS_ACCESS_KEY_ID!,
       secretAccessKey: process.env.POLYGON_AWS_SECRET_ACCESS_KEY!,
     });
@@ -88,13 +88,13 @@ async function main() {
   // Pre-populate cache if requested
   if (argv.prepopulate) {
     console.log("Pre-populating cache...");
-    await smartCache.prePopulateCache(argv.symbol, "1d", argv.start, argv.end);
+    await smartCache.prePopulateCache(argv.symbol, "day", argv.start, argv.end);
   }
   
   // Get data (with or without cache based on --no-cache flag)
   const data = argv.noCache 
-    ? await dataProvider.getHistorical(argv.symbol, "1d", argv.start, argv.end)
-    : await smartCache.getHistoricalSmart(argv.symbol, "1d", argv.start, argv.end);
+    ? await dataProvider.getHistorical(argv.symbol, "day", argv.start, argv.end)
+    : await smartCache.getHistoricalSmart(argv.symbol, "day", argv.start, argv.end);
   
   if(data){
     const formattedData = data.map((d) => {

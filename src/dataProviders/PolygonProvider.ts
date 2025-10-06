@@ -51,6 +51,7 @@ export class PolygonProvider extends DataProvider {
     const res = await fetch(url);
     const data = await res.json() as any;
     
+    
     if (!data.results) {
       console.warn(`No historical data found for ${symbol}`);
       return [];
