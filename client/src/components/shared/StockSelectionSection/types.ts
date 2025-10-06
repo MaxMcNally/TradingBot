@@ -11,3 +11,4 @@ export interface StockSelectionSectionProps {
   showPopularStocks?: boolean;
   showTips?: boolean;
 }
+

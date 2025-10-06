@@ -39,13 +39,16 @@ export interface BollingerBandsResult {
   maxDrawdown: number;
 }
 
-export class BollingerBandsStrategy {
+import { AbstractStrategy, Signal } from './baseStrategy';
+
+export class BollingerBandsStrategy extends AbstractStrategy {
   private config: BollingerBandsConfig;
-  private prices: number[] = [];
   private currentPosition: 'LONG' | 'SHORT' | 'NONE' = 'NONE';
   private entryPrice: number = 0;
+  private lastSignal: Signal = null;
 
   constructor(config: BollingerBandsConfig) {
+    super();
     this.config = config;
   }
 
@@ -54,17 +57,13 @@ export class BollingerBandsStrategy {
    * @param price - The current price
    * @returns Trading signal: 'BUY', 'SELL', or null
    */
-  addPrice(price: number): 'BUY' | 'SELL' | null {
-    this.prices.push(price);
-    
-    // Keep only the last 'window' prices
-    if (this.prices.length > this.config.window) {
-      this.prices.shift();
-    }
+  addPrice(price: number): void {
+    this.addPriceToHistory(price, this.config.window);
 
     // Need at least 'window' prices to calculate Bollinger Bands
     if (this.prices.length < this.config.window) {
-      return null;
+      this.lastSignal = null;
+      return;
     }
 
     const bands = this.calculateBollingerBands();
@@ -74,17 +73,35 @@ export class BollingerBandsStrategy {
     if (price <= lowerBand && this.currentPosition !== 'LONG') {
       this.currentPosition = 'LONG';
       this.entryPrice = price;
-      return 'BUY';
+      this.lastSignal = 'BUY';
+      return;
     }
 
     // Sell signal: price touches or goes above upper band (and we have a position to sell)
     if (price >= upperBand && this.currentPosition === 'LONG') {
       this.currentPosition = 'NONE';
       this.entryPrice = 0;
-      return 'SELL';
+      this.lastSignal = 'SELL';
+      return;
     }
 
-    return null;
+    this.lastSignal = null;
+  }
+
+  /**
+   * Get the current trading signal
+   * @returns Trading signal: 'BUY', 'SELL', or null
+   */
+  getSignal(): Signal {
+    return this.lastSignal;
+  }
+
+  /**
+   * Get the strategy name
+   * @returns Strategy name
+   */
+  getStrategyName(): string {
+    return 'BollingerBands';
   }
 
   /**
@@ -203,7 +220,8 @@ export function runBollingerBandsStrategy(
 
   for (let i = 0; i < data.length; i++) {
     const dayData = data[i];
-    const signal = strategy.addPrice(dayData.close);
+    strategy.addPrice(dayData.close);
+    const signal = strategy.getSignal();
     const { upperBand, middleBand, lowerBand } = strategy.getCurrentBands();
 
     if (signal === 'BUY' && cash >= dayData.close) {

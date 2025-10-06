@@ -67,3 +67,4 @@ const StrategySelectionSection: React.FC<StrategySelectionSectionProps> = ({
 };
 
 export default StrategySelectionSection;
+

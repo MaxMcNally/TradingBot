@@ -32,13 +32,16 @@ export interface MeanReversionResult {
   maxDrawdown: number;
 }
 
-export class MeanReversionStrategy {
+import { AbstractStrategy, Signal } from './baseStrategy';
+
+export class MeanReversionStrategy extends AbstractStrategy {
   private config: MeanReversionConfig;
-  private prices: number[] = [];
   private currentPosition: 'LONG' | 'SHORT' | 'NONE' = 'NONE';
   private entryPrice: number = 0;
+  private lastSignal: Signal = null;
 
   constructor(config: MeanReversionConfig) {
+    super();
     this.config = config;
   }
 
@@ -47,17 +50,13 @@ export class MeanReversionStrategy {
    * @param price - The current price
    * @returns Trading signal: 'BUY', 'SELL', or null
    */
-  addPrice(price: number): 'BUY' | 'SELL' | null {
-    this.prices.push(price);
+  addPrice(price: number): void {
+    this.addPriceToHistory(price, this.config.window);
     
-    // Keep only the last 'window' prices
-    if (this.prices.length > this.config.window) {
-      this.prices.shift();
-    }
-
     // Need at least 'window' prices to calculate moving average
     if (this.prices.length < this.config.window) {
-      return null;
+      this.lastSignal = null;
+      return;
     }
 
     const movingAverage = this.calculateMovingAverage();
@@ -67,17 +66,35 @@ export class MeanReversionStrategy {
     if (priceDeviation <= -this.config.threshold && this.currentPosition !== 'LONG') {
       this.currentPosition = 'LONG';
       this.entryPrice = price;
-      return 'BUY';
+      this.lastSignal = 'BUY';
+      return;
     }
 
     // Sell signal: price is above MA by threshold percentage (and we have a position to sell)
     if (priceDeviation >= this.config.threshold && this.currentPosition === 'LONG') {
       this.currentPosition = 'NONE';
       this.entryPrice = 0;
-      return 'SELL';
+      this.lastSignal = 'SELL';
+      return;
     }
 
-    return null;
+    this.lastSignal = null;
+  }
+
+  /**
+   * Get the current trading signal
+   * @returns Trading signal: 'BUY', 'SELL', or null
+   */
+  getSignal(): Signal {
+    return this.lastSignal;
+  }
+
+  /**
+   * Get the strategy name
+   * @returns Strategy name
+   */
+  getStrategyName(): string {
+    return 'MeanReversion';
   }
 
   /**
@@ -168,7 +185,8 @@ export function runMeanReversionStrategy(
 
   for (let i = 0; i < data.length; i++) {
     const dayData = data[i];
-    const signal = strategy.addPrice(dayData.close);
+    strategy.addPrice(dayData.close);
+    const signal = strategy.getSignal();
     const movingAverage = strategy.getCurrentMovingAverage();
 
     if (signal === 'BUY' && cash >= dayData.close) {
