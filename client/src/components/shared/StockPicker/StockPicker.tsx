@@ -27,19 +27,8 @@ import {
   Info,
   Refresh,
 } from '@mui/icons-material';
-import { searchSymbols, getPopularSymbols, SymbolOption } from '../../api';
-
-interface StockPickerProps {
-  selectedStocks: string[];
-  onStocksChange: (stocks: string[]) => void;
-  maxStocks?: number;
-  title?: string;
-  description?: string;
-  showQuickAdd?: boolean;
-  showPopularStocks?: boolean;
-  showTips?: boolean;
-  compact?: boolean;
-}
+import { searchSymbols, getPopularSymbols, SymbolOption } from '../../../api';
+import { StockPickerProps } from './types';
 
 const StockPicker: React.FC<StockPickerProps> = ({
   selectedStocks,
