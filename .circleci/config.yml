@@ -116,9 +116,10 @@ jobs:
           name: Install Railway CLI
           command: npm install @railway/cli
       - run:
-          name: Login to Railway
+          name: Set Railway Authentication
           command: |
-            echo $RAILWAY_TOKEN | npx railway login --token
+            echo "Setting Railway authentication via environment variable"
+            export RAILWAY_TOKEN=$RAILWAY_TOKEN
       - run:
           name: Switch to QA Environment
           command: |
@@ -153,9 +154,10 @@ jobs:
           name: Install Railway CLI
           command: npm install @railway/cli
       - run:
-          name: Login to Railway
+          name: Set Railway Authentication
           command: |
-            echo $RAILWAY_TOKEN | npx railway login --token
+            echo "Setting Railway authentication via environment variable"
+            export RAILWAY_TOKEN=$RAILWAY_TOKEN
       - run:
           name: Switch to Production Environment
           command: |
@@ -260,5 +262,5 @@ workflows:
 
 # Define contexts for environment variables
 contexts:
-  - npx railway-qa
-  - npx railway-production
+  - railway-qa
+  - railway-production
