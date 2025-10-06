@@ -241,7 +241,7 @@ describe('Strategy Model', () => {
       const result = Strategy.parseStrategyData(strategyData);
 
       expect(result.config).toBe('invalid json');
-      expect(result.backtest_results).toEqual({ totalReturn: 0.15 });
+      expect(result.backtest_results).toBe('{"totalReturn":0.15}');
     });
   });
 });

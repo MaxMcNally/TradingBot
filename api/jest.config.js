@@ -3,15 +3,17 @@ module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>'],
   testMatch: [
-    '**/__tests__/**/*.ts',
-    '**/?(*.)+(spec|test).ts'
+    '**/__tests__/**/*.test.ts',
+    '**/__tests__/**/*.spec.ts'
   ],
   testPathIgnorePatterns: [
     '/node_modules/',
     '/__tests__/disabled/'
   ],
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.ts$': ['ts-jest', {
+      useESM: true
+    }],
   },
   transformIgnorePatterns: [
     'node_modules/(?!(yahoo-finance2|node-fetch)/)'
@@ -31,10 +33,5 @@ module.exports = {
   },
   testTimeout: 10000,
   verbose: true,
-  extensionsToTreatAsEsm: ['.ts'],
-  globals: {
-    'ts-jest': {
-      useESM: true
-    }
-  }
+  extensionsToTreatAsEsm: ['.ts']
 };

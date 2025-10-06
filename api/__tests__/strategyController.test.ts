@@ -37,7 +37,7 @@ describe('Strategy Controller', () => {
           name: 'Test Strategy',
           description: 'Test description',
           strategy_type: 'moving_average_crossover',
-          config: { fastWindow: 10, slowWindow: 30 },
+          config: JSON.stringify({ fastWindow: 10, slowWindow: 30 }),
           is_public: true
         }
       };
@@ -48,7 +48,7 @@ describe('Strategy Controller', () => {
         name: 'Test Strategy',
         description: 'Test description',
         strategy_type: 'moving_average_crossover',
-        config: { fastWindow: 10, slowWindow: 30 },
+        config: JSON.stringify({ fastWindow: 10, slowWindow: 30 }),
         is_public: true,
         is_active: true,
         created_at: '2023-01-01',
@@ -66,7 +66,7 @@ describe('Strategy Controller', () => {
         name: 'Test Strategy',
         description: 'Test description',
         strategy_type: 'moving_average_crossover',
-        config: { fastWindow: 10, slowWindow: 30 },
+        config: JSON.stringify({ fastWindow: 10, slowWindow: 30 }),
         backtest_results: undefined,
         is_public: true
       });
@@ -85,7 +85,7 @@ describe('Strategy Controller', () => {
           name: 'Test Strategy',
           description: 'Test description',
           strategy_type: 'moving_average_crossover',
-          config: { fastWindow: 10, slowWindow: 30 }
+          config: JSON.stringify({ fastWindow: 10, slowWindow: 30 })
         }
       };
 
@@ -95,7 +95,7 @@ describe('Strategy Controller', () => {
         name: 'Test Strategy',
         description: 'Test description',
         strategy_type: 'moving_average_crossover',
-        config: { fastWindow: 10, slowWindow: 30 },
+        config: JSON.stringify({ fastWindow: 10, slowWindow: 30 }),
         is_public: false,
         is_active: true,
         created_at: '2023-01-01',
@@ -113,7 +113,7 @@ describe('Strategy Controller', () => {
         name: 'Test Strategy',
         description: 'Test description',
         strategy_type: 'moving_average_crossover',
-        config: { fastWindow: 10, slowWindow: 30 },
+        config: JSON.stringify({ fastWindow: 10, slowWindow: 30 }),
         backtest_results: undefined,
         is_public: false
       });
@@ -128,6 +128,7 @@ describe('Strategy Controller', () => {
           user_id: 1,
           name: 'Public Strategy 1',
           strategy_type: 'moving_average_crossover',
+          config: JSON.stringify({ fastWindow: 10, slowWindow: 30 }),
           is_public: true,
           is_active: true,
           created_at: '2023-01-01'
@@ -137,6 +138,7 @@ describe('Strategy Controller', () => {
           user_id: 2,
           name: 'Public Strategy 2',
           strategy_type: 'bollinger_bands',
+          config: JSON.stringify({ period: 20, stdDev: 2 }),
           is_public: true,
           is_active: true,
           created_at: '2023-01-02'
@@ -179,6 +181,7 @@ describe('Strategy Controller', () => {
           user_id: 1,
           name: 'Moving Average Strategy',
           strategy_type: 'moving_average_crossover',
+          config: JSON.stringify({ fastWindow: 10, slowWindow: 30 }),
           is_public: true,
           is_active: true,
           created_at: '2023-01-01'
@@ -227,8 +230,8 @@ describe('Strategy Controller', () => {
         name: 'Original Public Strategy',
         description: 'Original description',
         strategy_type: 'moving_average_crossover',
-        config: { fastWindow: 10, slowWindow: 30 },
-        backtest_results: { totalReturn: 0.15 },
+        config: JSON.stringify({ fastWindow: 10, slowWindow: 30 }),
+        backtest_results: JSON.stringify({ totalReturn: 0.15 }),
         is_public: true,
         is_active: true,
         created_at: '2023-01-01',
@@ -241,8 +244,8 @@ describe('Strategy Controller', () => {
         name: 'My Copy',
         description: 'Copied from public strategy: Original description',
         strategy_type: 'moving_average_crossover',
-        config: { fastWindow: 10, slowWindow: 30 },
-        backtest_results: { totalReturn: 0.15 },
+        config: JSON.stringify({ fastWindow: 10, slowWindow: 30 }),
+        backtest_results: JSON.stringify({ totalReturn: 0.15 }),
         is_public: false,
         is_active: true,
         created_at: '2023-01-01',
@@ -263,8 +266,8 @@ describe('Strategy Controller', () => {
         name: 'My Copy',
         description: 'Copied from public strategy: Original description',
         strategy_type: 'moving_average_crossover',
-        config: { fastWindow: 10, slowWindow: 30 },
-        backtest_results: { totalReturn: 0.15 },
+        config: JSON.stringify({ fastWindow: 10, slowWindow: 30 }),
+        backtest_results: JSON.stringify({ totalReturn: 0.15 }),
         is_public: false
       });
 
@@ -289,7 +292,7 @@ describe('Strategy Controller', () => {
         name: 'Original Public Strategy',
         description: 'Original description',
         strategy_type: 'moving_average_crossover',
-        config: { fastWindow: 10, slowWindow: 30 },
+        config: JSON.stringify({ fastWindow: 10, slowWindow: 30 }),
         is_public: true,
         is_active: true,
         created_at: '2023-01-01',
@@ -340,6 +343,8 @@ describe('Strategy Controller', () => {
         id: 123,
         user_id: 2,
         name: 'Private Strategy',
+        strategy_type: 'moving_average_crossover',
+        config: JSON.stringify({ fastWindow: 10, slowWindow: 30 }),
         is_public: false,
         is_active: true
       };
@@ -367,6 +372,8 @@ describe('Strategy Controller', () => {
         id: 123,
         user_id: 2,
         name: 'Public Strategy',
+        strategy_type: 'moving_average_crossover',
+        config: JSON.stringify({ fastWindow: 10, slowWindow: 30 }),
         is_public: true,
         is_active: true
       };
@@ -375,6 +382,8 @@ describe('Strategy Controller', () => {
         id: 456,
         user_id: 1,
         name: 'Existing Strategy',
+        strategy_type: 'moving_average_crossover',
+        config: JSON.stringify({ fastWindow: 10, slowWindow: 30 }),
         is_public: false,
         is_active: true
       };
