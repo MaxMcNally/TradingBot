@@ -14,11 +14,11 @@ COPY api/package*.json ./api/
 # Install dependencies
 RUN yarn install --frozen-lockfile --production=false
 
-# Install API dependencies
-RUN cd api && npm install
-
 # Copy source code
 COPY . .
+
+# Install API dependencies
+RUN cd api && npm install
 
 # Build TypeScript
 RUN yarn build && yarn build:api
