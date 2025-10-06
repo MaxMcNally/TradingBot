@@ -46,6 +46,7 @@ export default [
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-require-imports": "warn",
       "@typescript-eslint/no-unsafe-declaration-merging": "warn",
+      "@typescript-eslint/no-var-requires": "warn",
       "no-undef": "off"
     }
   },
