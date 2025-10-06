@@ -107,120 +107,102 @@ jobs:
           command: docker build -t tradingbot-client -f client/Dockerfile client/
 
   # Deploy to Railway QA environment
-  deploy-railway-qa:
+  deploy-npx railway-qa:
     docker:
       - image: cimg/node:20.0
     steps:
       - checkout
       - run:
           name: Install Railway CLI
-          command: npm install -g @railway/cli
+          command: npm install @railway/cli
       - run:
           name: Login to Railway
           command: |
-            echo $RAILWAY_TOKEN | railway login --token
+            echo $RAILWAY_TOKEN | npx railway login --token
       - run:
           name: Switch to QA Environment
           command: |
             echo "Switching to QA environment..."
-            railway environment qa
+            npx railway environment qa
       - run:
           name: Deploy to Railway QA
           command: |
             echo "Deploying to Railway QA environment..."
-            railway up --service api-qa
+            npx railway up --service api-qa
       - run:
           name: Set QA environment variables
           command: |
-            railway variables --set "NODE_ENV=QA" --service api-qa
-            railway variables --set "TRADING_MODE=paper" --service api-qa
-            railway variables --set "LOG_LEVEL=debug" --service api-qa
-            railway variables --set "ENVIRONMENT=qa" --service api-qa
-            railway variables --set "DEBUG=true" --service api-qa
+            npx railway variables --set "NODE_ENV=QA" --service api-qa
+            npx railway variables --set "TRADING_MODE=paper" --service api-qa
+            npx railway variables --set "LOG_LEVEL=debug" --service api-qa
+            npx railway variables --set "ENVIRONMENT=qa" --service api-qa
+            npx railway variables --set "DEBUG=true" --service api-qa
       - run:
           name: Get QA Deployment URL
           command: |
             echo "QA Deployment URL:"
-            railway domain
+            npx railway domain
 
   # Deploy to Railway production environment
-  deploy-railway-production:
+  deploy-npx railway-production:
     docker:
       - image: cimg/node:20.0
     steps:
       - checkout
       - run:
           name: Install Railway CLI
-          command: npm install -g @railway/cli
+          command: npm install @railway/cli
       - run:
           name: Login to Railway
           command: |
-            echo $RAILWAY_TOKEN | railway login --token
+            echo $RAILWAY_TOKEN | npx railway login --token
       - run:
           name: Switch to Production Environment
           command: |
             echo "Switching to production environment..."
-            railway environment production
+            npx railway environment production
       - run:
           name: Deploy to Railway Production
           command: |
             echo "Deploying to Railway production environment..."
-            railway up --service api
+            npx railway up --service api
       - run:
           name: Set production environment variables
           command: |
-            railway variables --set "NODE_ENV=production" --service api
-            railway variables --set "TRADING_MODE=paper" --service api
-            railway variables --set "LOG_LEVEL=info" --service api
-            railway variables --set "JWT_SECRET=$JWT_SECRET" --service api
-            railway variables --set "SESSION_SECRET=$SESSION_SECRET" --service api
+            npx railway variables --set "NODE_ENV=production" --service api
+            npx railway variables --set "TRADING_MODE=paper" --service api
+            npx railway variables --set "LOG_LEVEL=info" --service api
+            npx railway variables --set "JWT_SECRET=$JWT_SECRET" --service api
+            npx railway variables --set "SESSION_SECRET=$SESSION_SECRET" --service api
       - run:
           name: Get Production Deployment URL
           command: |
             echo "Production Deployment URL:"
-            railway domain
+            npx railway domain
 
 # Define workflows
 workflows:
   # Main branch workflow - Deploy to QA after PR merge
   main:
     jobs:
-      - install-dependencies:
-          filters:
-            branches:
-              only: main
+      - install-dependencies
       - test-backend:
           requires:
             - install-dependencies
-          filters:
-            branches:
-              only: main
       - test-frontend:
           requires:
             - install-dependencies
-          filters:
-            branches:
-              only: main
       - lint:
           requires:
             - install-dependencies
-          filters:
-            branches:
-              only: main
       - build-images:
           requires:
             - test-backend
             - test-frontend
             - lint
-          filters:
-            branches:
-              only: main
       - deploy-railway-qa:
           requires:
             - build-images
-          filters:
-            branches:
-              only: main
           context: railway-qa
 
   # Production release pipeline - Deploy to production on GitHub releases
@@ -256,15 +238,15 @@ workflows:
           filters:
             tags:
               only: /^v.*/
-      - deploy-railway-production:
+      - deploy-npx railway-production:
           requires:
             - build-images
           filters:
             tags:
               only: /^v.*/
-          context: railway-production
+          context: npx railway-production
 
 # Define contexts for environment variables
 contexts:
-  - railway-qa
-  - railway-production
+  - npx railway-qa
+  - npx railway-production
