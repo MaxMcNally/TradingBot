@@ -1,6 +1,6 @@
 export const TradingMode = {
-  PAPER: 'paper',
-  LIVE: 'live',
+  PAPER: 'PAPER',
+  LIVE: 'LIVE',
 } as const;
 
 export type TradingModeType = typeof TradingMode[keyof typeof TradingMode];

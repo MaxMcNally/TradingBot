@@ -1,8 +1,8 @@
 version: "3.9"
 
 services:
-  # API Service (Development)
-  api:
+  # Development API Service
+  api-dev:
     build:
       context: .
       dockerfile: Dockerfile
@@ -10,67 +10,75 @@ services:
     container_name: tradingbot-api-dev
     ports:
       - "8001:8001"
+    environment:
+      - NODE_ENV=development
+      - PORT=8001
+      - FRONTEND_URL=http://localhost:3000
+      - DB_PATH=/app/api/db/trading_bot.db
+      - CACHE_DB_PATH=/app/db/cache.db
     volumes:
       - ./api:/app/api
       - ./src:/app/src
       - ./package.json:/app/package.json
       - ./yarn.lock:/app/yarn.lock
-      - /app/node_modules
-      - /app/api/node_modules
-    environment:
-      - NODE_ENV=development
-      - PORT=8001
-      - FRONTEND_URL=http://localhost:5173
+      - api_dev_data:/app/api/db
+      - core_dev_data:/app/db
     networks:
-      - tradingbot-network
+      - tradingbot-dev-network
+    restart: unless-stopped
     command: ["yarn", "dev:server"]
     depends_on:
-      - redis
+      - redis-dev
 
-  # React Client (Development)
-  client:
+  # Development React Client
+  client-dev:
     build:
       context: ./client
       dockerfile: Dockerfile
       target: base
     container_name: tradingbot-client-dev
     ports:
-      - "5173:5173"
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:8001
     volumes:
       - ./client:/app
       - /app/node_modules
-    environment:
-      - NODE_ENV=development
-      - CHOKIDAR_USEPOLLING=true
-      - VITE_API_URL=http://localhost:8001
     networks:
-      - tradingbot-network
-    command: ["yarn", "dev"]
+      - tradingbot-dev-network
+    restart: unless-stopped
+    command: ["yarn", "dev", "--host", "0.0.0.0"]
     depends_on:
-      - api
+      - api-dev
 
-  # Core Trading Logic (Development)
-  core:
+  # Development Core Trading Logic
+  core-dev:
     build:
       context: .
       dockerfile: src/Dockerfile
       target: base
     container_name: tradingbot-core-dev
+    environment:
+      - NODE_ENV=development
+      - DB_PATH=/app/db/trading_bot.db
+      - CACHE_DB_PATH=/app/db/cache.db
     volumes:
       - ./src:/app/src
       - ./package.json:/app/package.json
       - ./yarn.lock:/app/yarn.lock
-      - /app/node_modules
-      - ./db:/app/db
-      - ./backtest_data:/app/backtest_data
-    environment:
-      - NODE_ENV=development
+      - core_dev_data:/app/db
+      - backtest_dev_data:/app/backtest_data
+      - cache_dev_data:/app/cache
     networks:
-      - tradingbot-network
-    command: ["yarn", "bot:cli", "start"]
+      - tradingbot-dev-network
+    restart: unless-stopped
+    command: ["yarn", "bot"]
+    depends_on:
+      - redis-dev
 
   # Redis for caching
-  redis:
+  redis-dev:
     image: redis:7-alpine
     container_name: tradingbot-redis-dev
     ports:
@@ -78,13 +86,43 @@ services:
     volumes:
       - redis_dev_data:/data
     networks:
-      - tradingbot-network
+      - tradingbot-dev-network
+    restart: unless-stopped
     command: redis-server --appendonly yes
 
+  # Database initialization service
+  db-init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    container_name: tradingbot-db-init
+    environment:
+      - NODE_ENV=development
+      - DB_PATH=/app/api/db/trading_bot.db
+    volumes:
+      - ./api:/app/api
+      - ./src:/app/src
+      - api_dev_data:/app/api/db
+      - core_dev_data:/app/db
+    networks:
+      - tradingbot-dev-network
+    command: ["yarn", "db:init"]
+    depends_on:
+      - redis-dev
+
 volumes:
+  api_dev_data:
+    driver: local
+  core_dev_data:
+    driver: local
+  backtest_dev_data:
+    driver: local
+  cache_dev_data:
+    driver: local
   redis_dev_data:
     driver: local
 
 networks:
-  tradingbot-network:
+  tradingbot-dev-network:
     driver: bridge

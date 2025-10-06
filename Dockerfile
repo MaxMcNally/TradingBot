@@ -2,7 +2,7 @@
 FROM node:20-alpine AS base
 
 # Install dependencies needed for native modules
-RUN apk add --no-cache python3 make g++ sqlite
+RUN apk add --no-cache python3 make g++ sqlite curl
 
 # Set working directory
 WORKDIR /app
@@ -12,22 +12,26 @@ COPY package*.json yarn.lock ./
 COPY api/package*.json ./api/
 
 # Install dependencies
-RUN yarn install --frozen-lockfile
+RUN yarn install --frozen-lockfile --production=false
 
 # Copy source code
 COPY . .
 
 # Build TypeScript
-RUN yarn build
+RUN yarn build && yarn build:api
 
 # Production stage
 FROM node:20-alpine AS production
 
 # Install runtime dependencies
-RUN apk add --no-cache sqlite
+RUN apk add --no-cache sqlite curl
 
 # Set working directory
 WORKDIR /app
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S tradingbot -u 1001
 
 # Copy built application and dependencies
 COPY --from=base /app/dist ./dist
@@ -37,15 +41,19 @@ COPY --from=base /app/api ./api
 COPY --from=base /app/src ./src
 COPY --from=base /app/package.json ./
 
-# Create directories for databases
-RUN mkdir -p /app/db /app/api/db
+# Create directories for databases and set permissions
+RUN mkdir -p /app/db /app/api/db /app/backtest_data /app/cache && \
+    chown -R tradingbot:nodejs /app
+
+# Switch to non-root user
+USER tradingbot
 
 # Expose port
 EXPOSE 8001
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:8001/ping', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:8001/ping || exit 1
 
 # Start the API server
 CMD ["node", "dist/api/server.js"]

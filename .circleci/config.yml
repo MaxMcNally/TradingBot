@@ -1,0 +1,221 @@
+version: 2.1
+
+# Define reusable jobs
+jobs:
+  # Install dependencies and cache them
+  install-dependencies:
+    docker:
+      - image: cimg/node:20.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-deps-{{ checksum "yarn.lock" }}
+            - v1-deps-
+      - run:
+          name: Install root dependencies
+          command: yarn install --frozen-lockfile
+      - run:
+          name: Install client dependencies
+          command: cd client && yarn install --frozen-lockfile
+      - save_cache:
+          key: v1-deps-{{ checksum "yarn.lock" }}
+          paths:
+            - node_modules
+            - client/node_modules
+
+  # Run backend tests
+  test-backend:
+    docker:
+      - image: cimg/node:20.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-deps-{{ checksum "yarn.lock" }}
+            - v1-deps-
+      - run:
+          name: Install dependencies
+          command: yarn install --frozen-lockfile
+      - run:
+          name: Run backend tests
+          command: yarn test:ci
+      - run:
+          name: Run backend linting
+          command: yarn lint
+      - store_test_results:
+          path: coverage
+      - store_artifacts:
+          path: coverage
+          destination: backend-coverage
+
+  # Run frontend tests
+  test-frontend:
+    docker:
+      - image: cimg/node:20.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-deps-{{ checksum "yarn.lock" }}
+            - v1-deps-
+      - run:
+          name: Install client dependencies
+          command: cd client && yarn install --frozen-lockfile
+      - run:
+          name: Run frontend tests
+          command: cd client && yarn test:run
+      - run:
+          name: Run frontend linting
+          command: cd client && yarn lint
+      - store_test_results:
+          path: client/coverage
+      - store_artifacts:
+          path: client/coverage
+          destination: frontend-coverage
+
+  # Build Docker images
+  build-images:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.14
+      - run:
+          name: Build API image
+          command: |
+            docker build -t tradingbot-api:$CIRCLE_SHA1 -f Dockerfile --target production .
+      - run:
+          name: Build Client image
+          command: |
+            docker build -t tradingbot-client:$CIRCLE_SHA1 -f client/Dockerfile --target production ./client
+      - run:
+          name: Build Core image
+          command: |
+            docker build -t tradingbot-core:$CIRCLE_SHA1 -f src/Dockerfile --target production .
+      - run:
+          name: Save Docker images
+          command: |
+            docker save tradingbot-api:$CIRCLE_SHA1 | gzip > api-image.tar.gz
+            docker save tradingbot-client:$CIRCLE_SHA1 | gzip > client-image.tar.gz
+            docker save tradingbot-core:$CIRCLE_SHA1 | gzip > core-image.tar.gz
+      - store_artifacts:
+          path: api-image.tar.gz
+          destination: api-image
+      - store_artifacts:
+          path: client-image.tar.gz
+          destination: client-image
+      - store_artifacts:
+          path: core-image.tar.gz
+          destination: core-image
+
+  # Deploy to staging
+  deploy-staging:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - run:
+          name: Deploy to staging
+          command: |
+            echo "Deploying to staging environment..."
+            # Add your staging deployment commands here
+            # This could include pushing to a container registry,
+            # updating Kubernetes manifests, or running deployment scripts
+
+  # Deploy to production
+  deploy-production:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - run:
+          name: Deploy to production
+          command: |
+            echo "Deploying to production environment..."
+            # Add your production deployment commands here
+
+# Define workflows
+workflows:
+  # Main CI/CD pipeline
+  main:
+    jobs:
+      # Install dependencies first
+      - install-dependencies:
+          filters:
+            branches:
+              only: /.*/
+
+      # Run tests in parallel
+      - test-backend:
+          requires:
+            - install-dependencies
+          filters:
+            branches:
+              only: /.*/
+
+      - test-frontend:
+          requires:
+            - install-dependencies
+          filters:
+            branches:
+              only: /.*/
+
+      # Build images after tests pass
+      - build-images:
+          requires:
+            - test-backend
+            - test-frontend
+          filters:
+            branches:
+              only: /.*/
+
+      # Deploy to staging on feature branches
+      - deploy-staging:
+          requires:
+            - build-images
+          filters:
+            branches:
+              only: /feature\/.*/
+          context: staging
+
+      # Deploy to production on main branch
+      - deploy-production:
+          requires:
+            - build-images
+          filters:
+            branches:
+              only: main
+          context: production
+
+  # Nightly builds and tests
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 2 * * *"  # Run at 2 AM UTC daily
+          filters:
+            branches:
+              only: main
+    jobs:
+      - install-dependencies
+      - test-backend:
+          requires:
+            - install-dependencies
+      - test-frontend:
+          requires:
+            - install-dependencies
+      - build-images:
+          requires:
+            - test-backend
+            - test-frontend
+
+# Define contexts for environment variables
+# These should be configured in CircleCI dashboard
+contexts:
+  - staging
+  - production
