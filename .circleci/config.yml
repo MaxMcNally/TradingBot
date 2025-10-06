@@ -110,35 +110,57 @@ jobs:
           path: core-image.tar.gz
           destination: core-image
 
-  # Deploy to staging
-  deploy-staging:
+  # Deploy to Railway staging
+  deploy-railway-staging:
     docker:
-      - image: cimg/base:stable
+      - image: cimg/node:20.0
     steps:
       - checkout
-      - attach_workspace:
-          at: /tmp/workspace
       - run:
-          name: Deploy to staging
+          name: Install Railway CLI
+          command: npm install -g @railway/cli
+      - run:
+          name: Login to Railway
           command: |
-            echo "Deploying to staging environment..."
-            # Add your staging deployment commands here
-            # This could include pushing to a container registry,
-            # updating Kubernetes manifests, or running deployment scripts
+            echo $RAILWAY_TOKEN | railway login --token
+      - run:
+          name: Deploy to Railway Staging
+          command: |
+            echo "Deploying to Railway staging environment..."
+            railway up --service staging
+      - run:
+          name: Set staging environment variables
+          command: |
+            railway variables set NODE_ENV=staging --service staging
+            railway variables set TRADING_MODE=paper --service staging
+            railway variables set LOG_LEVEL=debug --service staging
 
-  # Deploy to production
-  deploy-production:
+  # Deploy to Railway production
+  deploy-railway-production:
     docker:
-      - image: cimg/base:stable
+      - image: cimg/node:20.0
     steps:
       - checkout
-      - attach_workspace:
-          at: /tmp/workspace
       - run:
-          name: Deploy to production
+          name: Install Railway CLI
+          command: npm install -g @railway/cli
+      - run:
+          name: Login to Railway
           command: |
-            echo "Deploying to production environment..."
-            # Add your production deployment commands here
+            echo $RAILWAY_TOKEN | railway login --token
+      - run:
+          name: Deploy to Railway Production
+          command: |
+            echo "Deploying to Railway production environment..."
+            railway up --service production
+      - run:
+          name: Set production environment variables
+          command: |
+            railway variables set NODE_ENV=production --service production
+            railway variables set TRADING_MODE=paper --service production
+            railway variables set LOG_LEVEL=info --service production
+            railway variables set JWT_SECRET=$JWT_SECRET --service production
+            railway variables set SESSION_SECRET=$SESSION_SECRET --service production
 
 # Define workflows
 workflows:
@@ -175,23 +197,23 @@ workflows:
             branches:
               only: /.*/
 
-      # Deploy to staging on feature branches
-      - deploy-staging:
+      # Deploy to Railway staging on feature branches
+      - deploy-railway-staging:
           requires:
             - build-images
           filters:
             branches:
               only: /feature\/.*/
-          context: staging
+          context: railway-staging
 
-      # Deploy to production on main branch
-      - deploy-production:
+      # Deploy to Railway production on main branch
+      - deploy-railway-production:
           requires:
             - build-images
           filters:
             branches:
               only: main
-          context: production
+          context: railway-production
 
   # Nightly builds and tests
   nightly:
@@ -217,5 +239,5 @@ workflows:
 # Define contexts for environment variables
 # These should be configured in CircleCI dashboard
 contexts:
-  - staging
-  - production
+  - railway-staging
+  - railway-production
