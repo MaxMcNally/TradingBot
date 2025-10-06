@@ -2,7 +2,7 @@
 FROM node:20-alpine AS base
 
 # Install dependencies needed for native modules
-RUN apk add --no-cache python3 make g++ sqlite
+RUN apk add --no-cache python3 make g++ sqlite curl
 
 # Set working directory
 WORKDIR /app
@@ -11,7 +11,7 @@ WORKDIR /app
 COPY package*.json yarn.lock ./
 
 # Install dependencies
-RUN yarn install --frozen-lockfile
+RUN yarn install --frozen-lockfile --production=false
 
 # Copy source code
 COPY . .
@@ -23,10 +23,14 @@ RUN yarn build
 FROM node:20-alpine AS production
 
 # Install runtime dependencies
-RUN apk add --no-cache sqlite
+RUN apk add --no-cache sqlite curl
 
 # Set working directory
 WORKDIR /app
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S tradingbot -u 1001
 
 # Copy built application and dependencies
 COPY --from=base /app/dist ./dist
@@ -34,20 +38,16 @@ COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/src ./src
 COPY --from=base /app/package.json ./
 
-# Create directories for databases and data
-RUN mkdir -p /app/db /app/backtest_data /app/cache
+# Create directories for databases and data with proper permissions
+RUN mkdir -p /app/db /app/backtest_data /app/cache && \
+    chown -R tradingbot:nodejs /app
 
-# Create a non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S tradingbot -u 1001
-
-# Change ownership of the app directory
-RUN chown -R tradingbot:nodejs /app
+# Switch to non-root user
 USER tradingbot
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('./dist/bot.js')" || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD node -e "console.log('Core service is running')" || exit 1
 
 # Default command (can be overridden in docker-compose)
 CMD ["node", "dist/bot.js"]

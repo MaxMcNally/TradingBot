@@ -89,6 +89,8 @@ export class TradingBot extends EventEmitter {
         start_time: new Date().toISOString(),
         mode: tradingConfig.mode,
         initial_cash: tradingConfig.initialCash,
+        total_trades: 0,
+        winning_trades: 0,
         status: 'ACTIVE'
       });
 
@@ -192,6 +194,11 @@ export class TradingBot extends EventEmitter {
 
   private async executeTrade(symbol: string, price: number, signal: Signal): Promise<void> {
     try {
+      // Don't execute trade if signal is null
+      if (signal === null) {
+        return;
+      }
+
       const tradingConfig = this.config.getConfig();
       const quantity = 1; // Fixed quantity for now
 
@@ -205,7 +212,7 @@ export class TradingBot extends EventEmitter {
       const trade: Omit<Trade, 'id' | 'created_at'> = {
         user_id: this.userId,
         symbol,
-        action: signal,
+        action: signal, // Now guaranteed to be 'BUY' | 'SELL'
         quantity,
         price,
         timestamp: new Date().toISOString(),

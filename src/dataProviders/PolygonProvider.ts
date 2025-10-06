@@ -56,22 +56,30 @@ export class PolygonProvider extends DataProvider {
     return data.results || [];
   }
 
-  connectStream(symbols: string[], onData: (data: PolygonTrade[]) => void): WebSocket {
-    const ws = new WebSocket('wss://socket.polygon.io/stocks');
-    ws.on('open', () => {
-      ws.send(JSON.stringify({ action: 'auth', params: this.apiKey }));
-      ws.send(
-        JSON.stringify({
-          action: 'subscribe',
-          params: symbols.map((s) => `T.${s}`).join(','),
-        }),
-      );
+  connectStream(symbols: string[], onData: (data: PolygonTrade[]) => void): Promise<WebSocket> {
+    return new Promise((resolve, reject) => {
+      const ws = new WebSocket('wss://socket.polygon.io/stocks');
+      
+      ws.on('open', () => {
+        ws.send(JSON.stringify({ action: 'auth', params: this.apiKey }));
+        ws.send(
+          JSON.stringify({
+            action: 'subscribe',
+            params: symbols.map((s) => `T.${s}`).join(','),
+          }),
+        );
+        resolve(ws);
+      });
+      
+      ws.on('message', (msg: any) => {
+        const data = JSON.parse(msg.toString()) as PolygonTrade[];
+        onData(data);
+      });
+      
+      ws.on('error', (err: any) => {
+        console.error('WS error:', err);
+        reject(err);
+      });
     });
-    ws.on('message', (msg) => {
-      const data = JSON.parse(msg.toString()) as PolygonTrade[];
-      onData(data);
-    });
-    ws.on('error', (err) => console.error('WS error:', err));
-    return ws;
   }
 }

@@ -4,26 +4,8 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./src/setupTests.js'],
-    css: true,
-    ssr: false,
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/',
-        'src/setupTests.js',
-        '**/*.d.ts',
-        '**/*.config.*',
-        'dist/',
-      ],
-    },
-  },
   esbuild: {
-    target: 'node14'
+    // ESBuild options for client-side builds
   },
   define: {
     __vite_ssr_exportName__: 'undefined',
