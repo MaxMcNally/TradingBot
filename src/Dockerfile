@@ -47,7 +47,7 @@ USER tradingbot
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "console.log('Core trading logic is running')" || exit 1
+  CMD node -e "require('./dist/bot.js')" || exit 1
 
 # Default command (can be overridden in docker-compose)
 CMD ["node", "dist/bot.js"]
