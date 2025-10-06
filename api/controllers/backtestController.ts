@@ -10,6 +10,8 @@ export interface BacktestRequest {
   symbols: string | string[];
   startDate: string;
   endDate: string;
+  // Data provider
+  provider?: 'yahoo' | 'polygon' | 'polygon-flatfiles';
   // Common parameters
   initialCapital?: number;
   sharesPerTrade?: number;
@@ -68,6 +70,8 @@ export const runBacktest = async (req: Request, res: Response) => {
       symbols,
       startDate,
       endDate,
+      // Data provider
+      provider = 'yahoo',
       // Common parameters
       initialCapital = 10000,
       sharesPerTrade = 100,
@@ -115,6 +119,15 @@ export const runBacktest = async (req: Request, res: Response) => {
       });
     }
 
+    // Validate provider
+    const validProviders = ['yahoo', 'polygon', 'polygon-flatfiles'];
+    if (!validProviders.includes(provider)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid provider. Valid providers: ${validProviders.join(', ')}`
+      });
+    }
+
     // Convert symbols to array if it's a string
     const symbolArray = Array.isArray(symbols) ? symbols : [symbols];
 
@@ -147,6 +160,7 @@ export const runBacktest = async (req: Request, res: Response) => {
           startDate,
           endDate,
           strategy,
+          provider,
           // Common parameters
           initialCapital,
           sharesPerTrade,
@@ -220,6 +234,7 @@ export const runBacktest = async (req: Request, res: Response) => {
         symbols: symbolArray,
         startDate,
         endDate,
+        provider,
         // Overall aggregated metrics
         totalReturn,
         finalPortfolioValue,
@@ -227,6 +242,8 @@ export const runBacktest = async (req: Request, res: Response) => {
         totalTrades,
         maxDrawdown,
         config: {
+          // Data provider
+          provider,
           // Common parameters
           initialCapital,
           sharesPerTrade,
@@ -265,6 +282,7 @@ const runSingleBacktest = async (params: {
   startDate: string;
   endDate: string;
   strategy: string;
+  provider: string;
   // Common parameters
   initialCapital: number;
   sharesPerTrade: number;
@@ -290,7 +308,7 @@ const runSingleBacktest = async (params: {
 }): Promise<any> => {
   return new Promise((resolve, reject) => {
     const { 
-      symbol, startDate, endDate, strategy,
+      symbol, startDate, endDate, strategy, provider,
       initialCapital, sharesPerTrade, useCache, prepopulateCache, showCacheStats,
       window, threshold, fastWindow, slowWindow, maType,
       rsiWindow, rsiOverbought, rsiOversold, momentumWindow, momentumThreshold,
@@ -306,6 +324,7 @@ const runSingleBacktest = async (params: {
       '--start', startDate,
       '--end', endDate,
       '--strategy', strategy,
+      '--provider', provider,
       '--capital', initialCapital.toString(),
       '--shares', sharesPerTrade.toString()
     ];
