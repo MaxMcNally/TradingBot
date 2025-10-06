@@ -185,43 +185,25 @@ workflows:
   # Main branch workflow - Deploy to QA after PR merge
   main:
     jobs:
-      - install-dependencies:
-          filters:
-            branches:
-              only: main
+      - install-dependencies
       - test-backend:
           requires:
             - install-dependencies
-          filters:
-            branches:
-              only: main
       - test-frontend:
           requires:
             - install-dependencies
-          filters:
-            branches:
-              only: main
       - lint:
           requires:
             - install-dependencies
-          filters:
-            branches:
-              only: main
       - build-images:
           requires:
             - test-backend
             - test-frontend
             - lint
-          filters:
-            branches:
-              only: main
-      - deploy-npx railway-qa:
+      - deploy-railway-qa:
           requires:
             - build-images
-          filters:
-            branches:
-              only: main
-          context: npx railway-qa
+          context: railway-qa
 
   # Production release pipeline - Deploy to production on GitHub releases
   release:
