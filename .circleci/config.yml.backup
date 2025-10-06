@@ -18,17 +18,13 @@ jobs:
       - run:
           name: Install client dependencies
           command: cd client && yarn install --frozen-lockfile
-      - run:
-          name: Install API dependencies
-          command: cd api && npm install
       - save_cache:
           key: v1-deps-{{ checksum "yarn.lock" }}
           paths:
             - node_modules
             - client/node_modules
-            - api/node_modules
 
-  # Test backend
+  # Run backend tests
   test-backend:
     docker:
       - image: cimg/node:20.19
@@ -39,16 +35,21 @@ jobs:
             - v1-deps-{{ checksum "yarn.lock" }}
             - v1-deps-
       - run:
-          name: Install root dependencies
+          name: Install dependencies
           command: yarn install --frozen-lockfile
       - run:
-          name: Install API dependencies
-          command: cd api && npm install
-      - run:
           name: Run backend tests
-          command: yarn test:backend
+          command: yarn test:ci
+      - run:
+          name: Run backend linting
+          command: yarn lint
+      - store_test_results:
+          path: coverage
+      - store_artifacts:
+          path: coverage
+          destination: backend-coverage
 
-  # Test frontend
+  # Run frontend tests
   test-frontend:
     docker:
       - image: cimg/node:20.19
@@ -59,57 +60,60 @@ jobs:
             - v1-deps-{{ checksum "yarn.lock" }}
             - v1-deps-
       - run:
-          name: Install root dependencies
-          command: yarn install --frozen-lockfile
-      - run:
           name: Install client dependencies
           command: cd client && yarn install --frozen-lockfile
       - run:
           name: Run frontend tests
-          command: yarn test:frontend
-
-  # Lint code
-  lint:
-    docker:
-      - image: cimg/node:20.19
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v1-deps-{{ checksum "yarn.lock" }}
-            - v1-deps-
+          command: cd client && yarn test:run
       - run:
-          name: Install root dependencies
-          command: yarn install --frozen-lockfile
-      - run:
-          name: Install client dependencies
-          command: cd client && yarn install --frozen-lockfile
-      - run:
-          name: Install API dependencies
-          command: cd api && npm install
-      - run:
-          name: Run linting
-          command: yarn lint
+          name: Run frontend linting
+          command: cd client && yarn lint
+      - store_test_results:
+          path: client/coverage
+      - store_artifacts:
+          path: client/coverage
+          destination: frontend-coverage
 
   # Build Docker images
   build-images:
     docker:
-      - image: cimg/node:20.19
+      - image: cimg/base:stable
     steps:
       - checkout
       - setup_remote_docker:
-          docker_layer_caching: true
+          version: 20.10.14
       - run:
           name: Build API image
-          command: docker build -t tradingbot-api .
+          command: |
+            docker build -t tradingbot-api:$CIRCLE_SHA1 -f Dockerfile --target production .
       - run:
-          name: Build client image
-          command: docker build -t tradingbot-client -f client/Dockerfile client/
+          name: Build Client image
+          command: |
+            docker build -t tradingbot-client:$CIRCLE_SHA1 -f client/Dockerfile --target production ./client
+      - run:
+          name: Build Core image
+          command: |
+            docker build -t tradingbot-core:$CIRCLE_SHA1 -f src/Dockerfile --target production .
+      - run:
+          name: Save Docker images
+          command: |
+            docker save tradingbot-api:$CIRCLE_SHA1 | gzip > api-image.tar.gz
+            docker save tradingbot-client:$CIRCLE_SHA1 | gzip > client-image.tar.gz
+            docker save tradingbot-core:$CIRCLE_SHA1 | gzip > core-image.tar.gz
+      - store_artifacts:
+          path: api-image.tar.gz
+          destination: api-image
+      - store_artifacts:
+          path: client-image.tar.gz
+          destination: client-image
+      - store_artifacts:
+          path: core-image.tar.gz
+          destination: core-image
 
   # Deploy to Railway QA environment
   deploy-railway-qa:
     docker:
-      - image: cimg/node:20.0
+      - image: cimg/node:20.19
     steps:
       - checkout
       - run:
@@ -146,7 +150,7 @@ jobs:
   # Deploy to Railway production environment
   deploy-railway-production:
     docker:
-      - image: cimg/node:20.0
+      - image: cimg/node:20.19
     steps:
       - checkout
       - run:
@@ -192,14 +196,10 @@ workflows:
       - test-frontend:
           requires:
             - install-dependencies
-      - lint:
-          requires:
-            - install-dependencies
       - build-images:
           requires:
             - test-backend
             - test-frontend
-            - lint
     filters:
       branches:
         ignore: main
@@ -223,17 +223,10 @@ workflows:
           filters:
             branches:
               only: main
-      - lint:
-          requires:
-            - install-dependencies
-          filters:
-            branches:
-              only: main
       - build-images:
           requires:
             - test-backend
             - test-frontend
-            - lint
           filters:
             branches:
               only: main
@@ -248,36 +241,37 @@ workflows:
   # Production release pipeline - Deploy to production on GitHub releases
   release:
     jobs:
+      # Install dependencies first
       - install-dependencies:
           filters:
             tags:
               only: /^v.*/
+
+      # Run tests in parallel
       - test-backend:
           requires:
             - install-dependencies
           filters:
             tags:
               only: /^v.*/
+
       - test-frontend:
           requires:
             - install-dependencies
           filters:
             tags:
               only: /^v.*/
-      - lint:
-          requires:
-            - install-dependencies
-          filters:
-            tags:
-              only: /^v.*/
+
+      # Build images after tests pass
       - build-images:
           requires:
             - test-backend
             - test-frontend
-            - lint
           filters:
             tags:
               only: /^v.*/
+
+      # Deploy to Railway production on GitHub releases
       - deploy-railway-production:
           requires:
             - build-images
@@ -286,7 +280,30 @@ workflows:
               only: /^v.*/
           context: railway-production
 
+
+  # Nightly builds and tests
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 2 * * *"  # Run at 2 AM UTC daily
+          filters:
+            branches:
+              only: main
+    jobs:
+      - install-dependencies
+      - test-backend:
+          requires:
+            - install-dependencies
+      - test-frontend:
+          requires:
+            - install-dependencies
+      - build-images:
+          requires:
+            - test-backend
+            - test-frontend
+
 # Define contexts for environment variables
+# These should be configured in CircleCI dashboard
 contexts:
   - railway-qa
   - railway-production
