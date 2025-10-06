@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -5,12 +6,12 @@ import { useSettings } from './useSettings';
 import * as api from '../../api';
 
 // Mock the API module
-jest.mock('../../api', () => ({
-  getSettings: jest.fn(),
-  saveSetting: jest.fn(),
+vi.mock('../../api', () => ({
+  getSettings: vi.fn(),
+  saveSetting: vi.fn(),
 }));
 
-const mockApi = api as jest.Mocked<typeof api>;
+const mockApi = api as vi.Mocked<typeof api>;
 
 // Create a wrapper for React Query
 const createWrapper = () => {
@@ -27,7 +28,7 @@ const createWrapper = () => {
 
 describe('useSettings', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should return settings data when getSettings succeeds', async () => {

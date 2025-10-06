@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -6,14 +7,14 @@ import TestDataManager from './TestDataManager';
 import * as tradingApi from '../../api/tradingApi';
 
 // Mock the trading API
-jest.mock('../../api/tradingApi', () => ({
-  createTestUser: jest.fn(),
-  getTestUser: jest.fn(),
-  cleanupTestData: jest.fn(),
-  startMockSession: jest.fn(),
-  stopMockSession: jest.fn(),
-  getActiveMockSessions: jest.fn(),
-  stopAllMockSessions: jest.fn(),
+vi.mock('../../api/tradingApi', () => ({
+  createTestUser: vi.fn(),
+  getTestUser: vi.fn(),
+  cleanupTestData: vi.fn(),
+  startMockSession: vi.fn(),
+  stopMockSession: vi.fn(),
+  getActiveMockSessions: vi.fn(),
+  stopAllMockSessions: vi.fn(),
 }));
 
 const createTestQueryClient = () => new QueryClient({
@@ -55,13 +56,13 @@ describe('TestDataManager Component', () => {
   ];
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
-    (tradingApi.getTestUser as jest.Mock).mockResolvedValue({
+    (tradingApi.getTestUser as vi.Mock).mockResolvedValue({
       data: { user: null }
     });
     
-    (tradingApi.getActiveMockSessions as jest.Mock).mockResolvedValue({
+    (tradingApi.getActiveMockSessions as vi.Mock).mockResolvedValue({
       data: { sessions: [] }
     });
   });
@@ -90,7 +91,7 @@ describe('TestDataManager Component', () => {
   });
 
   it('creates test user successfully', async () => {
-    (tradingApi.createTestUser as jest.Mock).mockResolvedValue({
+    (tradingApi.createTestUser as vi.Mock).mockResolvedValue({
       data: { user: mockTestUser }
     });
 
@@ -106,7 +107,7 @@ describe('TestDataManager Component', () => {
   });
 
   it('shows error when test user creation fails', async () => {
-    (tradingApi.createTestUser as jest.Mock).mockRejectedValue(
+    (tradingApi.createTestUser as vi.Mock).mockRejectedValue(
       new Error('Failed to create test user')
     );
 
@@ -121,7 +122,7 @@ describe('TestDataManager Component', () => {
   });
 
   it('cleans up test data successfully', async () => {
-    (tradingApi.cleanupTestData as jest.Mock).mockResolvedValue({
+    (tradingApi.cleanupTestData as vi.Mock).mockResolvedValue({
       data: { success: true }
     });
 
@@ -137,7 +138,7 @@ describe('TestDataManager Component', () => {
   });
 
   it('shows error when cleanup fails', async () => {
-    (tradingApi.cleanupTestData as jest.Mock).mockRejectedValue(
+    (tradingApi.cleanupTestData as vi.Mock).mockRejectedValue(
       new Error('Failed to cleanup test data')
     );
 
@@ -166,7 +167,7 @@ describe('TestDataManager Component', () => {
   });
 
   it('starts mock session successfully', async () => {
-    (tradingApi.startMockSession as jest.Mock).mockResolvedValue({
+    (tradingApi.startMockSession as vi.Mock).mockResolvedValue({
       data: { session: mockActiveMockSessions[0] }
     });
 
@@ -192,7 +193,7 @@ describe('TestDataManager Component', () => {
   });
 
   it('shows error when starting mock session fails', async () => {
-    (tradingApi.startMockSession as jest.Mock).mockRejectedValue(
+    (tradingApi.startMockSession as vi.Mock).mockRejectedValue(
       new Error('Failed to start mock session')
     );
 
@@ -207,7 +208,7 @@ describe('TestDataManager Component', () => {
   });
 
   it('displays active mock sessions', async () => {
-    (tradingApi.getActiveMockSessions as jest.Mock).mockResolvedValue({
+    (tradingApi.getActiveMockSessions as vi.Mock).mockResolvedValue({
       data: { sessions: mockActiveMockSessions }
     });
 
@@ -222,10 +223,10 @@ describe('TestDataManager Component', () => {
   });
 
   it('stops individual mock session', async () => {
-    (tradingApi.getActiveMockSessions as jest.Mock).mockResolvedValue({
+    (tradingApi.getActiveMockSessions as vi.Mock).mockResolvedValue({
       data: { sessions: mockActiveMockSessions }
     });
-    (tradingApi.stopMockSession as jest.Mock).mockResolvedValue({
+    (tradingApi.stopMockSession as vi.Mock).mockResolvedValue({
       data: { success: true }
     });
 
@@ -243,10 +244,10 @@ describe('TestDataManager Component', () => {
   });
 
   it('stops all mock sessions', async () => {
-    (tradingApi.getActiveMockSessions as jest.Mock).mockResolvedValue({
+    (tradingApi.getActiveMockSessions as vi.Mock).mockResolvedValue({
       data: { sessions: mockActiveMockSessions }
     });
-    (tradingApi.stopAllMockSessions as jest.Mock).mockResolvedValue({
+    (tradingApi.stopAllMockSessions as vi.Mock).mockResolvedValue({
       data: { success: true }
     });
 
@@ -264,10 +265,10 @@ describe('TestDataManager Component', () => {
   });
 
   it('shows error when stopping mock session fails', async () => {
-    (tradingApi.getActiveMockSessions as jest.Mock).mockResolvedValue({
+    (tradingApi.getActiveMockSessions as vi.Mock).mockResolvedValue({
       data: { sessions: mockActiveMockSessions }
     });
-    (tradingApi.stopMockSession as jest.Mock).mockRejectedValue(
+    (tradingApi.stopMockSession as vi.Mock).mockRejectedValue(
       new Error('Failed to stop mock session')
     );
 
@@ -297,7 +298,7 @@ describe('TestDataManager Component', () => {
   });
 
   it('shows loading states during operations', async () => {
-    (tradingApi.createTestUser as jest.Mock).mockImplementation(
+    (tradingApi.createTestUser as vi.Mock).mockImplementation(
       () => new Promise(resolve => setTimeout(() => resolve({ data: { user: mockTestUser } }), 100))
     );
 
@@ -311,7 +312,7 @@ describe('TestDataManager Component', () => {
   });
 
   it('displays test user information when available', async () => {
-    (tradingApi.getTestUser as jest.Mock).mockResolvedValue({
+    (tradingApi.getTestUser as vi.Mock).mockResolvedValue({
       data: { user: mockTestUser }
     });
 
@@ -325,7 +326,7 @@ describe('TestDataManager Component', () => {
   });
 
   it('handles empty active sessions list', async () => {
-    (tradingApi.getActiveMockSessions as jest.Mock).mockResolvedValue({
+    (tradingApi.getActiveMockSessions as vi.Mock).mockResolvedValue({
       data: { sessions: [] }
     });
 

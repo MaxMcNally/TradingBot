@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useUserStrategies } from './useUserStrategies';
@@ -13,28 +14,28 @@ import {
 import { useUser } from '../useUser';
 
 // Mock the API functions
-jest.mock('../../api', () => ({
-  getUserStrategies: jest.fn(),
-  createStrategy: jest.fn(),
-  updateStrategy: jest.fn(),
-  deleteStrategy: jest.fn(),
-  deactivateStrategy: jest.fn(),
-  activateStrategy: jest.fn(),
-  saveStrategyFromBacktest: jest.fn(),
+vi.mock('../../api', () => ({
+  getUserStrategies: vi.fn(),
+  createStrategy: vi.fn(),
+  updateStrategy: vi.fn(),
+  deleteStrategy: vi.fn(),
+  deactivateStrategy: vi.fn(),
+  activateStrategy: vi.fn(),
+  saveStrategyFromBacktest: vi.fn(),
 }));
 
-jest.mock('../useUser', () => ({
-  useUser: jest.fn(),
+vi.mock('../useUser', () => ({
+  useUser: vi.fn(),
 }));
 
-const mockGetUserStrategies = getUserStrategies as jest.MockedFunction<typeof getUserStrategies>;
-const mockCreateStrategy = createStrategy as jest.MockedFunction<typeof createStrategy>;
-const mockUpdateStrategy = updateStrategy as jest.MockedFunction<typeof updateStrategy>;
-const mockDeleteStrategy = deleteStrategy as jest.MockedFunction<typeof deleteStrategy>;
-const mockDeactivateStrategy = deactivateStrategy as jest.MockedFunction<typeof deactivateStrategy>;
-const mockActivateStrategy = activateStrategy as jest.MockedFunction<typeof activateStrategy>;
-const mockSaveStrategyFromBacktest = saveStrategyFromBacktest as jest.MockedFunction<typeof saveStrategyFromBacktest>;
-const mockUseUser = useUser as jest.MockedFunction<typeof useUser>;
+const mockGetUserStrategies = getUserStrategies as vi.MockedFunction<typeof getUserStrategies>;
+const mockCreateStrategy = createStrategy as vi.MockedFunction<typeof createStrategy>;
+const mockUpdateStrategy = updateStrategy as vi.MockedFunction<typeof updateStrategy>;
+const mockDeleteStrategy = deleteStrategy as vi.MockedFunction<typeof deleteStrategy>;
+const mockDeactivateStrategy = deactivateStrategy as vi.MockedFunction<typeof deactivateStrategy>;
+const mockActivateStrategy = activateStrategy as vi.MockedFunction<typeof activateStrategy>;
+const mockSaveStrategyFromBacktest = saveStrategyFromBacktest as vi.MockedFunction<typeof saveStrategyFromBacktest>;
+const mockUseUser = useUser as vi.MockedFunction<typeof useUser>;
 
 // Create a wrapper for React Query
 const createWrapper = () => {
@@ -51,7 +52,7 @@ const createWrapper = () => {
 
 describe('useUserStrategies', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     mockUseUser.mockReturnValue({
       user: { id: '1', username: 'testuser' },

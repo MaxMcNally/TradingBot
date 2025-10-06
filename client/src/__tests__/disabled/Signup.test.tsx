@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -5,16 +6,16 @@ import Signup from './Signup';
 import * as api from '../../api';
 
 // Mock the API module
-jest.mock('../../api', () => ({
-  signup: jest.fn(),
+vi.mock('../../api', () => ({
+  signup: vi.fn(),
 }));
 
 describe('Signup Component', () => {
-  const mockSetUser = jest.fn();
-  const mockOnSwitchToLogin = jest.fn();
+  const mockSetUser = vi.fn();
+  const mockOnSwitchToLogin = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders signup form correctly', () => {
@@ -50,7 +51,7 @@ describe('Signup Component', () => {
       name: 'Test User'
     };
 
-    (api.signup as jest.Mock).mockResolvedValue({
+    (api.signup as vi.Mock).mockResolvedValue({
       data: {
         data: {
           token: 'mock-token',
@@ -103,7 +104,7 @@ describe('Signup Component', () => {
   });
 
   it('shows error message when signup fails', async () => {
-    (api.signup as jest.Mock).mockRejectedValue(new Error('Email already exists'));
+    (api.signup as vi.Mock).mockRejectedValue(new Error('Email already exists'));
 
     render(<Signup setUser={mockSetUser} onSwitchToLogin={mockOnSwitchToLogin} />);
     
@@ -123,7 +124,7 @@ describe('Signup Component', () => {
   });
 
   it('shows loading state during signup', async () => {
-    (api.signup as jest.Mock).mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+    (api.signup as vi.Mock).mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
 
     render(<Signup setUser={mockSetUser} onSwitchToLogin={mockOnSwitchToLogin} />);
     

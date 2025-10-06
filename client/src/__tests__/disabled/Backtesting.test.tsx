@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -6,13 +7,13 @@ import Backtesting from './Backtesting';
 import { useStrategies, useBacktest } from '../../hooks';
 
 // Mock the hooks
-jest.mock('../../hooks', () => ({
-  useStrategies: jest.fn(),
-  useBacktest: jest.fn(),
+vi.mock('../../hooks', () => ({
+  useStrategies: vi.fn(),
+  useBacktest: vi.fn(),
 }));
 
 // Mock the child components
-jest.mock('../shared', () => ({
+vi.mock('../shared', () => ({
   StockPicker: function MockStockPicker({ selectedStocks, onStocksChange }: any) {
     return (
       <div data-testid="stock-picker">
@@ -78,18 +79,18 @@ describe('Backtesting Component', () => {
     },
   ];
 
-  const mockRunBacktest = jest.fn();
+  const mockRunBacktest = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
-    (useStrategies as jest.Mock).mockReturnValue({
+    (useStrategies as vi.Mock).mockReturnValue({
       strategies: mockStrategies,
       isLoading: false,
       isError: false,
     });
 
-    (useBacktest as jest.Mock).mockReturnValue({
+    (useBacktest as vi.Mock).mockReturnValue({
       runBacktest: mockRunBacktest,
       isLoading: false,
       isError: false,
@@ -111,7 +112,7 @@ describe('Backtesting Component', () => {
   });
 
   it('shows loading state when strategies are loading', () => {
-    (useStrategies as jest.Mock).mockReturnValue({
+    (useStrategies as vi.Mock).mockReturnValue({
       strategies: [],
       isLoading: true,
       isError: false,
@@ -123,7 +124,7 @@ describe('Backtesting Component', () => {
   });
 
   it('shows error state when strategies fail to load', () => {
-    (useStrategies as jest.Mock).mockReturnValue({
+    (useStrategies as vi.Mock).mockReturnValue({
       strategies: [],
       isLoading: false,
       isError: true,
@@ -275,7 +276,7 @@ describe('Backtesting Component', () => {
       ],
     };
 
-    (useBacktest as jest.Mock).mockReturnValue({
+    (useBacktest as vi.Mock).mockReturnValue({
       runBacktest: mockRunBacktest,
       isLoading: false,
       isError: false,
@@ -294,7 +295,7 @@ describe('Backtesting Component', () => {
   });
 
   it('shows loading state when backtest is running', () => {
-    (useBacktest as jest.Mock).mockReturnValue({
+    (useBacktest as vi.Mock).mockReturnValue({
       runBacktest: mockRunBacktest,
       isLoading: true,
       isError: false,

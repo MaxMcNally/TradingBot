@@ -1,16 +1,17 @@
+import { vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useUser } from './useUser';
 import * as api from '../../api';
 
 // Mock the API module
-jest.mock('../../api', () => ({
-  login: jest.fn(),
-  logout: jest.fn(),
-  getCurrentUser: jest.fn(),
+vi.mock('../../api', () => ({
+  login: vi.fn(),
+  logout: vi.fn(),
+  getCurrentUser: vi.fn(),
 }));
 
-const mockApi = api as jest.Mocked<typeof api>;
+const mockApi = api as vi.Mocked<typeof api>;
 
 // Create a wrapper for React Query
 const createWrapper = () => {
@@ -28,7 +29,7 @@ const createWrapper = () => {
 
 describe('useUser', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     localStorage.clear();
   });
 

@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -6,8 +7,8 @@ import StrategySelector from './StrategySelector';
 import { useStrategies } from '../../hooks';
 
 // Mock the hooks
-jest.mock('../../hooks', () => ({
-  useStrategies: jest.fn(),
+vi.mock('../../hooks', () => ({
+  useStrategies: vi.fn(),
 }));
 
 const createTestQueryClient = () => new QueryClient({
@@ -53,9 +54,9 @@ describe('StrategySelector Component', () => {
 
   const defaultProps = {
     selectedStrategy: 'meanReversion',
-    onStrategyChange: jest.fn(),
+    onStrategyChange: vi.fn(),
     strategyParameters: { window: 20, threshold: 0.05 },
-    onParametersChange: jest.fn(),
+    onParametersChange: vi.fn(),
     title: 'Select Trading Strategy',
     description: 'Choose a strategy for your trading session',
     compact: false,
@@ -64,9 +65,9 @@ describe('StrategySelector Component', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
-    (useStrategies as jest.Mock).mockReturnValue({
+    (useStrategies as vi.Mock).mockReturnValue({
       strategies: mockStrategies,
       isLoading: false,
       isError: false,
@@ -84,7 +85,7 @@ describe('StrategySelector Component', () => {
   });
 
   it('shows loading state when strategies are loading', () => {
-    (useStrategies as jest.Mock).mockReturnValue({
+    (useStrategies as vi.Mock).mockReturnValue({
       strategies: [],
       isLoading: true,
       isError: false,
@@ -96,7 +97,7 @@ describe('StrategySelector Component', () => {
   });
 
   it('shows error state when strategies fail to load', () => {
-    (useStrategies as jest.Mock).mockReturnValue({
+    (useStrategies as vi.Mock).mockReturnValue({
       strategies: [],
       isLoading: false,
       isError: true,
