@@ -48,4 +48,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:8001/ping', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
 # Start the API server
-CMD ["node", "api/server.ts"]
+CMD ["node", "dist/api/server.js"]
