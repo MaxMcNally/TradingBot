@@ -46,14 +46,26 @@ export class PolygonProvider extends DataProvider {
     };
   }
 
-  async getHistorical(symbol: string, interval: string = 'day', from: string, to: string): Promise<HistoricalBar[]> {
+  async getHistorical(symbol: string, interval: string = 'day', from: string, to: string): Promise<any[]> {
     const url = `${BASE_URL}/v2/aggs/ticker/${symbol}/range/1/${interval}/${from}/${to}?apiKey=${this.apiKey}`;
     const res = await fetch(url);
     const data = await res.json() as any;
-    console.log(`Historical Data for ${symbol}`);
-    console.log(data);
+    
+    
+    if (!data.results) {
+      console.warn(`No historical data found for ${symbol}`);
+      return [];
+    }
 
-    return data.results || [];
+    // Transform Polygon data format to match expected format
+    return data.results.map((bar: HistoricalBar) => ({
+      date: new Date(bar.t).toISOString().split('T')[0], // Convert timestamp to YYYY-MM-DD
+      close: bar.c,
+      open: bar.o,
+      high: bar.h,
+      low: bar.l,
+      volume: bar.v
+    }));
   }
 
   connectStream(symbols: string[], onData: (data: PolygonTrade[]) => void): Promise<WebSocket> {
