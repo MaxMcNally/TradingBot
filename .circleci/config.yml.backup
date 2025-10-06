@@ -1,0 +1,309 @@
+version: 2.1
+
+# Define reusable jobs
+jobs:
+  # Install dependencies and cache them
+  install-dependencies:
+    docker:
+      - image: cimg/node:20.19
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-deps-{{ checksum "yarn.lock" }}
+            - v1-deps-
+      - run:
+          name: Install root dependencies
+          command: yarn install --frozen-lockfile
+      - run:
+          name: Install client dependencies
+          command: cd client && yarn install --frozen-lockfile
+      - save_cache:
+          key: v1-deps-{{ checksum "yarn.lock" }}
+          paths:
+            - node_modules
+            - client/node_modules
+
+  # Run backend tests
+  test-backend:
+    docker:
+      - image: cimg/node:20.19
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-deps-{{ checksum "yarn.lock" }}
+            - v1-deps-
+      - run:
+          name: Install dependencies
+          command: yarn install --frozen-lockfile
+      - run:
+          name: Run backend tests
+          command: yarn test:ci
+      - run:
+          name: Run backend linting
+          command: yarn lint
+      - store_test_results:
+          path: coverage
+      - store_artifacts:
+          path: coverage
+          destination: backend-coverage
+
+  # Run frontend tests
+  test-frontend:
+    docker:
+      - image: cimg/node:20.19
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-deps-{{ checksum "yarn.lock" }}
+            - v1-deps-
+      - run:
+          name: Install client dependencies
+          command: cd client && yarn install --frozen-lockfile
+      - run:
+          name: Run frontend tests
+          command: cd client && yarn test:run
+      - run:
+          name: Run frontend linting
+          command: cd client && yarn lint
+      - store_test_results:
+          path: client/coverage
+      - store_artifacts:
+          path: client/coverage
+          destination: frontend-coverage
+
+  # Build Docker images
+  build-images:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.14
+      - run:
+          name: Build API image
+          command: |
+            docker build -t tradingbot-api:$CIRCLE_SHA1 -f Dockerfile --target production .
+      - run:
+          name: Build Client image
+          command: |
+            docker build -t tradingbot-client:$CIRCLE_SHA1 -f client/Dockerfile --target production ./client
+      - run:
+          name: Build Core image
+          command: |
+            docker build -t tradingbot-core:$CIRCLE_SHA1 -f src/Dockerfile --target production .
+      - run:
+          name: Save Docker images
+          command: |
+            docker save tradingbot-api:$CIRCLE_SHA1 | gzip > api-image.tar.gz
+            docker save tradingbot-client:$CIRCLE_SHA1 | gzip > client-image.tar.gz
+            docker save tradingbot-core:$CIRCLE_SHA1 | gzip > core-image.tar.gz
+      - store_artifacts:
+          path: api-image.tar.gz
+          destination: api-image
+      - store_artifacts:
+          path: client-image.tar.gz
+          destination: client-image
+      - store_artifacts:
+          path: core-image.tar.gz
+          destination: core-image
+
+  # Deploy to Railway QA environment
+  deploy-railway-qa:
+    docker:
+      - image: cimg/node:20.19
+    steps:
+      - checkout
+      - run:
+          name: Install Railway CLI
+          command: npm install -g @railway/cli
+      - run:
+          name: Login to Railway
+          command: |
+            echo $RAILWAY_TOKEN | railway login --token
+      - run:
+          name: Switch to QA Environment
+          command: |
+            echo "Switching to QA environment..."
+            railway environment qa
+      - run:
+          name: Deploy to Railway QA
+          command: |
+            echo "Deploying to Railway QA environment..."
+            railway up --service api-qa
+      - run:
+          name: Set QA environment variables
+          command: |
+            railway variables --set "NODE_ENV=QA" --service api-qa
+            railway variables --set "TRADING_MODE=paper" --service api-qa
+            railway variables --set "LOG_LEVEL=debug" --service api-qa
+            railway variables --set "ENVIRONMENT=qa" --service api-qa
+            railway variables --set "DEBUG=true" --service api-qa
+      - run:
+          name: Get QA Deployment URL
+          command: |
+            echo "QA Deployment URL:"
+            railway domain
+
+  # Deploy to Railway production environment
+  deploy-railway-production:
+    docker:
+      - image: cimg/node:20.19
+    steps:
+      - checkout
+      - run:
+          name: Install Railway CLI
+          command: npm install -g @railway/cli
+      - run:
+          name: Login to Railway
+          command: |
+            echo $RAILWAY_TOKEN | railway login --token
+      - run:
+          name: Switch to Production Environment
+          command: |
+            echo "Switching to production environment..."
+            railway environment production
+      - run:
+          name: Deploy to Railway Production
+          command: |
+            echo "Deploying to Railway production environment..."
+            railway up --service api
+      - run:
+          name: Set production environment variables
+          command: |
+            railway variables --set "NODE_ENV=production" --service api
+            railway variables --set "TRADING_MODE=paper" --service api
+            railway variables --set "LOG_LEVEL=info" --service api
+            railway variables --set "JWT_SECRET=$JWT_SECRET" --service api
+            railway variables --set "SESSION_SECRET=$SESSION_SECRET" --service api
+      - run:
+          name: Get Production Deployment URL
+          command: |
+            echo "Production Deployment URL:"
+            railway domain
+
+# Define workflows
+workflows:
+  # Default workflow - runs on all branches except main
+  default:
+    jobs:
+      - install-dependencies
+      - test-backend:
+          requires:
+            - install-dependencies
+      - test-frontend:
+          requires:
+            - install-dependencies
+      - build-images:
+          requires:
+            - test-backend
+            - test-frontend
+    filters:
+      branches:
+        ignore: main
+
+  # Main branch workflow - Deploy to QA after PR merge
+  main:
+    jobs:
+      - install-dependencies:
+          filters:
+            branches:
+              only: main
+      - test-backend:
+          requires:
+            - install-dependencies
+          filters:
+            branches:
+              only: main
+      - test-frontend:
+          requires:
+            - install-dependencies
+          filters:
+            branches:
+              only: main
+      - build-images:
+          requires:
+            - test-backend
+            - test-frontend
+          filters:
+            branches:
+              only: main
+      - deploy-railway-qa:
+          requires:
+            - build-images
+          filters:
+            branches:
+              only: main
+          context: railway-qa
+
+  # Production release pipeline - Deploy to production on GitHub releases
+  release:
+    jobs:
+      # Install dependencies first
+      - install-dependencies:
+          filters:
+            tags:
+              only: /^v.*/
+
+      # Run tests in parallel
+      - test-backend:
+          requires:
+            - install-dependencies
+          filters:
+            tags:
+              only: /^v.*/
+
+      - test-frontend:
+          requires:
+            - install-dependencies
+          filters:
+            tags:
+              only: /^v.*/
+
+      # Build images after tests pass
+      - build-images:
+          requires:
+            - test-backend
+            - test-frontend
+          filters:
+            tags:
+              only: /^v.*/
+
+      # Deploy to Railway production on GitHub releases
+      - deploy-railway-production:
+          requires:
+            - build-images
+          filters:
+            tags:
+              only: /^v.*/
+          context: railway-production
+
+
+  # Nightly builds and tests
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 2 * * *"  # Run at 2 AM UTC daily
+          filters:
+            branches:
+              only: main
+    jobs:
+      - install-dependencies
+      - test-backend:
+          requires:
+            - install-dependencies
+      - test-frontend:
+          requires:
+            - install-dependencies
+      - build-images:
+          requires:
+            - test-backend
+            - test-frontend
+
+# Define contexts for environment variables
+# These should be configured in CircleCI dashboard
+contexts:
+  - railway-qa
+  - railway-production
