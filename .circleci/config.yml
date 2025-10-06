@@ -186,64 +186,44 @@ jobs:
 
 # Define workflows
 workflows:
-  # Pull Request workflow - Run tests and build on PRs
-  pull-request:
+  # Default workflow - runs on all branches except main
+  version: 2
+  default:
     jobs:
-      # Install dependencies first
-      - install-dependencies:
-          filters:
-            branches:
-              ignore: main
-
-      # Run tests in parallel
+      - install-dependencies
       - test-backend:
           requires:
             - install-dependencies
-          filters:
-            branches:
-              ignore: main
-
       - test-frontend:
           requires:
             - install-dependencies
-          filters:
-            branches:
-              ignore: main
-
-      # Build images after tests pass (for validation)
       - build-images:
           requires:
             - test-backend
             - test-frontend
-          filters:
-            branches:
-              ignore: main
+    filters:
+      branches:
+        ignore: main
 
-  # Main CI/CD pipeline - Deploy to QA on main branch (after PR merge)
-  main:
+  # Main branch workflow - Deploy to QA after PR merge
+  main-deploy:
     jobs:
-      # Install dependencies first
       - install-dependencies:
           filters:
             branches:
               only: main
-
-      # Run tests in parallel
       - test-backend:
           requires:
             - install-dependencies
           filters:
             branches:
               only: main
-
       - test-frontend:
           requires:
             - install-dependencies
           filters:
             branches:
               only: main
-
-      # Build images after tests pass
       - build-images:
           requires:
             - test-backend
@@ -251,8 +231,6 @@ workflows:
           filters:
             branches:
               only: main
-
-      # Deploy to Railway QA on main branch (after PR merge)
       - deploy-railway-qa:
           requires:
             - build-images
