@@ -231,7 +231,7 @@ describe('Strategy Controller', () => {
         description: 'Original description',
         strategy_type: 'moving_average_crossover',
         config: JSON.stringify({ fastWindow: 10, slowWindow: 30 }),
-        backtest_results: { totalReturn: 0.15 },
+        backtest_results: JSON.stringify({ totalReturn: 0.15 }),
         is_public: true,
         is_active: true,
         created_at: '2023-01-01',
@@ -245,7 +245,7 @@ describe('Strategy Controller', () => {
         description: 'Copied from public strategy: Original description',
         strategy_type: 'moving_average_crossover',
         config: JSON.stringify({ fastWindow: 10, slowWindow: 30 }),
-        backtest_results: { totalReturn: 0.15 },
+        backtest_results: JSON.stringify({ totalReturn: 0.15 }),
         is_public: false,
         is_active: true,
         created_at: '2023-01-01',
@@ -267,7 +267,7 @@ describe('Strategy Controller', () => {
         description: 'Copied from public strategy: Original description',
         strategy_type: 'moving_average_crossover',
         config: JSON.stringify({ fastWindow: 10, slowWindow: 30 }),
-        backtest_results: { totalReturn: 0.15 },
+        backtest_results: JSON.stringify({ totalReturn: 0.15 }),
         is_public: false
       });
 
@@ -372,6 +372,8 @@ describe('Strategy Controller', () => {
         id: 123,
         user_id: 2,
         name: 'Public Strategy',
+        strategy_type: 'moving_average_crossover',
+        config: JSON.stringify({ fastWindow: 10, slowWindow: 30 }),
         is_public: true,
         is_active: true
       };
