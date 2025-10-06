@@ -5,6 +5,7 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Login from "./components/Login/Login";
 import Dashboard from "./components/Dashboard";
+import Trading from "./components/Trading/Trading";
 import Settings from "./components/Settings";
 import Backtesting from "./components/Backtesting/Backtesting";
 import { Strategies } from "./components/Strategies";
@@ -27,6 +28,7 @@ const AppContent: React.FC = () => {
         >
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/trading" element={<Trading />} />
             <Route path="/settings" element={<Settings user={user} />} />
             <Route path="/backtesting" element={<Backtesting />} />
             <Route path="/strategies" element={<Strategies />} />

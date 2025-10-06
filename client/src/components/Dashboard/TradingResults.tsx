@@ -47,6 +47,8 @@ import {
   TradingSession,
   UserTradingStats,
   UserPortfolioSummary,
+  stopTradingSession,
+  pauseTradingSession,
 } from '../../api/tradingApi';
 import { 
   useTradingStats, 
@@ -90,6 +92,10 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
   const [sessionDetailsOpen, setSessionDetailsOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<TradingSession | null>(null);
   
+  // Session control states
+  const [sessionLoading, setSessionLoading] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
+  
   // Market status
   const [marketStatus, setMarketStatus] = useState(getMarketStatus());
 
@@ -102,6 +108,8 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
 
   // Combined loading and error states
   const loading = statsLoading || portfolioLoading || tradesLoading || sessionsLoading || activeSessionLoading;
+  
+  // Now that useActiveTradingSession handles 404s gracefully, we can use the error directly
   const error = statsError || portfolioError || tradesError || sessionsError || activeSessionError;
 
   // Update market status every minute
@@ -134,6 +142,56 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
   const handleViewSessionDetails = (session: TradingSession) => {
     setSelectedSession(session);
     setSessionDetailsOpen(true);
+  };
+
+  const handleStopSession = async () => {
+    if (!activeSession) {
+      console.warn('No active session to stop');
+      return;
+    }
+
+    console.log('Stopping session:', activeSession.id);
+
+    try {
+      setSessionLoading(true);
+      setSessionError(null);
+
+      const response = await stopTradingSession(activeSession.id);
+      console.log('Stop session response:', response.data);
+      
+      // Refresh the page to update the active session status
+      window.location.reload();
+    } catch (err: any) {
+      console.error('Error stopping trading session:', err);
+      setSessionError(err.response?.data?.message || 'Failed to stop trading session');
+    } finally {
+      setSessionLoading(false);
+    }
+  };
+
+  const handlePauseSession = async () => {
+    if (!activeSession) {
+      console.warn('No active session to pause');
+      return;
+    }
+
+    console.log('Pausing session:', activeSession.id);
+
+    try {
+      setSessionLoading(true);
+      setSessionError(null);
+
+      const response = await pauseTradingSession(activeSession.id);
+      console.log('Pause session response:', response.data);
+      
+      // Refresh the page to update the active session status
+      window.location.reload();
+    } catch (err: any) {
+      console.error('Error pausing trading session:', err);
+      setSessionError(err.response?.data?.message || 'Failed to pause trading session');
+    } finally {
+      setSessionLoading(false);
+    }
   };
 
   const handleCloseSessionDetails = () => {
@@ -178,6 +236,15 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
     );
   }
 
+  // Check if we have no active session (now that 404s are handled gracefully, we just check for null)
+  const hasNoActiveSession = !activeSession && !activeSessionLoading;
+  
+  // Check if we have no trading data at all (new user)
+  const hasNoTradingData = !stats && !portfolio && !loading && !error;
+  
+  // Check if we have trading data but no active session (experienced user)
+  const hasTradingDataButNoActiveSession = (stats || portfolio) && hasNoActiveSession;
+
   return (
     <Box>
       {/* Header with refresh button */}
@@ -192,6 +259,80 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
         </Tooltip>
       </Box>
 
+      {/* No Active Session Message */}
+      {(hasNoActiveSession && hasNoTradingData) && (
+        <Alert 
+          severity="info" 
+          sx={{ mb: 3 }}
+          action={
+            <Button 
+              variant="contained"
+              color="primary"
+              size="medium" 
+              startIcon={<PlayArrow />}
+              onClick={() => window.location.href = '/trading'}
+              sx={{
+                backgroundColor: '#1976d2',
+                color: 'white',
+                fontWeight: 'bold',
+                textTransform: 'none',
+                px: 3,
+                py: 1,
+                '&:hover': {
+                  backgroundColor: '#1565c0',
+                }
+              }}
+            >
+              Start Trading
+            </Button>
+          }
+        >
+          <Typography variant="subtitle2" gutterBottom>
+            No Active Trading Sessions
+          </Typography>
+          <Typography variant="body2">
+            You don't have any active trading sessions. Start a new trading session to begin trading and see your results here.
+          </Typography>
+        </Alert>
+      )}
+
+      {/* No Active Session Message for users with trading history */}
+      {hasTradingDataButNoActiveSession && (
+        <Alert 
+          severity="info" 
+          sx={{ mb: 3 }}
+          action={
+            <Button 
+              variant="contained"
+              color="primary"
+              size="medium" 
+              startIcon={<PlayArrow />}
+              onClick={() => window.location.href = '/trading'}
+              sx={{
+                backgroundColor: '#1976d2',
+                color: 'white',
+                fontWeight: 'bold',
+                textTransform: 'none',
+                px: 3,
+                py: 1,
+                '&:hover': {
+                  backgroundColor: '#1565c0',
+                }
+              }}
+            >
+              Start New Session
+            </Button>
+          }
+        >
+          <Typography variant="subtitle2" gutterBottom>
+            No Active Trading Sessions
+          </Typography>
+          <Typography variant="body2">
+            You don't have any active trading sessions right now. Start a new session to continue trading.
+          </Typography>
+        </Alert>
+      )}
+
       {/* Active Session Alert */}
       {activeSession && (
         <Alert 
@@ -200,12 +341,22 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
           action={
             <Box>
               <Tooltip title="Pause Session">
-                <IconButton size="small" color="inherit">
+                <IconButton 
+                  size="small" 
+                  color="inherit"
+                  onClick={handlePauseSession}
+                  disabled={sessionLoading}
+                >
                   <Pause />
                 </IconButton>
               </Tooltip>
               <Tooltip title="Stop Session">
-                <IconButton size="small" color="inherit">
+                <IconButton 
+                  size="small" 
+                  color="inherit"
+                  onClick={handleStopSession}
+                  disabled={sessionLoading}
+                >
                   <Stop />
                 </IconButton>
               </Tooltip>
@@ -213,6 +364,17 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
           }
         >
           Active trading session running in {activeSession.mode} mode since {formatDate(activeSession.start_time)}
+        </Alert>
+      )}
+
+      {/* Session Error Alert */}
+      {sessionError && (
+        <Alert 
+          severity="error" 
+          sx={{ mb: 3 }}
+          onClose={() => setSessionError(null)}
+        >
+          {sessionError}
         </Alert>
       )}
 
