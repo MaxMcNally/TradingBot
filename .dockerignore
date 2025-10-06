@@ -179,7 +179,7 @@ Thumbs.db
 README.md
 
 # Docker
-Dockerfile*
+/Dockerfile*
 docker-compose*
 .dockerignore
 
