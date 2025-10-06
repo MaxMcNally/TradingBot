@@ -41,7 +41,7 @@ import {
   BacktestFormData, 
   BacktestResponse
 } from "./Backtesting.types";
-import { StockPicker, StrategySelector } from "../shared";
+import { StockPicker, EnhancedStrategySelector } from "../shared";
 import { useStrategies, useBacktest, useUserStrategies } from "../../hooks";
 import SaveStrategyDialog from "./SaveStrategyDialog";
 
@@ -191,7 +191,7 @@ const BacktestingSimple: React.FC = () => {
         endDate: formData.endDate,
         initialCapital: formData.initialCapital,
         sharesPerTrade: formData.sharesPerTrade,
-        parameters: strategyParameters
+        ...strategyParameters  // Spread the parameters at the top level
       });
 
       if (response) {
@@ -326,12 +326,12 @@ const BacktestingSimple: React.FC = () => {
         <TabPanel value={activeTab} index={1}>
           <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', lg: 'row' } }}>
             <Box sx={{ flex: 2 }}>
-              <StrategySelector
+              <EnhancedStrategySelector
                 selectedStrategy={formData.strategy}
                 onStrategyChange={(strategy) => handleInputChange('strategy', strategy)}
                 onParametersChange={setStrategyParameters}
                 title="Select Strategy for Backtesting"
-                description="Choose a trading strategy to test against historical data."
+                description="Choose a trading strategy to test against historical data. You can select from basic strategies or public strategies shared by other users."
                 compact={false}
                 showTips={true}
                 availableStrategies={availableStrategies.map(s => ({

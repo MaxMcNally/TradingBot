@@ -14,6 +14,10 @@ export type { UseStrategiesReturn, UseBacktestReturn } from './useStrategies';
 export { useUserStrategies } from './useUserStrategies';
 export type { UseUserStrategiesReturn } from './useUserStrategies';
 
+// Public Strategy hooks
+export { usePublicStrategies } from './usePublicStrategies';
+export type { UsePublicStrategiesReturn } from './usePublicStrategies';
+
 // Trading hooks
 export { 
   useTradingStats, 

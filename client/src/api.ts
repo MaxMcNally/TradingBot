@@ -123,6 +123,7 @@ export interface UserStrategy {
   config: any;
   backtest_results?: any;
   is_active: boolean;
+  is_public: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -133,6 +134,7 @@ export interface CreateStrategyData {
   strategy_type: string;
   config: any;
   backtest_results?: any;
+  is_public?: boolean;
 }
 
 export interface UpdateStrategyData {
@@ -142,6 +144,7 @@ export interface UpdateStrategyData {
   config?: any;
   backtest_results?: any;
   is_active?: boolean;
+  is_public?: boolean;
 }
 
 export interface SymbolOption {
@@ -230,3 +233,13 @@ export const activateStrategy = (strategyId: number): Promise<AxiosResponse<{ me
 
 export const saveStrategyFromBacktest = (userId: number, data: CreateStrategyData): Promise<AxiosResponse<{ message: string; strategy: UserStrategy }>> => 
   api.post(`/strategies/users/${userId}/strategies/from-backtest`, data);
+
+// Public Strategies API
+export const getPublicStrategies = (): Promise<AxiosResponse<{ strategies: UserStrategy[]; count: number }>> => 
+  api.get('/strategies/strategies/public');
+
+export const getPublicStrategiesByType = (strategyType: string): Promise<AxiosResponse<{ strategies: UserStrategy[]; count: number }>> => 
+  api.get(`/strategies/strategies/public/${strategyType}`);
+
+export const copyPublicStrategy = (userId: number, strategyId: number, customName?: string): Promise<AxiosResponse<{ message: string; strategy: UserStrategy }>> => 
+  api.post(`/strategies/users/${userId}/strategies/copy-public`, { strategyId, customName });

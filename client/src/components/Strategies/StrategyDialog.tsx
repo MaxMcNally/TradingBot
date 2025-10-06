@@ -13,7 +13,10 @@ import {
   Box,
   Typography,
   Alert,
-  CircularProgress
+  CircularProgress,
+  FormControlLabel,
+  Checkbox,
+  Divider
 } from '@mui/material';
 import { StrategyDialogProps, StrategyFormData } from './Strategies.types';
 
@@ -37,7 +40,8 @@ const StrategyDialog: React.FC<StrategyDialogProps> = ({
     description: '',
     strategy_type: 'moving_average_crossover',
     config: {},
-    backtest_results: null
+    backtest_results: null,
+    is_public: false
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -48,7 +52,8 @@ const StrategyDialog: React.FC<StrategyDialogProps> = ({
         description: strategy.description || '',
         strategy_type: strategy.strategy_type || 'moving_average_crossover',
         config: strategy.config || {},
-        backtest_results: strategy.backtest_results || null
+        backtest_results: strategy.backtest_results || null,
+        is_public: strategy.is_public || false
       });
     } else {
       setFormData({
@@ -56,7 +61,8 @@ const StrategyDialog: React.FC<StrategyDialogProps> = ({
         description: '',
         strategy_type: 'moving_average_crossover',
         config: {},
-        backtest_results: null
+        backtest_results: null,
+        is_public: false
       });
     }
     setErrors({});
@@ -172,6 +178,29 @@ const StrategyDialog: React.FC<StrategyDialogProps> = ({
               </Box>
             </Box>
           )}
+
+          <Divider sx={{ my: 2 }} />
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={formData.is_public || false}
+                onChange={(e) => handleInputChange('is_public', e.target.checked)}
+                color="primary"
+              />
+            }
+            label={
+              <Box>
+                <Typography variant="body1" fontWeight="medium">
+                  Make this strategy public
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Allow other users to discover and use this strategy for their trading. 
+                  Public strategies will be visible to all users in the Public Strategies section.
+                </Typography>
+              </Box>
+            }
+          />
 
           <Alert severity="info" sx={{ mt: 2 }}>
             <Typography variant="body2">

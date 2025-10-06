@@ -9,7 +9,7 @@ export const createStrategy = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid user ID" });
     }
 
-    const { name, description, strategy_type, config, backtest_results } = req.body;
+    const { name, description, strategy_type, config, backtest_results, is_public = false } = req.body;
 
     // Validate required fields
     if (!name || !strategy_type || !config) {
@@ -32,7 +32,8 @@ export const createStrategy = async (req: Request, res: Response) => {
       description,
       strategy_type,
       config,
-      backtest_results
+      backtest_results,
+      is_public
     };
 
     const newStrategy = await Strategy.create(strategyData);
@@ -208,7 +209,8 @@ export const saveStrategyFromBacktest = async (req: Request, res: Response) => {
       description, 
       strategy_type, 
       config, 
-      backtest_results 
+      backtest_results,
+      is_public = false
     } = req.body;
 
     // Validate required fields
@@ -232,7 +234,8 @@ export const saveStrategyFromBacktest = async (req: Request, res: Response) => {
       description: description || `Strategy saved from backtest on ${new Date().toLocaleDateString()}`,
       strategy_type,
       config,
-      backtest_results
+      backtest_results,
+      is_public
     };
 
     const newStrategy = await Strategy.create(strategyData);
@@ -244,6 +247,100 @@ export const saveStrategyFromBacktest = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error saving strategy from backtest:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getPublicStrategies = async (req: Request, res: Response) => {
+  try {
+    const strategies = await Strategy.findPublicStrategies();
+    const parsedStrategies = strategies.map(strategy => Strategy.parseStrategyData(strategy));
+
+    res.json({
+      strategies: parsedStrategies,
+      count: parsedStrategies.length
+    });
+  } catch (error) {
+    console.error("Error getting public strategies:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getPublicStrategiesByType = async (req: Request, res: Response) => {
+  try {
+    const { strategyType } = req.params;
+    
+    if (!strategyType) {
+      return res.status(400).json({ message: "Strategy type is required" });
+    }
+
+    const strategies = await Strategy.findPublicStrategiesByType(strategyType);
+    const parsedStrategies = strategies.map(strategy => Strategy.parseStrategyData(strategy));
+
+    res.json({
+      strategies: parsedStrategies,
+      count: parsedStrategies.length
+    });
+  } catch (error) {
+    console.error("Error getting public strategies by type:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const copyPublicStrategy = async (req: Request, res: Response) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    const { strategyId, customName } = req.body;
+    
+    if (isNaN(userId)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    if (!strategyId) {
+      return res.status(400).json({ message: "Strategy ID is required" });
+    }
+
+    // Get the public strategy
+    const publicStrategy = await Strategy.findById(strategyId);
+    
+    if (!publicStrategy) {
+      return res.status(404).json({ message: "Public strategy not found" });
+    }
+
+    if (!publicStrategy.is_public) {
+      return res.status(400).json({ message: "Strategy is not public" });
+    }
+
+    // Create a copy for the user
+    const strategyName = customName || `${publicStrategy.name} (Copy)`;
+    
+    // Check if user already has a strategy with this name
+    const existingStrategy = await Strategy.findByName(userId, strategyName);
+    if (existingStrategy) {
+      return res.status(409).json({ 
+        message: "You already have a strategy with this name. Please choose a different name." 
+      });
+    }
+
+    const strategyData: CreateStrategyData = {
+      user_id: userId,
+      name: strategyName,
+      description: `Copied from public strategy: ${publicStrategy.description || publicStrategy.name}`,
+      strategy_type: publicStrategy.strategy_type,
+      config: publicStrategy.config,
+      backtest_results: publicStrategy.backtest_results,
+      is_public: false // Keep the copy private by default
+    };
+
+    const newStrategy = await Strategy.create(strategyData);
+    const parsedStrategy = Strategy.parseStrategyData(newStrategy);
+
+    res.status(201).json({
+      message: "Strategy copied successfully",
+      strategy: parsedStrategy
+    });
+  } catch (error) {
+    console.error("Error copying public strategy:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

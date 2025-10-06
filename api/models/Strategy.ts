@@ -9,6 +9,7 @@ export interface StrategyData {
   config: string; // JSON string of strategy configuration
   backtest_results?: string; // JSON string of backtest results
   is_active: boolean;
+  is_public: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -20,6 +21,7 @@ export interface CreateStrategyData {
   strategy_type: string;
   config: any; // Object that will be stringified
   backtest_results?: any; // Object that will be stringified
+  is_public?: boolean;
 }
 
 export interface UpdateStrategyData {
@@ -29,12 +31,13 @@ export interface UpdateStrategyData {
   config?: any; // Object that will be stringified
   backtest_results?: any; // Object that will be stringified
   is_active?: boolean;
+  is_public?: boolean;
 }
 
 export class Strategy {
   static async create(strategyData: CreateStrategyData): Promise<StrategyData> {
     return new Promise((resolve, reject) => {
-      const { user_id, name, description, strategy_type, config, backtest_results } = strategyData;
+      const { user_id, name, description, strategy_type, config, backtest_results, is_public = false } = strategyData;
       
       const configJson = typeof config === 'string' ? config : JSON.stringify(config);
       const backtestResultsJson = backtest_results ? 
@@ -42,8 +45,8 @@ export class Strategy {
         null;
 
       db.run(
-        'INSERT INTO user_strategies (user_id, name, description, strategy_type, config, backtest_results) VALUES (?, ?, ?, ?, ?, ?)',
-        [user_id, name, description, strategy_type, configJson, backtestResultsJson],
+        'INSERT INTO user_strategies (user_id, name, description, strategy_type, config, backtest_results, is_public) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [user_id, name, description, strategy_type, configJson, backtestResultsJson, is_public],
         function(err) {
           if (err) {
             reject(err);
@@ -57,6 +60,7 @@ export class Strategy {
               config: configJson,
               backtest_results: backtestResultsJson || undefined,
               is_active: true,
+              is_public,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             });
@@ -108,6 +112,38 @@ export class Strategy {
           resolve(row || null);
         }
       });
+    });
+  }
+
+  static async findPublicStrategies(): Promise<StrategyData[]> {
+    return new Promise((resolve, reject) => {
+      db.all(
+        'SELECT * FROM user_strategies WHERE is_public = 1 AND is_active = 1 ORDER BY created_at DESC',
+        [],
+        (err, rows: any[]) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(rows || []);
+          }
+        }
+      );
+    });
+  }
+
+  static async findPublicStrategiesByType(strategyType: string): Promise<StrategyData[]> {
+    return new Promise((resolve, reject) => {
+      db.all(
+        'SELECT * FROM user_strategies WHERE is_public = 1 AND is_active = 1 AND strategy_type = ? ORDER BY created_at DESC',
+        [strategyType],
+        (err, rows: any[]) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(rows || []);
+          }
+        }
+      );
     });
   }
 
