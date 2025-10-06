@@ -5,7 +5,7 @@ export interface UseSettingsReturn {
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
-  saveSetting: (setting: Omit<Setting, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  saveSetting: (setting: Omit<SaveSettingData, 'user_id'>) => Promise<void>;
   refetch: () => void;
 }
 
