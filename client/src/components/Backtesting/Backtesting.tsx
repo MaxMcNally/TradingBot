@@ -44,7 +44,8 @@ import {
 import { 
   TabPanel,
   StockSelectionSection,
-  StrategySelectionSection
+  StrategySelectionSection,
+  SessionSummary
 } from "../shared";
 import { useStrategies, useBacktest, useUserStrategies } from "../../hooks";
 import SaveStrategyDialog from "./SaveStrategyDialog";
@@ -227,74 +228,73 @@ const BacktestingSimple: React.FC = () => {
       </Box>
 
       {/* Main Content */}
-      <Paper sx={{ width: '100%' }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={activeTab} onChange={handleTabChange} aria-label="backtest tabs">
-            <Tab
-              icon={<TrendingUp />}
-              label="Stock Selection"
-              id="backtest-tab-0"
-              aria-controls="backtest-tabpanel-0"
-            />
-            <Tab
-              icon={<Settings />}
-              label="Strategy Selection"
-              id="backtest-tab-1"
-              aria-controls="backtest-tabpanel-1"
-            />
-            <Tab
-              icon={<Tune />}
-              label="Strategy Parameters"
-              id="backtest-tab-2"
-              aria-controls="backtest-tabpanel-2"
-            />
-            <Tab
-              icon={<Timeline />}
-              label="Results"
-              id="backtest-tab-3"
-              aria-controls="backtest-tabpanel-3"
-            />
-          </Tabs>
-        </Box>
+      <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', lg: 'row' } }}>
+        {/* Main Content Area */}
+        <Box sx={{ flex: 2 }}>
+          <Paper sx={{ width: '100%' }}>
+            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+              <Tabs value={activeTab} onChange={handleTabChange} aria-label="backtest tabs">
+                <Tab
+                  icon={<TrendingUp />}
+                  label="Stock Selection"
+                  id="backtest-tab-0"
+                  aria-controls="backtest-tabpanel-0"
+                />
+                <Tab
+                  icon={<Settings />}
+                  label="Strategy Selection"
+                  id="backtest-tab-1"
+                  aria-controls="backtest-tabpanel-1"
+                />
+                <Tab
+                  icon={<Tune />}
+                  label="Strategy Parameters"
+                  id="backtest-tab-2"
+                  aria-controls="backtest-tabpanel-2"
+                />
+                <Tab
+                  icon={<Timeline />}
+                  label="Results"
+                  id="backtest-tab-3"
+                  aria-controls="backtest-tabpanel-3"
+                />
+              </Tabs>
+            </Box>
 
-        {/* Stock Selection Tab */}
-        <TabPanel value={activeTab} index={0}>
-          <StockSelectionSection
-            selectedStocks={formData.symbols}
-            onStocksChange={(symbols) => setFormData(prev => ({ ...prev, symbols }))}
-            maxStocks={10}
-            title="Stock Selection"
-            description="Select the stocks you want to include in your backtest. You can choose up to {maxStocks} stocks."
-            showSummary={true}
-            summaryTitle="Selection Summary"
-          />
-        </TabPanel>
+            {/* Stock Selection Tab */}
+            <TabPanel value={activeTab} index={0}>
+              <StockSelectionSection
+                selectedStocks={formData.symbols}
+                onStocksChange={(symbols) => setFormData(prev => ({ ...prev, symbols }))}
+                maxStocks={10}
+                title="Stock Selection"
+                description="Select the stocks you want to include in your backtest. You can choose up to {maxStocks} stocks."
+                showSummary={false}
+              />
+            </TabPanel>
 
-        {/* Strategy Selection Tab */}
-        <TabPanel value={activeTab} index={1}>
-          <StrategySelectionSection
-            selectedStrategy={formData.strategy}
-            onStrategyChange={(strategy) => handleInputChange('strategy', strategy)}
-            onParametersChange={setStrategyParameters}
-            strategyParameters={strategyParameters}
-            title="Select Strategy for Backtesting"
-            description="Choose a trading strategy to test against historical data. You can select from basic strategies or public strategies shared by other users."
-            showSummary={true}
-            summaryTitle="Strategy Summary"
-            availableStrategies={availableStrategies.map(s => ({
-              name: s.name,
-              description: s.description || '',
-              parameters: s.parameters || {},
-              enabled: true,
-              symbols: []
-            }))}
-          />
-        </TabPanel>
+            {/* Strategy Selection Tab */}
+            <TabPanel value={activeTab} index={1}>
+              <StrategySelectionSection
+                selectedStrategy={formData.strategy}
+                onStrategyChange={(strategy) => handleInputChange('strategy', strategy)}
+                onParametersChange={setStrategyParameters}
+                strategyParameters={strategyParameters}
+                title="Select Strategy for Backtesting"
+                description="Choose a trading strategy to test against historical data. You can select from basic strategies or public strategies shared by other users."
+                showSummary={false}
+                availableStrategies={availableStrategies.map(s => ({
+                  name: s.name,
+                  description: s.description || '',
+                  parameters: s.parameters || {},
+                  enabled: true,
+                  symbols: []
+                }))}
+              />
+            </TabPanel>
 
-        {/* Strategy Parameters Tab */}
-        <TabPanel value={activeTab} index={2}>
-          <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', lg: 'row' } }}>
-            <Box sx={{ flex: 2 }}>
+            {/* Strategy Parameters Tab */}
+            <TabPanel value={activeTab} index={2}>
               <Paper sx={{ p: 3 }}>
                 <Typography variant="h6" gutterBottom>
                   <Tune sx={{ mr: 1, verticalAlign: 'middle' }} />
@@ -636,32 +636,7 @@ const BacktestingSimple: React.FC = () => {
                   </Stack>
                 </Box>
               </Paper>
-            </Box>
-            <Box sx={{ flex: 1 }}>
-              <Paper sx={{ p: 2, height: 'fit-content' }}>
-                <Typography variant="h6" gutterBottom>
-                  Parameter Summary
-                </Typography>
-                <Typography variant="body2" color="textSecondary" paragraph>
-                  Review your parameter settings before running the backtest.
-                </Typography>
-                <Box>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Current Settings:
-                  </Typography>
-                  {Object.entries(strategyParameters).map(([key, value]) => (
-                    <Box key={key} display="flex" justifyContent="space-between" mb={1}>
-                      <Typography variant="body2">{key}:</Typography>
-                      <Typography variant="body2" fontWeight="bold">
-                        {typeof value === 'object' ? JSON.stringify(value) : value}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Box>
-              </Paper>
-            </Box>
-          </Box>
-        </TabPanel>
+            </TabPanel>
 
 
         {/* Results Tab */}
@@ -889,8 +864,21 @@ const BacktestingSimple: React.FC = () => {
             </Paper>
           )}
         </TabPanel>
+          </Paper>
+        </Box>
 
-      </Paper>
+        {/* Persistent Sidebar */}
+        <Box sx={{ flex: 1, minWidth: 300 }}>
+          <SessionSummary
+            title="Backtest Configuration"
+            selectedStocks={formData.symbols}
+            selectedStrategy={formData.strategy}
+            strategyParameters={strategyParameters}
+            mode="backtesting"
+            maxStocks={10}
+          />
+        </Box>
+      </Box>
 
       {/* Save Strategy Dialog */}
       <SaveStrategyDialog

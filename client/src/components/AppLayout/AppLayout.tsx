@@ -1,10 +1,10 @@
 import React from 'react';
-import { Box, Container, CssBaseline } from '@mui/material';
+import { Box, CssBaseline } from '@mui/material';
 import { AppLayoutProps } from './AppLayout.types';
 
 /**
  * AppLayout
- * - Centers page content
+ * - Full-width page content
  * - Provides optional header/footer/sidebar placeholders
  * - Full-page background
  */
@@ -38,18 +38,17 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, header, footer, sidebar
             </Box>
           )}
 
-          <Container
-            maxWidth="md"
+          <Box
             sx={{
               display: 'flex',
               flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
+              width: '100%',
+              px: 3,
               py: 4,
             }}
           >
             {children}
-          </Container>
+          </Box>
         </Box>
 
         {footer && (

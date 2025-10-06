@@ -17,7 +17,8 @@ import {
   AccountCircle as AccountIcon,
   Logout as LogoutIcon,
   Psychology as StrategiesIcon,
-  Store as MarketplaceIcon
+  Store as MarketplaceIcon,
+  TrendingUp as TradingIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { HeaderProps } from './Header.types';
@@ -42,6 +43,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
 
   const navigationItems = [
     { label: 'Dashboard', path: '/', icon: <DashboardIcon /> },
+    { label: 'Trading', path: '/trading', icon: <TradingIcon /> },
     { label: 'Backtesting', path: '/backtesting', icon: <BacktestIcon /> },
     { label: 'Strategies', path: '/strategies', icon: <StrategiesIcon /> },
     { label: 'Marketplace', path: '/marketplace', icon: <MarketplaceIcon /> },
