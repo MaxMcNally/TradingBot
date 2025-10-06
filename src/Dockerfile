@@ -1,4 +1,4 @@
-# Multi-stage build for API service
+# Multi-stage build for core trading logic
 FROM node:20-alpine AS base
 
 # Install dependencies needed for native modules
@@ -9,7 +9,6 @@ WORKDIR /app
 
 # Copy package files for dependency installation
 COPY package*.json yarn.lock ./
-COPY api/package*.json ./api/
 
 # Install dependencies
 RUN yarn install --frozen-lockfile
@@ -32,20 +31,23 @@ WORKDIR /app
 # Copy built application and dependencies
 COPY --from=base /app/dist ./dist
 COPY --from=base /app/node_modules ./node_modules
-COPY --from=base /app/api/node_modules ./api/node_modules
-COPY --from=base /app/api ./api
 COPY --from=base /app/src ./src
 COPY --from=base /app/package.json ./
 
-# Create directories for databases
-RUN mkdir -p /app/db /app/api/db
+# Create directories for databases and data
+RUN mkdir -p /app/db /app/backtest_data /app/cache
 
-# Expose port
-EXPOSE 8001
+# Create a non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S tradingbot -u 1001
+
+# Change ownership of the app directory
+RUN chown -R tradingbot:nodejs /app
+USER tradingbot
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:8001/ping', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+  CMD node -e "require('./dist/bot.js')" || exit 1
 
-# Start the API server
-CMD ["node", "dist/api/server.js"]
+# Default command (can be overridden in docker-compose)
+CMD ["node", "dist/bot.js"]

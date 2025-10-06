@@ -1,29 +1,88 @@
 version: "3.9"
 
 services:
+  # API Service
   api:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: myapp-api
+      target: production
+    container_name: tradingbot-api
     ports:
-      - "5000:5000"
-    volumes:
-      - ./api:/app
-      - /app/node_modules
+      - "8001:8001"
     environment:
-      - NODE_ENV=development
-    command: npm run dev # or "node server.js" if not using nodemon
+      - NODE_ENV=production
+      - PORT=8001
+      - FRONTEND_URL=http://localhost:3000
+    volumes:
+      - api_data:/app/api/db
+      - core_data:/app/db
+    networks:
+      - tradingbot-network
+    restart: unless-stopped
+    depends_on:
+      - core
 
+  # React Client
   client:
     build:
       context: ./client
       dockerfile: Dockerfile
-    container_name: myapp-client
+      target: production
+    container_name: tradingbot-client
     ports:
-      - "3000:3000"
-    volumes:
-      - ./client:/app
-      - /app/node_modules
+      - "3000:80"
     environment:
-      - CHOKIDAR_USEPOLLING=true
+      - NODE_ENV=production
+    networks:
+      - tradingbot-network
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  # Core Trading Logic
+  core:
+    build:
+      context: .
+      dockerfile: src/Dockerfile
+      target: production
+    container_name: tradingbot-core
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - core_data:/app/db
+      - backtest_data:/app/backtest_data
+      - cache_data:/app/cache
+    networks:
+      - tradingbot-network
+    restart: unless-stopped
+    command: ["node", "dist/bot.js"]
+
+  # Redis for caching (optional but recommended)
+  redis:
+    image: redis:7-alpine
+    container_name: tradingbot-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - tradingbot-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+volumes:
+  api_data:
+    driver: local
+  core_data:
+    driver: local
+  backtest_data:
+    driver: local
+  cache_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  tradingbot-network:
+    driver: bridge
