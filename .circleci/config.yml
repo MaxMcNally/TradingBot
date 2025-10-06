@@ -110,8 +110,8 @@ jobs:
           path: core-image.tar.gz
           destination: core-image
 
-  # Deploy to Railway staging
-  deploy-railway-staging:
+  # Deploy to Railway QA environment
+  deploy-railway-qa:
     docker:
       - image: cimg/node:20.0
     steps:
@@ -124,18 +124,30 @@ jobs:
           command: |
             echo $RAILWAY_TOKEN | railway login --token
       - run:
-          name: Deploy to Railway Staging
+          name: Switch to QA Environment
           command: |
-            echo "Deploying to Railway staging environment..."
-            railway up --service staging
+            echo "Switching to QA environment..."
+            railway environment qa
       - run:
-          name: Set staging environment variables
+          name: Deploy to Railway QA
           command: |
-            railway variables set NODE_ENV=staging --service staging
-            railway variables set TRADING_MODE=paper --service staging
-            railway variables set LOG_LEVEL=debug --service staging
+            echo "Deploying to Railway QA environment..."
+            railway up --service api-qa
+      - run:
+          name: Set QA environment variables
+          command: |
+            railway variables --set "NODE_ENV=QA" --service api-qa
+            railway variables --set "TRADING_MODE=paper" --service api-qa
+            railway variables --set "LOG_LEVEL=debug" --service api-qa
+            railway variables --set "ENVIRONMENT=qa" --service api-qa
+            railway variables --set "DEBUG=true" --service api-qa
+      - run:
+          name: Get QA Deployment URL
+          command: |
+            echo "QA Deployment URL:"
+            railway domain
 
-  # Deploy to Railway production
+  # Deploy to Railway production environment
   deploy-railway-production:
     docker:
       - image: cimg/node:20.0
@@ -149,29 +161,39 @@ jobs:
           command: |
             echo $RAILWAY_TOKEN | railway login --token
       - run:
+          name: Switch to Production Environment
+          command: |
+            echo "Switching to production environment..."
+            railway environment production
+      - run:
           name: Deploy to Railway Production
           command: |
             echo "Deploying to Railway production environment..."
-            railway up --service production
+            railway up --service api
       - run:
           name: Set production environment variables
           command: |
-            railway variables set NODE_ENV=production --service production
-            railway variables set TRADING_MODE=paper --service production
-            railway variables set LOG_LEVEL=info --service production
-            railway variables set JWT_SECRET=$JWT_SECRET --service production
-            railway variables set SESSION_SECRET=$SESSION_SECRET --service production
+            railway variables --set "NODE_ENV=production" --service api
+            railway variables --set "TRADING_MODE=paper" --service api
+            railway variables --set "LOG_LEVEL=info" --service api
+            railway variables --set "JWT_SECRET=$JWT_SECRET" --service api
+            railway variables --set "SESSION_SECRET=$SESSION_SECRET" --service api
+      - run:
+          name: Get Production Deployment URL
+          command: |
+            echo "Production Deployment URL:"
+            railway domain
 
 # Define workflows
 workflows:
-  # Main CI/CD pipeline
+  # Main CI/CD pipeline - Deploy to QA on main branch
   main:
     jobs:
       # Install dependencies first
       - install-dependencies:
           filters:
             branches:
-              only: /.*/
+              only: main
 
       # Run tests in parallel
       - test-backend:
@@ -179,14 +201,14 @@ workflows:
             - install-dependencies
           filters:
             branches:
-              only: /.*/
+              only: main
 
       - test-frontend:
           requires:
             - install-dependencies
           filters:
             branches:
-              only: /.*/
+              only: main
 
       # Build images after tests pass
       - build-images:
@@ -195,25 +217,91 @@ workflows:
             - test-frontend
           filters:
             branches:
-              only: /.*/
+              only: main
 
-      # Deploy to Railway staging on feature branches
-      - deploy-railway-staging:
-          requires:
-            - build-images
-          filters:
-            branches:
-              only: /feature\/.*/
-          context: railway-staging
-
-      # Deploy to Railway production on main branch
-      - deploy-railway-production:
+      # Deploy to Railway QA on main branch (after PR merge)
+      - deploy-railway-qa:
           requires:
             - build-images
           filters:
             branches:
               only: main
+          context: railway-qa
+
+  # Production release pipeline - Deploy to production on GitHub releases
+  release:
+    jobs:
+      # Install dependencies first
+      - install-dependencies:
+          filters:
+            tags:
+              only: /^v.*/
+
+      # Run tests in parallel
+      - test-backend:
+          requires:
+            - install-dependencies
+          filters:
+            tags:
+              only: /^v.*/
+
+      - test-frontend:
+          requires:
+            - install-dependencies
+          filters:
+            tags:
+              only: /^v.*/
+
+      # Build images after tests pass
+      - build-images:
+          requires:
+            - test-backend
+            - test-frontend
+          filters:
+            tags:
+              only: /^v.*/
+
+      # Deploy to Railway production on GitHub releases
+      - deploy-railway-production:
+          requires:
+            - build-images
+          filters:
+            tags:
+              only: /^v.*/
           context: railway-production
+
+  # Feature branch testing (no deployment)
+  feature:
+    jobs:
+      # Install dependencies first
+      - install-dependencies:
+          filters:
+            branches:
+              ignore: main
+
+      # Run tests in parallel
+      - test-backend:
+          requires:
+            - install-dependencies
+          filters:
+            branches:
+              ignore: main
+
+      - test-frontend:
+          requires:
+            - install-dependencies
+          filters:
+            branches:
+              ignore: main
+
+      # Build images after tests pass (for validation)
+      - build-images:
+          requires:
+            - test-backend
+            - test-frontend
+          filters:
+            branches:
+              ignore: main
 
   # Nightly builds and tests
   nightly:
@@ -239,5 +327,5 @@ workflows:
 # Define contexts for environment variables
 # These should be configured in CircleCI dashboard
 contexts:
-  - railway-staging
+  - railway-qa
   - railway-production
