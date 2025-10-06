@@ -3,9 +3,8 @@ import globals from "globals";
 import pluginReact from "eslint-plugin-react";
 import tseslint from "@typescript-eslint/eslint-plugin";
 import tsparser from "@typescript-eslint/parser";
-import { defineConfig } from "eslint/config";
 
-export default defineConfig([
+export default [
   // Ignore dist directory and other build outputs
   {
     ignores: [
@@ -19,7 +18,7 @@ export default defineConfig([
       "**/__tests__/disabled/**"
     ]
   },
-  
+
   // TypeScript files
   {
     files: ["**/*.{ts,tsx}"],
@@ -50,11 +49,11 @@ export default defineConfig([
       "no-undef": "off"
     }
   },
-  
+
   // JavaScript files
-  { 
-    files: ["**/*.{js,jsx,mjs}"], 
-    languageOptions: { 
+  {
+    files: ["**/*.{js,jsx,mjs}"],
+    languageOptions: {
       globals: {
         ...globals.browser,
         ...globals.node
@@ -67,9 +66,10 @@ export default defineConfig([
       "no-undef": "error"
     }
   },
-  
+
   // React configuration
   {
+    files: ["**/*.{jsx,tsx}"],
     ...pluginReact.configs.flat.recommended,
     rules: {
       ...pluginReact.configs.flat.recommended.rules,
@@ -78,5 +78,5 @@ export default defineConfig([
       "react/jsx-no-undef": "error",
       "react/jsx-no-duplicate-props": "error"
     }
-  },
-]);
+  }
+];
