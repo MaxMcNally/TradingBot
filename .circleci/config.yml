@@ -46,7 +46,7 @@ jobs:
           command: cd api && npm install
       - run:
           name: Run backend tests
-          command: yarn test:backend
+          command: yarn test:api
 
   # Test frontend
   test-frontend:
@@ -66,7 +66,7 @@ jobs:
           command: cd client && yarn install --frozen-lockfile
       - run:
           name: Run frontend tests
-          command: yarn test:frontend
+          command: yarn test:client
 
   # Lint code
   lint:
