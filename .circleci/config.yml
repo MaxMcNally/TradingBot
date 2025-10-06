@@ -186,7 +186,40 @@ jobs:
 
 # Define workflows
 workflows:
-  # Main CI/CD pipeline - Deploy to QA on main branch
+  # Pull Request workflow - Run tests and build on PRs
+  pull-request:
+    jobs:
+      # Install dependencies first
+      - install-dependencies:
+          filters:
+            branches:
+              ignore: main
+
+      # Run tests in parallel
+      - test-backend:
+          requires:
+            - install-dependencies
+          filters:
+            branches:
+              ignore: main
+
+      - test-frontend:
+          requires:
+            - install-dependencies
+          filters:
+            branches:
+              ignore: main
+
+      # Build images after tests pass (for validation)
+      - build-images:
+          requires:
+            - test-backend
+            - test-frontend
+          filters:
+            branches:
+              ignore: main
+
+  # Main CI/CD pipeline - Deploy to QA on main branch (after PR merge)
   main:
     jobs:
       # Install dependencies first
@@ -270,38 +303,6 @@ workflows:
               only: /^v.*/
           context: railway-production
 
-  # Feature branch testing (no deployment)
-  feature:
-    jobs:
-      # Install dependencies first
-      - install-dependencies:
-          filters:
-            branches:
-              ignore: main
-
-      # Run tests in parallel
-      - test-backend:
-          requires:
-            - install-dependencies
-          filters:
-            branches:
-              ignore: main
-
-      - test-frontend:
-          requires:
-            - install-dependencies
-          filters:
-            branches:
-              ignore: main
-
-      # Build images after tests pass (for validation)
-      - build-images:
-          requires:
-            - test-backend
-            - test-frontend
-          filters:
-            branches:
-              ignore: main
 
   # Nightly builds and tests
   nightly:
