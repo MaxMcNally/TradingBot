@@ -260,5 +260,5 @@ workflows:
 
 # Define contexts for environment variables
 contexts:
-  - railway-qa
-  - railway-production
+  - npx railway-qa
+  - npx railway-production
