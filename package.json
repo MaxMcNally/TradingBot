@@ -44,7 +44,11 @@
     "docker:dev:down": "docker-compose -f docker-compose.dev.yml down",
     "ci:test": "yarn test:all && yarn lint",
     "ci:build": "yarn build && yarn build:api && cd client && yarn build",
-    "ci:deploy": "yarn ci:test && yarn ci:build && yarn docker:build"
+    "ci:deploy": "yarn ci:test && yarn ci:build && yarn docker:build",
+    "railway:deploy": "./scripts/deploy-railway.sh",
+    "railway:setup": "railway login && railway project new",
+    "railway:logs": "railway logs",
+    "railway:status": "railway status"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.901.0",
