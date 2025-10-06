@@ -107,7 +107,7 @@ jobs:
           command: docker build -t tradingbot-client -f client/Dockerfile client/
 
   # Deploy to Railway QA environment
-  deploy-npx railway-qa:
+  deploy-railway-qa:
     docker:
       - image: cimg/node:20.0
     steps:
@@ -144,7 +144,7 @@ jobs:
             npx railway domain
 
   # Deploy to Railway production environment
-  deploy-npx railway-production:
+  deploy-railway-production:
     docker:
       - image: cimg/node:20.0
     steps:
@@ -238,7 +238,7 @@ workflows:
           filters:
             tags:
               only: /^v.*/
-      - deploy-npx railway-production:
+      - deploy-railway-production:
           requires:
             - build-images
           filters:
