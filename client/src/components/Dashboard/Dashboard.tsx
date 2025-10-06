@@ -17,33 +17,16 @@ import {
   Tune,
 } from "@mui/icons-material";
 import TradingResults from "./TradingResults";
-import { StockPicker, StrategySelector, EnhancedStrategySelector } from "../shared";
+import { 
+  TabPanel,
+  StockSelectionSection,
+  StrategySelectionSection
+} from "../shared";
 import TradingSessionControls from "./TradingSessionControls";
 import TestDataManager from "./TestDataManager";
 import StrategyParameters from "./StrategyParameters";
 import { useUser } from "../../hooks";
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`dashboard-tabpanel-${index}`}
-      aria-labelledby={`dashboard-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-    </div>
-  );
-}
 
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -210,85 +193,29 @@ const Dashboard: React.FC = () => {
 
         {/* Stock Selection Tab */}
         <TabPanel value={activeTab} index={1}>
-          <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', lg: 'row' } }}>
-            <Box sx={{ flex: 2 }}>
-              <StockPicker
-                selectedStocks={selectedStocks}
-                onStocksChange={handleStocksChange}
-                maxStocks={10}
-              />
-            </Box>
-            <Box sx={{ flex: 1 }}>
-              <Paper sx={{ p: 2, height: 'fit-content' }}>
-                <Typography variant="h6" gutterBottom>
-                  Selection Summary
-                </Typography>
-                <Typography variant="body2" color="textSecondary" paragraph>
-                  You have selected {selectedStocks.length} stocks for trading.
-                </Typography>
-                {selectedStocks.length > 0 && (
-                  <Box>
-                    <Typography variant="subtitle2" gutterBottom>
-                      Selected Stocks:
-                    </Typography>
-                    <Box display="flex" flexWrap="wrap" gap={1}>
-                      {selectedStocks.map((stock) => (
-                        <Box
-                          key={stock}
-                          sx={{
-                            px: 1,
-                            py: 0.5,
-                            bgcolor: 'primary.main',
-                            color: 'primary.contrastText',
-                            borderRadius: 1,
-                            fontSize: '0.875rem',
-                          }}
-                        >
-                          {stock}
-                        </Box>
-                      ))}
-                    </Box>
-                  </Box>
-                )}
-              </Paper>
-            </Box>
-          </Box>
+          <StockSelectionSection
+            selectedStocks={selectedStocks}
+            onStocksChange={handleStocksChange}
+            maxStocks={10}
+            title="Select Stocks to Trade"
+            description="Choose up to {maxStocks} stocks for your trading session. You can search for specific symbols or select from popular options."
+            showSummary={true}
+            summaryTitle="Selection Summary"
+          />
         </TabPanel>
 
         {/* Strategy Selection Tab */}
         <TabPanel value={activeTab} index={2}>
-          <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', lg: 'row' } }}>
-            <Box sx={{ flex: 2 }}>
-              <EnhancedStrategySelector
-                selectedStrategy={selectedStrategy}
-                onStrategyChange={handleStrategyChange}
-                onParametersChange={handleParametersChange}
-                title="Select Trading Strategy"
-                description="Choose a trading strategy for live trading. You can select from basic strategies or public strategies shared by other users."
-              />
-            </Box>
-            <Box sx={{ flex: 1 }}>
-              <Paper sx={{ p: 2, height: 'fit-content' }}>
-                <Typography variant="h6" gutterBottom>
-                  Strategy Summary
-                </Typography>
-                <Typography variant="body2" color="textSecondary" paragraph>
-                  Current strategy: <strong>{selectedStrategy}</strong>
-                </Typography>
-                <Typography variant="subtitle2" gutterBottom>
-                  Parameters:
-                </Typography>
-                {Object.entries(strategyParameters).map(([key, value]) => (
-                  <Box key={key} display="flex" justifyContent="space-between" mb={1}>
-                    <Typography variant="body2">{key}:</Typography>
-                    <Typography variant="body2" fontWeight="bold">
-                      {typeof value === 'object' ? JSON.stringify(value) : value}
-                    </Typography>
-                  </Box>
-                ))}
-              </Paper>
-            </Box>
-          </Box>
+          <StrategySelectionSection
+            selectedStrategy={selectedStrategy}
+            onStrategyChange={handleStrategyChange}
+            onParametersChange={handleParametersChange}
+            strategyParameters={strategyParameters}
+            title="Select Trading Strategy"
+            description="Choose a trading strategy for live trading. You can select from basic strategies or public strategies shared by other users."
+            showSummary={true}
+            summaryTitle="Strategy Summary"
+          />
         </TabPanel>
 
         {/* Strategy Parameters Tab */}

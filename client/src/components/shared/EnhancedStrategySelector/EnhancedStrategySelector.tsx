@@ -26,14 +26,9 @@ import {
   Person as PersonIcon,
   Settings as SettingsIcon
 } from '@mui/icons-material';
-import { getAvailableStrategies, TradingStrategy } from '../../api/tradingApi';
-import { usePublicStrategies } from '../../hooks';
-
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
+import { getAvailableStrategies, TradingStrategy } from '../../../api/tradingApi';
+import { usePublicStrategies } from '../../../hooks';
+import { EnhancedStrategySelectorProps, TabPanelProps } from './types';
 
 function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
@@ -49,17 +44,6 @@ function TabPanel(props: TabPanelProps) {
       {value === index && <Box sx={{ p: 2 }}>{children}</Box>}
     </div>
   );
-}
-
-interface EnhancedStrategySelectorProps {
-  selectedStrategy: string;
-  onStrategyChange: (strategy: string) => void;
-  onParametersChange: (parameters: Record<string, any>) => void;
-  title?: string;
-  description?: string;
-  showTips?: boolean;
-  compact?: boolean;
-  availableStrategies?: TradingStrategy[];
 }
 
 const EnhancedStrategySelector: React.FC<EnhancedStrategySelectorProps> = ({

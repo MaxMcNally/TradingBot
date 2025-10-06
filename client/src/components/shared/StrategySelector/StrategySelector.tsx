@@ -20,19 +20,8 @@ import {
   TrendingUp,
   Refresh,
 } from '@mui/icons-material';
-import { getAvailableStrategies, TradingStrategy } from '../../api/tradingApi';
-
-interface StrategySelectorProps {
-  selectedStrategy: string;
-  onStrategyChange: (strategy: string) => void;
-  onParametersChange: (parameters: Record<string, any>) => void;
-  title?: string;
-  description?: string;
-  showTips?: boolean;
-  compact?: boolean;
-  availableStrategies?: TradingStrategy[];
-}
-
+import { getAvailableStrategies, TradingStrategy } from '../../../api/tradingApi';
+import { StrategySelectorProps } from './types';
 
 const StrategySelector: React.FC<StrategySelectorProps> = ({
   selectedStrategy,
@@ -140,7 +129,6 @@ const StrategySelector: React.FC<StrategySelectorProps> = ({
       onParametersChange(defaultParameters);
     }
   };
-
 
   if (loading) {
     return (

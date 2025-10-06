@@ -41,7 +41,11 @@ import {
   BacktestFormData, 
   BacktestResponse
 } from "./Backtesting.types";
-import { StockPicker, EnhancedStrategySelector } from "../shared";
+import { 
+  TabPanel,
+  StockSelectionSection,
+  StrategySelectionSection
+} from "../shared";
 import { useStrategies, useBacktest, useUserStrategies } from "../../hooks";
 import SaveStrategyDialog from "./SaveStrategyDialog";
 
@@ -54,27 +58,6 @@ const formatPercentage = (value: number | undefined | null): string => {
 };
 
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`backtest-tabpanel-${index}`}
-      aria-labelledby={`backtest-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-    </div>
-  );
-}
 
 const BacktestingSimple: React.FC = () => {
   // Tab state
@@ -276,100 +259,36 @@ const BacktestingSimple: React.FC = () => {
 
         {/* Stock Selection Tab */}
         <TabPanel value={activeTab} index={0}>
-          <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', lg: 'row' } }}>
-            <Box sx={{ flex: 2 }}>
-              <Paper sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  <TrendingUp sx={{ mr: 1, verticalAlign: 'middle' }} />
-                  Stock Selection
-                </Typography>
-                <Typography variant="body2" color="textSecondary" paragraph>
-                  Select the stocks you want to include in your backtest. You can choose up to 10 stocks.
-                </Typography>
-                <StockPicker
-                  selectedStocks={formData.symbols}
-                  onStocksChange={(symbols) => setFormData(prev => ({ ...prev, symbols }))}
-                  maxStocks={10}
-                />
-              </Paper>
-            </Box>
-            <Box sx={{ flex: 1 }}>
-              <Paper sx={{ p: 2, height: 'fit-content' }}>
-                <Typography variant="h6" gutterBottom>
-                  Selection Summary
-                </Typography>
-                <Typography variant="body2" color="textSecondary" paragraph>
-                  Selected stocks: <strong>{formData.symbols.length}</strong>
-                </Typography>
-                <Box>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Selected Symbols:
-                  </Typography>
-                  {formData.symbols.length > 0 ? (
-                    <Box display="flex" flexWrap="wrap" gap={1}>
-                      {formData.symbols.map((symbol) => (
-                        <Chip key={symbol} label={symbol} size="small" />
-                      ))}
-                    </Box>
-                  ) : (
-                    <Typography variant="body2" color="textSecondary">
-                      No stocks selected
-                    </Typography>
-                  )}
-                </Box>
-              </Paper>
-            </Box>
-          </Box>
+          <StockSelectionSection
+            selectedStocks={formData.symbols}
+            onStocksChange={(symbols) => setFormData(prev => ({ ...prev, symbols }))}
+            maxStocks={10}
+            title="Stock Selection"
+            description="Select the stocks you want to include in your backtest. You can choose up to {maxStocks} stocks."
+            showSummary={true}
+            summaryTitle="Selection Summary"
+          />
         </TabPanel>
 
         {/* Strategy Selection Tab */}
         <TabPanel value={activeTab} index={1}>
-          <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', lg: 'row' } }}>
-            <Box sx={{ flex: 2 }}>
-              <EnhancedStrategySelector
-                selectedStrategy={formData.strategy}
-                onStrategyChange={(strategy) => handleInputChange('strategy', strategy)}
-                onParametersChange={setStrategyParameters}
-                title="Select Strategy for Backtesting"
-                description="Choose a trading strategy to test against historical data. You can select from basic strategies or public strategies shared by other users."
-                compact={false}
-                showTips={true}
-                availableStrategies={availableStrategies.map(s => ({
-                  name: s.name,
-                  description: s.description || '',
-                  parameters: s.parameters || {},
-                  enabled: true,
-                  symbols: []
-                }))}
-              />
-            </Box>
-            <Box sx={{ flex: 1 }}>
-              <Paper sx={{ p: 2, height: 'fit-content' }}>
-                <Typography variant="h6" gutterBottom>
-                  Strategy Summary
-                </Typography>
-                <Typography variant="body2" color="textSecondary" paragraph>
-                  Selected strategy: <strong>{formData.strategy}</strong>
-                </Typography>
-                <Typography variant="body2" color="textSecondary" paragraph>
-                  {availableStrategies.find(s => s.name === formData.strategy)?.description || 'No description available'}
-                </Typography>
-                <Box>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Default Parameters:
-                  </Typography>
-                  {Object.entries(strategyParameters).map(([key, value]) => (
-                    <Box key={key} display="flex" justifyContent="space-between" mb={1}>
-                      <Typography variant="body2">{key}:</Typography>
-                      <Typography variant="body2" fontWeight="bold">
-                        {typeof value === 'object' ? JSON.stringify(value) : value}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Box>
-              </Paper>
-            </Box>
-          </Box>
+          <StrategySelectionSection
+            selectedStrategy={formData.strategy}
+            onStrategyChange={(strategy) => handleInputChange('strategy', strategy)}
+            onParametersChange={setStrategyParameters}
+            strategyParameters={strategyParameters}
+            title="Select Strategy for Backtesting"
+            description="Choose a trading strategy to test against historical data. You can select from basic strategies or public strategies shared by other users."
+            showSummary={true}
+            summaryTitle="Strategy Summary"
+            availableStrategies={availableStrategies.map(s => ({
+              name: s.name,
+              description: s.description || '',
+              parameters: s.parameters || {},
+              enabled: true,
+              symbols: []
+            }))}
+          />
         </TabPanel>
 
         {/* Strategy Parameters Tab */}
