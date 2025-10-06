@@ -26,7 +26,7 @@ authRouter.post("/login", (req: Request, res: Response) => {
       }
 
       // Verify password
-      bcrypt.compare(password, row.password_hash, (err, isMatch) => {
+      bcrypt.compare(password, row.password_hash, (err: any, isMatch?: boolean) => {
         if (err) {
           console.error("Password comparison error:", err);
           return res.status(500).json({ error: "Internal server error" });
@@ -70,7 +70,7 @@ authRouter.post("/signup", (req: Request, res: Response) => {
   }
 
   // Hash password
-  bcrypt.hash(password, 10, (err, hashedPassword) => {
+  bcrypt.hash(password, 10, (err: any, hashedPassword?: string) => {
     if (err) {
       console.error("Password hashing error:", err);
       return res.status(500).json({ error: "Internal server error" });
