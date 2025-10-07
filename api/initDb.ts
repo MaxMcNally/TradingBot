@@ -73,27 +73,22 @@ if (isPostgres) {
     serialize(fn: () => void) {
       if (pgPool) {
         // Use Postgres transaction for serialize operations
-        pgPool.query('BEGIN', (err) => {
-          if (err) {
+        pgPool.query('BEGIN')
+          .then(() => {
+            try {
+              fn();
+              
+              // Commit the transaction
+              return pgPool!.query('COMMIT');
+            } catch (error) {
+              console.error('Error in transaction:', error);
+              return pgPool!.query('ROLLBACK');
+            }
+          })
+          .catch((err) => {
             console.error('Error starting transaction:', err);
-            return;
-          }
-          
-          try {
-            fn();
-            
-            // Commit the transaction
-            pgPool!.query('COMMIT', (commitErr) => {
-              if (commitErr) {
-                console.error('Error committing transaction:', commitErr);
-                pgPool!.query('ROLLBACK');
-              }
-            });
-          } catch (error) {
-            console.error('Error in transaction:', error);
-            pgPool!.query('ROLLBACK');
-          }
-        });
+            pgPool!.query('ROLLBACK').catch(() => {});
+          });
       } else {
         // Fallback to immediate execution
         fn();
