@@ -151,6 +151,8 @@ jobs:
             npx railway variables --set "LOG_LEVEL=debug" --service api-qa
             npx railway variables --set "ENVIRONMENT=qa" --service api-qa
             npx railway variables --set "DEBUG=true" --service api-qa
+            npx railway variables --set "JWT_SECRET=$JWT_SECRET" --service api-qa
+            npx railway variables --set "SESSION_SECRET=$SESSION_SECRET" --service api-qa
       - run:
           name: Get QA Deployment URL
           command: |
