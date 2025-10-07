@@ -33,6 +33,7 @@ const MeanReversionParams: React.FC = () => {
         control={control}
         render={({ field }) => (
           <TextField
+            {...field}
             fullWidth
             label="Threshold (%)"
             type="number"

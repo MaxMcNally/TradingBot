@@ -42,6 +42,7 @@ const BreakoutParams: React.FC = () => {
             control={control}
             render={({ field }) => (
               <TextField
+                {...field}
                 fullWidth
                 label="Breakout Threshold (%)"
                 type="number"

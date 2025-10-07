@@ -144,7 +144,7 @@ const Login: React.FC = () => {
             label="Username"
             {...register("username", { required: !forgotMode })}
             margin="normal"
-            required
+            required={!forgotMode}
             disabled={isLoading}
             autoComplete="username"
             error={!!errors.username}
@@ -169,7 +169,7 @@ const Login: React.FC = () => {
             type="password"
             {...register("password", { required: !forgotMode, minLength: isSignup ? 6 : undefined })}
             margin="normal"
-            required
+            required={!forgotMode}
             disabled={isLoading}
             autoComplete={isSignup ? "new-password" : "current-password"}
             error={!!errors.password}

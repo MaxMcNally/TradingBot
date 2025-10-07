@@ -102,6 +102,7 @@ const MomentumParams: React.FC = () => {
             control={control}
             render={({ field }) => (
               <TextField
+                {...field}
                 fullWidth
                 label="Momentum Threshold (%)"
                 type="number"

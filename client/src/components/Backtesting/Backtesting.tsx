@@ -97,7 +97,17 @@ const BacktestingSimple: React.FC = () => {
     }
   });
   const { watch, setValue, getValues } = methods;
-  const formData = watch();
+  const formData = watch([
+    'strategy',
+    'symbols',
+    'startDate',
+    'endDate',
+    'initialCapital',
+    'sharesPerTrade',
+  ]) as Pick<
+    BacktestFormData,
+    'strategy' | 'symbols' | 'startDate' | 'endDate' | 'initialCapital' | 'sharesPerTrade'
+  >;
 
   const [results, setResults] = useState<BacktestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);

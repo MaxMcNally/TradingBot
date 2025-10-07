@@ -1,20 +1,20 @@
 import React from 'react';
 import { render, RenderOptions } from '@testing-library/react';
-import { FormProvider, useForm } from 'react-hook-form';
+import { FormProvider, useForm, type FieldValues, type DefaultValues } from 'react-hook-form';
 
-type ProvidersProps = {
+type ProvidersProps<T extends FieldValues = FieldValues> = {
   children: React.ReactNode;
-  defaultValues?: Record<string, any>;
+  defaultValues?: DefaultValues<T>;
 };
 
-function RHFProvider({ children, defaultValues }: ProvidersProps) {
-  const methods = useForm({ defaultValues });
+function RHFProvider<T extends FieldValues = FieldValues>({ children, defaultValues }: ProvidersProps<T>) {
+  const methods = useForm<T>({ defaultValues });
   return <FormProvider {...methods}>{children}</FormProvider>;
 }
 
-export function renderWithFormProvider(
+export function renderWithFormProvider<T extends FieldValues = FieldValues>(
   ui: React.ReactElement,
-  { defaultValues, ...options }: RenderOptions & { defaultValues?: Record<string, any> } = {}
+  { defaultValues, ...options }: RenderOptions & { defaultValues?: DefaultValues<T> } = {}
 ) {
-  return render(<RHFProvider defaultValues={defaultValues}>{ui}</RHFProvider>, options);
+  return render(<RHFProvider<T> defaultValues={defaultValues}>{ui}</RHFProvider>, options);
 }
