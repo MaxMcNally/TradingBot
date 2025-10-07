@@ -207,20 +207,20 @@ jobs:
             echo "Checking Railway CLI version:"
             npx railway --version
             echo "Deploying to Railway production environment:"
-            npx railway up
+            npx railway up --service api
       - run:
           name: Set production environment variables
           command: |
-            npx railway variables --set "NODE_ENV=production"
-            npx railway variables --set "TRADING_MODE=paper"
-            npx railway variables --set "LOG_LEVEL=info"
-            npx railway variables --set "JWT_SECRET=$JWT_SECRET"
-            npx railway variables --set "SESSION_SECRET=$SESSION_SECRET"
+            npx railway variables --set "NODE_ENV=production" --service api
+            npx railway variables --set "TRADING_MODE=paper" --service api
+            npx railway variables --set "LOG_LEVEL=info" --service api
+            npx railway variables --set "JWT_SECRET=$JWT_SECRET" --service api
+            npx railway variables --set "SESSION_SECRET=$SESSION_SECRET" --service api
       - run:
           name: Get Production Deployment URL
           command: |
             echo "Production Deployment URL:"
-            npx railway domain
+            npx railway domain --service api
 
   # Deploy client to Railway production environment
   deploy-client-railway-production:
@@ -241,12 +241,12 @@ jobs:
           name: Deploy Client to Railway Production
           command: |
             echo "Deploying client to Railway production environment..."
-            npx railway up
+            npx railway up --service client
       - run:
           name: Get Client Production Deployment URL
           command: |
             echo "Client Production Deployment URL:"
-            npx railway domain
+            npx railway domain --service client
 
 # Define workflows
 workflows:
