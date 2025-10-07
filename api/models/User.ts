@@ -5,6 +5,13 @@ export interface UserData {
   username: string;
   password_hash: string;
   email?: string;
+  email_verified?: number | boolean;
+  email_verification_token?: string | null;
+  email_verification_sent_at?: string | null;
+  two_factor_enabled?: number | boolean;
+  two_factor_secret?: string | null;
+  password_reset_token?: string | null;
+  password_reset_expires_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -48,8 +55,8 @@ export class User {
       const { username, password_hash, email } = userData;
       db.run(
         isPostgres
-          ? 'INSERT INTO users (username, password_hash, email) VALUES ($1, $2, $3)'
-          : 'INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)',
+          ? 'INSERT INTO users (username, password_hash, email, email_verified, two_factor_enabled) VALUES ($1, $2, $3, FALSE, FALSE)'
+          : 'INSERT INTO users (username, password_hash, email, email_verified, two_factor_enabled) VALUES (?, ?, ?, 0, 0)',
         [username, password_hash, email],
         function(this: any, err: any) {
           if (err) {
@@ -60,6 +67,8 @@ export class User {
               username,
               password_hash,
               email,
+              email_verified: isPostgres ? false : 0,
+              two_factor_enabled: isPostgres ? false : 0,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             });

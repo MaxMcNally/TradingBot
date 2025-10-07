@@ -25,7 +25,14 @@ async function main() {
   const pg = new Pool({ connectionString: databaseUrl });
 
   // Ensure destination schema exists (idempotent)
-  await pg.query('CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, email TEXT, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())');
+  await pg.query('CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, email TEXT, email_verified BOOLEAN DEFAULT FALSE, email_verification_token TEXT, email_verification_sent_at TIMESTAMP, two_factor_enabled BOOLEAN DEFAULT FALSE, two_factor_secret TEXT, password_reset_token TEXT, password_reset_expires_at TIMESTAMP, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())');
+  await pg.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE');
+  await pg.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_token TEXT');
+  await pg.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_sent_at TIMESTAMP');
+  await pg.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT FALSE');
+  await pg.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_secret TEXT');
+  await pg.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token TEXT');
+  await pg.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_expires_at TIMESTAMP');
   await pg.query('CREATE TABLE IF NOT EXISTS settings (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, key TEXT NOT NULL, value TEXT NOT NULL, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW(), UNIQUE(user_id, key))');
   await pg.query('CREATE TABLE IF NOT EXISTS backtest_results (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, strategy TEXT NOT NULL, symbols TEXT NOT NULL, start_date TEXT NOT NULL, end_date TEXT NOT NULL, config TEXT NOT NULL, results TEXT NOT NULL, created_at TIMESTAMP DEFAULT NOW())');
   await pg.query('CREATE TABLE IF NOT EXISTS user_strategies (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, description TEXT, strategy_type TEXT NOT NULL, config TEXT NOT NULL, backtest_results TEXT, is_active BOOLEAN DEFAULT TRUE, is_public BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW(), UNIQUE(user_id, name))');
@@ -40,7 +47,7 @@ async function main() {
   console.log('Migrating users...');
   const users = await all('SELECT * FROM users');
   for (const u of users) {
-    await pg.query('INSERT INTO users (id, username, password_hash, email, created_at, updated_at) VALUES ($1, $2, $3, $4, COALESCE($5, NOW()), COALESCE($6, NOW())) ON CONFLICT (id) DO UPDATE SET username = EXCLUDED.username', [u.id, u.username, u.password_hash, u.email, u.created_at, u.updated_at]);
+    await pg.query('INSERT INTO users (id, username, password_hash, email, email_verified, email_verification_token, email_verification_sent_at, two_factor_enabled, two_factor_secret, password_reset_token, password_reset_expires_at, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,COALESCE($12,NOW()),COALESCE($13,NOW())) ON CONFLICT (id) DO UPDATE SET username = EXCLUDED.username', [u.id, u.username, u.password_hash, u.email, !!u.email_verified, u.email_verification_token, u.email_verification_sent_at, !!u.two_factor_enabled, u.two_factor_secret, u.password_reset_token, u.password_reset_expires_at, u.created_at, u.updated_at]);
   }
 
   console.log('Migrating settings...');
