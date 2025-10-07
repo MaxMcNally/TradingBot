@@ -98,13 +98,20 @@ else
     exit 1
 fi
 
-# Test the deployment command (dry run)
+# Test the deployment command
 echo "🚀 Testing Railway deployment command..."
-echo "This would run: railway up --service $SERVICE_NAME"
-echo "Note: This is a test - we're not actually deploying"
+echo "This will run: railway up --service $SERVICE_NAME"
+echo "Note: This will actually deploy to Railway!"
 
-# Uncomment the line below to actually deploy
-# railway up --service $SERVICE_NAME
+# Ask for confirmation
+read -p "Do you want to proceed with the deployment? (y/N): " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo "🚀 Deploying to Railway..."
+    railway up --service $SERVICE_NAME
+else
+    echo "⏭️ Skipping deployment"
+fi
 
 echo "✅ Railway deployment test completed successfully!"
 echo "If you want to actually deploy, uncomment the 'railway up --service $SERVICE_NAME' line in this script"
