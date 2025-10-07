@@ -168,7 +168,7 @@ railway up
 - **API Server** (`/api`) - Express.js REST API
 - **React Client** (`/client`) - Material-UI frontend
 - **Trading Core** (`/src`) - Trading strategies and bot logic
-- **Database** - SQLite with optional PostgreSQL
+- **Database** - PostgreSQL (SQLite legacy support for local dev)
 - **Cache** - Redis for performance optimization
 
 ### Key Features
@@ -214,7 +214,7 @@ NODE_ENV=development
 PORT=8001
 
 # Database
-DATABASE_URL=sqlite:///app/api/db/app.db
+DATABASE_URL=postgresql://trading:trading@localhost:5432/tradingbot
 
 # Redis
 REDIS_URL=redis://localhost:6379

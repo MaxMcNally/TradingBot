@@ -1,8 +1,8 @@
 # Multi-stage build for core trading logic
 FROM node:20-alpine AS base
 
-# Install dependencies needed for native modules
-RUN apk add --no-cache python3 make g++ sqlite curl
+# Install dependencies needed for native modules and Postgres client
+RUN apk add --no-cache python3 make g++ postgresql-client curl
 
 # Set working directory
 WORKDIR /app
@@ -23,7 +23,7 @@ RUN yarn build
 FROM node:20-alpine AS production
 
 # Install runtime dependencies
-RUN apk add --no-cache sqlite curl
+RUN apk add --no-cache postgresql-client curl
 
 # Set working directory
 WORKDIR /app

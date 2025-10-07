@@ -1,4 +1,4 @@
-import { db } from '../../api/initDb';
+import { db, isPostgres } from '../../api/initDb';
 
 export interface Trade {
   id?: number;
@@ -45,7 +45,23 @@ export class TradingDatabase {
     return new Promise((resolve, reject) => {
       db.serialize(() => {
         // Create trades table
-        db.run(`
+      const createTrades = isPostgres
+        ? `
+          CREATE TABLE IF NOT EXISTS trades (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            symbol TEXT NOT NULL,
+            action TEXT NOT NULL CHECK (action IN ('BUY', 'SELL')),
+            quantity DOUBLE PRECISION NOT NULL,
+            price DOUBLE PRECISION NOT NULL,
+            timestamp TEXT NOT NULL,
+            strategy TEXT NOT NULL,
+            mode TEXT NOT NULL CHECK (mode IN ('PAPER', 'LIVE')),
+            pnl DOUBLE PRECISION,
+            created_at TIMESTAMP DEFAULT NOW()
+          )
+        `
+        : `
           CREATE TABLE IF NOT EXISTS trades (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -60,7 +76,8 @@ export class TradingDatabase {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
           )
-        `, (err) => {
+        `;
+      db.run(createTrades, (err: any) => {
           if (err) {
             console.error("Error creating trades table:", err);
             reject(err);
@@ -70,7 +87,20 @@ export class TradingDatabase {
         });
 
         // Create portfolio_snapshots table
-        db.run(`
+        const createSnapshots = isPostgres
+          ? `
+          CREATE TABLE IF NOT EXISTS portfolio_snapshots (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            timestamp TEXT NOT NULL,
+            total_value DOUBLE PRECISION NOT NULL,
+            cash DOUBLE PRECISION NOT NULL,
+            positions TEXT NOT NULL,
+            mode TEXT NOT NULL CHECK (mode IN ('PAPER', 'LIVE')),
+            created_at TIMESTAMP DEFAULT NOW()
+          )
+        `
+          : `
           CREATE TABLE IF NOT EXISTS portfolio_snapshots (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -82,7 +112,8 @@ export class TradingDatabase {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
           )
-        `, (err) => {
+        `;
+        db.run(createSnapshots, (err: any) => {
           if (err) {
             console.error("Error creating portfolio_snapshots table:", err);
             reject(err);
@@ -92,7 +123,24 @@ export class TradingDatabase {
         });
 
         // Create trading_sessions table
-        db.run(`
+        const createSessions = isPostgres
+          ? `
+          CREATE TABLE IF NOT EXISTS trading_sessions (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            start_time TEXT NOT NULL,
+            end_time TEXT,
+            mode TEXT NOT NULL CHECK (mode IN ('PAPER', 'LIVE')),
+            initial_cash DOUBLE PRECISION NOT NULL,
+            final_cash DOUBLE PRECISION,
+            total_trades INTEGER DEFAULT 0,
+            winning_trades INTEGER DEFAULT 0,
+            total_pnl DOUBLE PRECISION,
+            status TEXT NOT NULL CHECK (status IN ('ACTIVE', 'COMPLETED', 'STOPPED')),
+            created_at TIMESTAMP DEFAULT NOW()
+          )
+        `
+          : `
           CREATE TABLE IF NOT EXISTS trading_sessions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -108,7 +156,8 @@ export class TradingDatabase {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
           )
-        `, (err) => {
+        `;
+        db.run(createSessions, (err: any) => {
           if (err) {
             console.error("Error creating trading_sessions table:", err);
             reject(err);
@@ -118,23 +167,23 @@ export class TradingDatabase {
         });
 
         // Create indexes for better performance
-        db.run(`CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trades(symbol)`, (err) => {
+        db.run(`CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trades(symbol)`, (err: any) => {
           if (err) console.error("Error creating trades symbol index:", err);
         });
 
-        db.run(`CREATE INDEX IF NOT EXISTS idx_trades_timestamp ON trades(timestamp)`, (err) => {
+        db.run(`CREATE INDEX IF NOT EXISTS idx_trades_timestamp ON trades(timestamp)`, (err: any) => {
           if (err) console.error("Error creating trades timestamp index:", err);
         });
 
-        db.run(`CREATE INDEX IF NOT EXISTS idx_trades_strategy ON trades(strategy)`, (err) => {
+        db.run(`CREATE INDEX IF NOT EXISTS idx_trades_strategy ON trades(strategy)`, (err: any) => {
           if (err) console.error("Error creating trades strategy index:", err);
         });
 
-        db.run(`CREATE INDEX IF NOT EXISTS idx_portfolio_snapshots_timestamp ON portfolio_snapshots(timestamp)`, (err) => {
+        db.run(`CREATE INDEX IF NOT EXISTS idx_portfolio_snapshots_timestamp ON portfolio_snapshots(timestamp)`, (err: any) => {
           if (err) console.error("Error creating portfolio snapshots timestamp index:", err);
         });
 
-        db.run(`CREATE INDEX IF NOT EXISTS idx_trading_sessions_status ON trading_sessions(status)`, (err) => {
+        db.run(`CREATE INDEX IF NOT EXISTS idx_trading_sessions_status ON trading_sessions(status)`, (err: any) => {
           if (err) console.error("Error creating trading sessions status index:", err);
         });
 
@@ -149,7 +198,7 @@ export class TradingDatabase {
       db.run(
         'INSERT INTO trades (user_id, symbol, action, quantity, price, timestamp, strategy, mode, pnl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [user_id, symbol, action, quantity, price, timestamp, strategy, mode, pnl],
-        function(err) {
+        function(this: any, err: any) {
           if (err) {
             reject(err);
           } else {
@@ -178,7 +227,7 @@ export class TradingDatabase {
       db.run(
         'INSERT INTO portfolio_snapshots (user_id, timestamp, total_value, cash, positions, mode) VALUES (?, ?, ?, ?, ?, ?)',
         [user_id, timestamp, total_value, cash, positions, mode],
-        function(err) {
+        function(this: any, err: any) {
           if (err) {
             reject(err);
           } else {
@@ -204,7 +253,7 @@ export class TradingDatabase {
       db.run(
         'INSERT INTO trading_sessions (user_id, start_time, end_time, mode, initial_cash, status) VALUES (?, ?, ?, ?, ?, ?)',
         [user_id, start_time, end_time || null, mode, initial_cash, status],
-        function(err) {
+        function(this: any, err: any) {
           if (err) {
             reject(err);
           } else {
@@ -240,7 +289,7 @@ export class TradingDatabase {
       db.run(
         `UPDATE trading_sessions SET ${setClause} WHERE id = ?`,
         [...values, id],
-        function(err) {
+        function(err: any) {
           if (err) {
             reject(err);
           } else {
@@ -253,7 +302,7 @@ export class TradingDatabase {
 
   static async getActiveTradingSession(userId: number): Promise<TradingSession | null> {
     return new Promise((resolve, reject) => {
-      db.get('SELECT * FROM trading_sessions WHERE user_id = ? AND status = ? ORDER BY created_at DESC LIMIT 1', [userId, 'ACTIVE'], (err, row: any) => {
+      db.get('SELECT * FROM trading_sessions WHERE user_id = ? AND status = ? ORDER BY created_at DESC LIMIT 1', [userId, 'ACTIVE'], (err: any, row: any) => {
         if (err) {
           reject(err);
         } else {
@@ -268,7 +317,7 @@ export class TradingDatabase {
       db.all(
         'SELECT * FROM trades WHERE created_at >= (SELECT start_time FROM trading_sessions WHERE id = ?) ORDER BY timestamp',
         [sessionId],
-        (err, rows: any[]) => {
+        (err: any, rows: any[]) => {
           if (err) {
             reject(err);
           } else {
@@ -284,7 +333,7 @@ export class TradingDatabase {
       db.all(
         'SELECT * FROM trades WHERE user_id = ? ORDER BY timestamp DESC LIMIT ?',
         [userId, limit],
-        (err, rows: any[]) => {
+        (err: any, rows: any[]) => {
           if (err) {
             reject(err);
           } else {
@@ -300,7 +349,7 @@ export class TradingDatabase {
       db.all(
         'SELECT * FROM trading_sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT ?',
         [userId, limit],
-        (err, rows: any[]) => {
+        (err: any, rows: any[]) => {
           if (err) {
             reject(err);
           } else {
@@ -316,7 +365,7 @@ export class TradingDatabase {
       db.all(
         'SELECT * FROM portfolio_snapshots WHERE user_id = ? ORDER BY timestamp DESC LIMIT ?',
         [userId, limit],
-        (err, rows: any[]) => {
+        (err: any, rows: any[]) => {
           if (err) {
             reject(err);
           } else {
@@ -332,7 +381,7 @@ export class TradingDatabase {
       db.all(
         'SELECT * FROM trades ORDER BY timestamp DESC LIMIT ?',
         [limit],
-        (err, rows: any[]) => {
+        (err: any, rows: any[]) => {
           if (err) {
             reject(err);
           } else {

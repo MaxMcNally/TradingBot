@@ -1,8 +1,8 @@
 # Multi-stage build for API service
 FROM node:20-alpine AS base
 
-# Install dependencies needed for native modules
-RUN apk add --no-cache python3 make g++ sqlite curl
+# Install dependencies needed for native modules and Postgres client
+RUN apk add --no-cache python3 make g++ postgresql-client curl
 
 # Set working directory
 WORKDIR /app
@@ -17,8 +17,8 @@ RUN yarn install --frozen-lockfile --production=false
 # Copy source code
 COPY . .
 
-# Install API dependencies
-RUN cd api && npm install
+# Install API dependencies (use yarn per workspace rules)
+RUN cd api && yarn install --frozen-lockfile --production=false
 
 # Build TypeScript
 RUN yarn build && yarn build:api
@@ -27,7 +27,7 @@ RUN yarn build && yarn build:api
 FROM node:20-alpine AS production
 
 # Install runtime dependencies
-RUN apk add --no-cache sqlite curl
+RUN apk add --no-cache postgresql-client curl
 
 # Set working directory
 WORKDIR /app
