@@ -39,6 +39,7 @@ export class MeanReversionStrategy extends AbstractStrategy {
   private currentPosition: 'LONG' | 'SHORT' | 'NONE' = 'NONE';
   private entryPrice: number = 0;
   private lastSignal: Signal = null;
+  private rollingSum: number = 0;
 
   constructor(config: MeanReversionConfig) {
     super();
@@ -51,15 +52,23 @@ export class MeanReversionStrategy extends AbstractStrategy {
    * @returns Trading signal: 'BUY', 'SELL', or null
    */
   addPrice(price: number): void {
-    this.addPriceToHistory(price, this.config.window);
-    
+    // Maintain rolling sum over fixed window for O(1) moving average
+    const preLength = this.prices.length;
+    this.prices.push(price);
+    this.rollingSum += price;
+
+    if (this.prices.length > this.config.window) {
+      const removed = this.prices.shift()!;
+      this.rollingSum -= removed;
+    }
+
     // Need at least 'window' prices to calculate moving average
-    if (this.prices.length < this.config.window) {
+    if (preLength + 1 < this.config.window) {
       this.lastSignal = null;
       return;
     }
 
-    const movingAverage = this.calculateMovingAverage();
+    const movingAverage = this.rollingSum / this.config.window;
     const priceDeviation = (price - movingAverage) / movingAverage;
 
     // Buy signal: price is below MA by threshold percentage (and we're not already long)
@@ -101,8 +110,13 @@ export class MeanReversionStrategy extends AbstractStrategy {
    * Calculate the simple moving average of the last 'window' prices
    */
   private calculateMovingAverage(): number {
-    const sum = this.prices.reduce((acc, price) => acc + price, 0);
-    return sum / this.prices.length;
+    if (this.prices.length === 0) return 0;
+    if (this.prices.length < this.config.window) {
+      // Fallback for warm-up phase
+      const sum = this.prices.reduce((acc, price) => acc + price, 0);
+      return sum / this.prices.length;
+    }
+    return this.rollingSum / this.config.window;
   }
 
   /**
@@ -136,6 +150,7 @@ export class MeanReversionStrategy extends AbstractStrategy {
     this.prices = [];
     this.currentPosition = 'NONE';
     this.entryPrice = 0;
+    this.rollingSum = 0;
   }
 
   /**
@@ -177,7 +192,6 @@ export function runMeanReversionStrategy(
 
   let currentShares = 0;
   let cash = config.initialCapital;
-  let portfolioValues: number[] = [];
   let winningTrades = 0;
   let totalTrades = 0;
   let maxPortfolioValue = config.initialCapital;
@@ -241,15 +255,13 @@ export function runMeanReversionStrategy(
 
     // Calculate current portfolio value
     const currentPortfolioValue = cash + (currentShares * dayData.close);
-    portfolioValues.push(currentPortfolioValue);
-    
-    // Track maximum drawdown
     if (currentPortfolioValue > maxPortfolioValue) {
       maxPortfolioValue = currentPortfolioValue;
-    }
-    const currentDrawdown = (maxPortfolioValue - currentPortfolioValue) / maxPortfolioValue;
-    if (currentDrawdown > maxDrawdown) {
-      maxDrawdown = currentDrawdown;
+    } else {
+      const currentDrawdown = (maxPortfolioValue - currentPortfolioValue) / maxPortfolioValue;
+      if (currentDrawdown > maxDrawdown) {
+        maxDrawdown = currentDrawdown;
+      }
     }
   }
 

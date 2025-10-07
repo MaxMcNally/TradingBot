@@ -46,6 +46,8 @@ export class BollingerBandsStrategy extends AbstractStrategy {
   private currentPosition: 'LONG' | 'SHORT' | 'NONE' = 'NONE';
   private entryPrice: number = 0;
   private lastSignal: Signal = null;
+  private rollingMean: number | null = null;
+  private rollingM2: number = 0; // For Welford variance
 
   constructor(config: BollingerBandsConfig) {
     super();
@@ -58,7 +60,16 @@ export class BollingerBandsStrategy extends AbstractStrategy {
    * @returns Trading signal: 'BUY', 'SELL', or null
    */
   addPrice(price: number): void {
-    this.addPriceToHistory(price, this.config.window);
+    // Maintain rolling mean and variance with Welford; keep window size = config.window
+    this.prices.push(price);
+    if (this.prices.length > this.config.window) {
+      this.prices.shift();
+      // Reset rolling stats if full recompute is easier than complex removal handling
+      // (Simpler and still O(window) only on boundary; acceptable in practice)
+      this.recomputeRollingStats();
+    } else {
+      this.updateRollingStats(price);
+    }
 
     // Need at least 'window' prices to calculate Bollinger Bands
     if (this.prices.length < this.config.window) {
@@ -108,15 +119,15 @@ export class BollingerBandsStrategy extends AbstractStrategy {
    * Calculate Bollinger Bands
    */
   private calculateBollingerBands(): { upperBand: number; middleBand: number; lowerBand: number } {
-    const relevantPrices = this.prices.slice(-this.config.window);
-    
-    // Calculate middle band (SMA or EMA)
+    const n = this.config.window;
     let middleBand: number;
     if (this.config.maType === 'SMA') {
-      middleBand = relevantPrices.reduce((sum, price) => sum + price, 0) / relevantPrices.length;
+      // Use rolling mean if available, else compute
+      middleBand = this.rollingMean ?? (this.prices.reduce((s, v) => s + v, 0) / Math.min(this.prices.length, n));
     } else {
-      // EMA calculation
-      const multiplier = 2 / (this.config.window + 1);
+      // EMA calculation using last n samples
+      const relevantPrices = this.prices.slice(-n);
+      const multiplier = 2 / (n + 1);
       let ema = relevantPrices[0];
       for (let i = 1; i < relevantPrices.length; i++) {
         ema = (relevantPrices[i] * multiplier) + (ema * (1 - multiplier));
@@ -124,17 +135,57 @@ export class BollingerBandsStrategy extends AbstractStrategy {
       middleBand = ema;
     }
 
-    // Calculate standard deviation
-    const variance = relevantPrices.reduce((sum, price) => {
-      return sum + Math.pow(price - middleBand, 2);
-    }, 0) / relevantPrices.length;
+    // Standard deviation from Welford (population)
+    const variance = this.rollingMean !== null && this.prices.length >= n
+      ? (this.rollingM2 / n)
+      : (() => {
+          const relevant = this.prices.slice(-n);
+          const mu = relevant.reduce((s, v) => s + v, 0) / relevant.length;
+          return relevant.reduce((sum, v) => sum + (v - mu) * (v - mu), 0) / relevant.length;
+        })();
     const standardDeviation = Math.sqrt(variance);
 
-    // Calculate upper and lower bands
     const upperBand = middleBand + (standardDeviation * this.config.multiplier);
     const lowerBand = middleBand - (standardDeviation * this.config.multiplier);
-
     return { upperBand, middleBand, lowerBand };
+  }
+
+  private updateRollingStats(newValue: number): void {
+    const n = Math.min(this.prices.length, this.config.window);
+    if (this.rollingMean === null) {
+      // initialize
+      let mean = 0;
+      for (let i = 0; i < this.prices.length; i++) {
+        const x = this.prices[i];
+        const delta = x - mean;
+        mean += delta / (i + 1);
+        this.rollingM2 += delta * (x - mean);
+      }
+      this.rollingMean = mean;
+      return;
+    }
+    // Online update when simply appending within window
+    // (Note: When window exceeds and we remove, we recompute via recomputeRollingStats.)
+    const mean = this.rollingMean;
+    const delta = newValue - mean;
+    const newMean = mean + delta / n;
+    this.rollingM2 += delta * (newValue - newMean);
+    this.rollingMean = newMean;
+  }
+
+  private recomputeRollingStats(): void {
+    // Recompute mean and M2 over the last window values
+    const relevant = this.prices.slice(-this.config.window);
+    let mean = 0;
+    let m2 = 0;
+    for (let i = 0; i < relevant.length; i++) {
+      const x = relevant[i];
+      const delta = x - mean;
+      mean += delta / (i + 1);
+      m2 += delta * (x - mean);
+    }
+    this.rollingMean = mean;
+    this.rollingM2 = m2;
   }
 
   /**
@@ -170,6 +221,8 @@ export class BollingerBandsStrategy extends AbstractStrategy {
     this.prices = [];
     this.currentPosition = 'NONE';
     this.entryPrice = 0;
+    this.rollingMean = null;
+    this.rollingM2 = 0;
   }
 
   /**
@@ -212,7 +265,6 @@ export function runBollingerBandsStrategy(
 
   let currentShares = 0;
   let cash = config.initialCapital;
-  let portfolioValues: number[] = [];
   let winningTrades = 0;
   let totalTrades = 0;
   let maxPortfolioValue = config.initialCapital;
@@ -284,15 +336,13 @@ export function runBollingerBandsStrategy(
 
     // Calculate current portfolio value
     const currentPortfolioValue = cash + (currentShares * dayData.close);
-    portfolioValues.push(currentPortfolioValue);
-    
-    // Track maximum drawdown
     if (currentPortfolioValue > maxPortfolioValue) {
       maxPortfolioValue = currentPortfolioValue;
-    }
-    const currentDrawdown = (maxPortfolioValue - currentPortfolioValue) / maxPortfolioValue;
-    if (currentDrawdown > maxDrawdown) {
-      maxDrawdown = currentDrawdown;
+    } else {
+      const currentDrawdown = (maxPortfolioValue - currentPortfolioValue) / maxPortfolioValue;
+      if (currentDrawdown > maxDrawdown) {
+        maxDrawdown = currentDrawdown;
+      }
     }
   }
 

@@ -77,11 +77,14 @@ export class Backtester {
           });
         }
 
-        // track portfolio value for drawdown
+        // track portfolio value and drawdown incrementally
         const { totalValue } = this.portfolio.status(latestPrices);
-        peakValue = Math.max(peakValue, totalValue);
-        const drawdown = (peakValue - totalValue) / peakValue;
-        maxDrawdown = Math.max(maxDrawdown, drawdown);
+        if (totalValue > peakValue) {
+          peakValue = totalValue;
+        } else {
+          const drawdown = (peakValue - totalValue) / peakValue;
+          if (drawdown > maxDrawdown) maxDrawdown = drawdown;
+        }
       }
     }
 
@@ -138,11 +141,14 @@ export class Backtester {
           });
         }
 
-        // track drawdown
+        // track drawdown incrementally
         const { totalValue } = this.portfolio.status(latestPrices);
-        peakValue = Math.max(peakValue, totalValue);
-        const drawdown = (peakValue - totalValue) / peakValue;
-        maxDrawdown = Math.max(maxDrawdown, drawdown);
+        if (totalValue > peakValue) {
+          peakValue = totalValue;
+        } else {
+          const drawdown = (peakValue - totalValue) / peakValue;
+          if (drawdown > maxDrawdown) maxDrawdown = drawdown;
+        }
       }
     }
 

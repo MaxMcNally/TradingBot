@@ -58,10 +58,13 @@ export class Portfolio {
   }
 
   status(latestPrices: Record<string, number> = {}): PortfolioStatus {
-    const positionsValue = Object.entries(this.positions).reduce((sum, [symbol, pos]) => {
-      const price = latestPrices[symbol] || pos.avgPrice;
-      return sum + pos.shares * price;
-    }, 0);
+    let positionsValue = 0;
+    // Manual loop is measurably faster than Array.reduce in hot paths
+    for (const symbol in this.positions) {
+      const pos = this.positions[symbol];
+      const price = (symbol in latestPrices) ? latestPrices[symbol] : pos.avgPrice;
+      positionsValue += pos.shares * price;
+    }
     return {
       cash: this.cash,
       positions: this.positions,
