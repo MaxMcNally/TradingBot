@@ -5,6 +5,13 @@ export interface UserData {
   username: string;
   password_hash: string;
   email?: string;
+  email_verified?: number; // 0 or 1
+  email_verification_token?: string | null;
+  email_verification_sent_at?: string | null;
+  two_factor_enabled?: number; // 0 or 1
+  two_factor_secret?: string | null;
+  password_reset_token?: string | null;
+  password_reset_expires_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -47,7 +54,7 @@ export class User {
     return new Promise((resolve, reject) => {
       const { username, password_hash, email } = userData;
       db.run(
-        'INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)',
+        'INSERT INTO users (username, password_hash, email, email_verified, two_factor_enabled) VALUES (?, ?, ?, 0, 0)',
         [username, password_hash, email],
         function(err) {
           if (err) {
@@ -58,6 +65,8 @@ export class User {
               username,
               password_hash,
               email,
+              email_verified: 0,
+              two_factor_enabled: 0,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             });

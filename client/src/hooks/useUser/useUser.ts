@@ -41,14 +41,18 @@ export const useUser = (): UseUserReturn => {
   const loginMutation = useMutation({
     mutationFn: async ({ username, password }: LoginCredentials) => {
       const response = await loginApi({ username, password });
-      return response.data;
+      const data = response.data as any;
+      if (data?.requires2fa) {
+        const err: any = new Error('2FA required');
+        err.response = { data };
+        throw err;
+      }
+      return data;
     },
-    onSuccess: (data) => {
-      // Store token in localStorage
+    onSuccess: (data: any) => {
+      if (!data?.token) return; // no token => likely handled by caller (e.g., 2FA)
       localStorage.setItem('authToken', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      
-      // Update the user query cache
       queryClient.setQueryData(['user'], data.user);
     },
     onError: (error) => {

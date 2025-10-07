@@ -32,6 +32,13 @@ export const initDatabase = () => {
           username TEXT UNIQUE NOT NULL,
           password_hash TEXT NOT NULL,
           email TEXT,
+          email_verified INTEGER DEFAULT 0,
+          email_verification_token TEXT,
+          email_verification_sent_at DATETIME,
+          two_factor_enabled INTEGER DEFAULT 0,
+          two_factor_secret TEXT,
+          password_reset_token TEXT,
+          password_reset_expires_at DATETIME,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -117,6 +124,24 @@ export const initDatabase = () => {
       // Create indexes for better performance
       db.run(`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`, (err) => {
         if (err) console.error("Error creating users index:", err);
+      });
+
+      // Idempotent migrations for existing databases: add security columns if missing
+      const userSecurityColumns = [
+        { name: 'email_verified', ddl: 'INTEGER DEFAULT 0' },
+        { name: 'email_verification_token', ddl: 'TEXT' },
+        { name: 'email_verification_sent_at', ddl: 'DATETIME' },
+        { name: 'two_factor_enabled', ddl: 'INTEGER DEFAULT 0' },
+        { name: 'two_factor_secret', ddl: 'TEXT' },
+        { name: 'password_reset_token', ddl: 'TEXT' },
+        { name: 'password_reset_expires_at', ddl: 'DATETIME' },
+      ];
+      userSecurityColumns.forEach((col) => {
+        db.run(`ALTER TABLE users ADD COLUMN ${col.name} ${col.ddl}`,(err)=>{
+          if (err && !String(err.message).includes('duplicate column name')) {
+            console.error(`Error adding users.${col.name} column:`, err);
+          }
+        });
       });
 
       db.run(`CREATE INDEX IF NOT EXISTS idx_settings_user_id ON settings(user_id)`, (err) => {
