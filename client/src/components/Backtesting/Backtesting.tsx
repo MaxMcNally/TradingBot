@@ -712,7 +712,12 @@ const BacktestingSimple: React.FC = () => {
                         variant="contained"
                         startIcon={<PlayArrow />}
                         onClick={handleRunBacktest}
-                        disabled={backtestLoading || formData.symbols.length === 0 || !formData.strategy}
+                        disabled={
+                          backtestLoading ||
+                          !Array.isArray(formData.symbols) ||
+                          formData.symbols.length === 0 ||
+                          !formData.strategy
+                        }
                         fullWidth
                         size="large"
                       >
@@ -806,7 +811,7 @@ const BacktestingSimple: React.FC = () => {
                             Symbols
                           </Typography>
                           <Typography variant="body1" fontWeight="medium">
-                            {formData.symbols.join(', ')}
+                            {(formData.symbols || []).join(', ')}
                           </Typography>
                         </Box>
                       </Box>
