@@ -37,6 +37,7 @@ import {
   Refresh,
   Tune,
   Save as SaveIcon,
+  InfoOutlined,
 } from "@mui/icons-material";
 import { 
   BacktestFormData, 
@@ -340,9 +341,14 @@ const BacktestingSimple: React.FC = () => {
                   {/* Strategy-Specific Parameters */}
                   {formData.strategy === 'sentimentAnalysis' && (
                     <Box>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Sentiment Analysis Parameters
-                      </Typography>
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Sentiment Analysis Parameters
+                    </Typography>
+                    <Tooltip title="Use a 2–5 day lookback with 2+ articles. Increase thresholds (e.g., 0.5/-0.5) to reduce noise; higher title weight emphasizes headlines.">
+                      <InfoOutlined fontSize="small" color="action" />
+                    </Tooltip>
+                  </Box>
                       <Stack spacing={2}>
                         <TextField
                           label="Lookback Days"
@@ -401,9 +407,14 @@ const BacktestingSimple: React.FC = () => {
                   )}
                   {formData.strategy === 'meanReversion' && (
                     <Box>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Mean Reversion Parameters
-                      </Typography>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          Mean Reversion Parameters
+                        </Typography>
+                        <Tooltip title="Larger windows smooth signals. Higher threshold (3–5%) = fewer but stronger trades.">
+                          <InfoOutlined fontSize="small" color="action" />
+                        </Tooltip>
+                      </Box>
                       <Stack spacing={2}>
                         <TextField
                           label="Window"
@@ -430,9 +441,14 @@ const BacktestingSimple: React.FC = () => {
 
                   {formData.strategy === 'movingAverage' && (
                     <Box>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Moving Average Parameters
-                      </Typography>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          Moving Average Parameters
+                        </Typography>
+                        <Tooltip title="Short window reacts faster; long window defines trend. EMA is more responsive than SMA.">
+                          <InfoOutlined fontSize="small" color="action" />
+                        </Tooltip>
+                      </Box>
                       <Stack spacing={2}>
                         <TextField
                           label="Short Window"
@@ -469,9 +485,14 @@ const BacktestingSimple: React.FC = () => {
 
                   {formData.strategy === 'movingAverageCrossover' && (
                     <Box>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Moving Average Crossover Parameters
-                      </Typography>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          Moving Average Crossover Parameters
+                        </Typography>
+                        <Tooltip title="Wider fast/slow gap reduces whipsaws. EMA crossovers trigger earlier but can be noisier.">
+                          <InfoOutlined fontSize="small" color="action" />
+                        </Tooltip>
+                      </Box>
                       <Stack spacing={2}>
                         <TextField
                           label="Fast Window"
@@ -510,9 +531,14 @@ const BacktestingSimple: React.FC = () => {
 
                   {formData.strategy === 'momentum' && (
                     <Box>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Momentum Parameters
-                      </Typography>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          Momentum Parameters
+                        </Typography>
+                        <Tooltip title="RSI(14) is common; raise overbought/lower oversold to reduce trades. Momentum window/threshold filters weak trends.">
+                          <InfoOutlined fontSize="small" color="action" />
+                        </Tooltip>
+                      </Box>
                       <Stack spacing={2}>
                         <TextField
                           label="RSI Window"
@@ -566,9 +592,14 @@ const BacktestingSimple: React.FC = () => {
 
                   {formData.strategy === 'bollingerBands' && (
                     <Box>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Bollinger Bands Parameters
-                      </Typography>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          Bollinger Bands Parameters
+                        </Typography>
+                        <Tooltip title="Window sets baseline; higher multiplier (2.0–2.5) reduces signals and favors stronger reversions.">
+                          <InfoOutlined fontSize="small" color="action" />
+                        </Tooltip>
+                      </Box>
                       <Stack spacing={2}>
                         <TextField
                           label="Window"
@@ -595,9 +626,14 @@ const BacktestingSimple: React.FC = () => {
 
                   {formData.strategy === 'breakout' && (
                     <Box>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Breakout Parameters
-                      </Typography>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          Breakout Parameters
+                        </Typography>
+                        <Tooltip title="Longer lookback finds stronger levels. Require volume >1.5× average and a higher threshold to avoid false breakouts.">
+                          <InfoOutlined fontSize="small" color="action" />
+                        </Tooltip>
+                      </Box>
                       <Stack spacing={2}>
                         <TextField
                           label="Lookback Window"
