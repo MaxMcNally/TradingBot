@@ -69,10 +69,35 @@ if (isPostgres) {
         .catch((err: any) => callback.call({ lastID: undefined, changes: 0 }, err));
     },
 
-    // Compatibility no-op for serialize
+    // Compatibility method for serialize - use Postgres transactions
     serialize(fn: () => void) {
-      // Execute immediately; internal queries are already promise-based
-      fn();
+      if (pgPool) {
+        // Use Postgres transaction for serialize operations
+        pgPool.query('BEGIN', (err) => {
+          if (err) {
+            console.error('Error starting transaction:', err);
+            return;
+          }
+          
+          try {
+            fn();
+            
+            // Commit the transaction
+            pgPool!.query('COMMIT', (commitErr) => {
+              if (commitErr) {
+                console.error('Error committing transaction:', commitErr);
+                pgPool!.query('ROLLBACK');
+              }
+            });
+          } catch (error) {
+            console.error('Error in transaction:', error);
+            pgPool!.query('ROLLBACK');
+          }
+        });
+      } else {
+        // Fallback to immediate execution
+        fn();
+      }
     },
 
     // Close pool

@@ -19,16 +19,22 @@ export class CacheDatabase {
   }
 
   private initializeSchema() {
-    const schemaPath = path.resolve(__dirname, "cacheSchema.sql");
-    const schema = fs.readFileSync(schemaPath, "utf8");
-    
-    this.db.exec(schema, (err) => {
-      if (err) {
-        console.error("Error initializing cache schema:", err);
-      } else {
-        console.log("Cache schema initialized successfully");
-      }
-    });
+    try {
+      const schemaPath = path.resolve(__dirname, "cacheSchema.sql");
+      const schema = fs.readFileSync(schemaPath, "utf8");
+      
+      this.db.exec(schema, (err) => {
+        if (err) {
+          console.error("Error initializing cache schema:", err);
+          // Continue without cache if schema initialization fails
+        } else {
+          console.log("Cache schema initialized successfully");
+        }
+      });
+    } catch (error) {
+      console.error("Error reading cache schema file:", error);
+      // Continue without cache if schema file is not found
+    }
   }
 
   getDatabase(): sqlite3.Database {
