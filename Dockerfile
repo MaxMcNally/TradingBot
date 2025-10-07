@@ -53,6 +53,9 @@ COPY --from=base /app/dist ./dist
 COPY --from=base /app/api ./api
 COPY --from=base /app/src ./src
 
+# Copy SQL files that TypeScript doesn't compile
+COPY --from=base /app/src/cache/cacheSchema.sql ./dist/src/cache/cacheSchema.sql
+
 # Create directories for databases and set permissions
 RUN mkdir -p /app/db /app/api/db /app/backtest_data /app/cache && \
     chown -R tradingbot:nodejs /app
