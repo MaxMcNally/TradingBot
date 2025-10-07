@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useForm, FormProvider, Controller } from "react-hook-form";
 import {
   Box,
   Typography,
@@ -55,7 +56,8 @@ const BacktestingSimple: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
   
   // State management
-  const [formData, setFormData] = useState<BacktestFormData>({
+  const methods = useForm<BacktestFormData>({
+    defaultValues: {
     strategy: "meanReversion",
     symbols: [],
     startDate: "2023-01-01",
@@ -83,7 +85,20 @@ const BacktestingSimple: React.FC = () => {
     breakoutThreshold: 0.01,
     minVolumeRatio: 1.5,
     confirmationPeriod: 2
+    }
   });
+  const { watch, setValue, getValues, control } = methods;
+  const formData = watch([
+    'strategy',
+    'symbols',
+    'startDate',
+    'endDate',
+    'initialCapital',
+    'sharesPerTrade',
+  ]) as Pick<
+    BacktestFormData,
+    'strategy' | 'symbols' | 'startDate' | 'endDate' | 'initialCapital' | 'sharesPerTrade'
+  >;
 
   const [results, setResults] = useState<BacktestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -99,10 +114,7 @@ const BacktestingSimple: React.FC = () => {
   const { runBacktest: runBacktestMutation, isLoading: backtestLoading } = useBacktest();
 
   const handleInputChange = (field: keyof BacktestFormData, value: string | number): void => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setValue(field, value as any);
   };
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -110,7 +122,8 @@ const BacktestingSimple: React.FC = () => {
   };
 
   const handleRunBacktest = async (): Promise<void> => {
-    if (formData.symbols.length === 0) {
+    const current = getValues();
+    if ((current.symbols || []).length === 0) {
       setError("Please select at least one symbol");
       return;
     }
@@ -118,30 +131,30 @@ const BacktestingSimple: React.FC = () => {
     try {
       setError(null);
       const response = await runBacktestMutation({
-        strategy: formData.strategy,
-        symbols: formData.symbols,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        initialCapital: formData.initialCapital,
-        sharesPerTrade: formData.sharesPerTrade,
+        strategy: current.strategy,
+        symbols: current.symbols,
+        startDate: current.startDate,
+        endDate: current.endDate,
+        initialCapital: current.initialCapital,
+        sharesPerTrade: current.sharesPerTrade,
         parameters: {
           ...strategyParameters,
           // Include strategy-specific parameters
-          window: formData.window,
-          threshold: formData.threshold,
-          fastWindow: formData.fastWindow,
-          slowWindow: formData.slowWindow,
-          maType: formData.maType,
-          rsiWindow: formData.rsiWindow,
-          rsiOverbought: formData.rsiOverbought,
-          rsiOversold: formData.rsiOversold,
-          momentumWindow: formData.momentumWindow,
-          momentumThreshold: formData.momentumThreshold,
-          multiplier: formData.multiplier,
-          lookbackWindow: formData.lookbackWindow,
-          breakoutThreshold: formData.breakoutThreshold,
-          minVolumeRatio: formData.minVolumeRatio,
-          confirmationPeriod: formData.confirmationPeriod,
+          window: current.window,
+          threshold: current.threshold,
+          fastWindow: current.fastWindow,
+          slowWindow: current.slowWindow,
+          maType: current.maType,
+          rsiWindow: current.rsiWindow,
+          rsiOverbought: current.rsiOverbought,
+          rsiOversold: current.rsiOversold,
+          momentumWindow: current.momentumWindow,
+          momentumThreshold: current.momentumThreshold,
+          multiplier: current.multiplier,
+          lookbackWindow: current.lookbackWindow,
+          breakoutThreshold: current.breakoutThreshold,
+          minVolumeRatio: current.minVolumeRatio,
+          confirmationPeriod: current.confirmationPeriod,
         }
       });
 
@@ -182,6 +195,7 @@ const BacktestingSimple: React.FC = () => {
   }
   
   return (
+    <FormProvider {...methods}>
     <Box>
       {/* Header */}
       <Box mb={3}>
@@ -552,24 +566,34 @@ const BacktestingSimple: React.FC = () => {
                       Date Range
                     </Typography>
                     <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }}>
-                      <TextField
-                        label="Start Date"
-                        type="date"
-                        value={formData.startDate}
-                        onChange={(e) => handleInputChange('startDate', e.target.value)}
-                        InputLabelProps={{ shrink: true }}
-                        size="small"
-                        fullWidth
-                      />
-                      <TextField
-                        label="End Date"
-                        type="date"
-                        value={formData.endDate}
-                        onChange={(e) => handleInputChange('endDate', e.target.value)}
-                        InputLabelProps={{ shrink: true }}
-                        size="small"
-                        fullWidth
-                      />
+                        <Controller
+                          name="startDate"
+                          control={control}
+                          render={({ field }) => (
+                            <TextField
+                              {...field}
+                              label="Start Date"
+                              type="date"
+                              InputLabelProps={{ shrink: true }}
+                              size="small"
+                              fullWidth
+                            />
+                          )}
+                        />
+                        <Controller
+                          name="endDate"
+                          control={control}
+                          render={({ field }) => (
+                            <TextField
+                              {...field}
+                              label="End Date"
+                              type="date"
+                              InputLabelProps={{ shrink: true }}
+                              size="small"
+                              fullWidth
+                            />
+                          )}
+                        />
                     </Stack>
                   </Box>
 
@@ -579,24 +603,36 @@ const BacktestingSimple: React.FC = () => {
                       Trading Parameters
                     </Typography>
                     <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }}>
-                      <TextField
-                        label="Initial Capital"
-                        type="number"
-                        value={formData.initialCapital}
-                        onChange={(e) => handleInputChange('initialCapital', parseFloat(e.target.value))}
-                        size="small"
-                        fullWidth
-                        helperText="Starting capital for backtest"
-                      />
-                      <TextField
-                        label="Shares Per Trade"
-                        type="number"
-                        value={formData.sharesPerTrade}
-                        onChange={(e) => handleInputChange('sharesPerTrade', parseInt(e.target.value))}
-                        size="small"
-                        fullWidth
-                        helperText="Number of shares to trade per signal"
-                      />
+                        <Controller
+                          name="initialCapital"
+                          control={control}
+                          render={({ field }) => (
+                            <TextField
+                              label="Initial Capital"
+                              type="number"
+                              size="small"
+                              fullWidth
+                              helperText="Starting capital for backtest"
+                              value={field.value}
+                              onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                            />
+                          )}
+                        />
+                        <Controller
+                          name="sharesPerTrade"
+                          control={control}
+                          render={({ field }) => (
+                            <TextField
+                              label="Shares Per Trade"
+                              type="number"
+                              size="small"
+                              fullWidth
+                              helperText="Number of shares to trade per signal"
+                              value={field.value}
+                              onChange={(e) => field.onChange(parseInt(e.target.value))}
+                            />
+                          )}
+                        />
                     </Stack>
                   </Box>
 
@@ -808,6 +844,7 @@ const BacktestingSimple: React.FC = () => {
         </TabPanel>
       </Paper>
     </Box>
+    </FormProvider>
   );
 };
 

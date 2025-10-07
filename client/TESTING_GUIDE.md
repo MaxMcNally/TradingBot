@@ -98,6 +98,15 @@ npm test -- --coverage
 - CSS support enabled
 - Coverage reporting with v8 provider
 
+### Utilities
+
+- `renderWithFormProvider` (`src/utils/test-utils.tsx`): Wraps components in react-hook-form `FormProvider` for form unit tests.
+  - Example:
+    ```tsx
+    import { renderWithFormProvider } from '../src/utils/test-utils';
+    renderWithFormProvider(<MyForm />, { defaultValues: { username: 'alice' } });
+    ```
+
 ## Mocking Strategy
 
 ### API Mocks

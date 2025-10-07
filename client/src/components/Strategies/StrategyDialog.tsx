@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useForm, FormProvider } from 'react-hook-form';
 import {
   Dialog,
   DialogTitle,
@@ -35,77 +36,46 @@ const StrategyDialog: React.FC<StrategyDialogProps> = ({
   onSave,
   isLoading
 }) => {
-  const [formData, setFormData] = useState<StrategyFormData>({
-    name: '',
-    description: '',
-    strategy_type: 'moving_average_crossover',
-    config: {},
-    backtest_results: null,
-    is_public: false
+  const methods = useForm<StrategyFormData>({
+    defaultValues: {
+      name: '',
+      description: '',
+      strategy_type: 'moving_average_crossover',
+      config: {},
+      backtest_results: null,
+      is_public: false,
+    },
+    mode: 'onChange',
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = methods;
 
   useEffect(() => {
     if (strategy) {
-      setFormData({
+      reset({
         name: strategy.name || '',
         description: strategy.description || '',
         strategy_type: strategy.strategy_type || 'moving_average_crossover',
         config: strategy.config || {},
         backtest_results: strategy.backtest_results || null,
-        is_public: strategy.is_public || false
+        is_public: strategy.is_public || false,
       });
     } else {
-      setFormData({
+      reset({
         name: '',
         description: '',
         strategy_type: 'moving_average_crossover',
         config: {},
         backtest_results: null,
-        is_public: false
+        is_public: false,
       });
     }
-    setErrors({});
-  }, [strategy, open]);
+  }, [strategy, open, reset]);
 
-  const handleInputChange = (field: keyof StrategyFormData, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({
-        ...prev,
-        [field]: ''
-      }));
-    }
-  };
-
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = 'Strategy name is required';
-    }
-
-    if (!formData.strategy_type) {
-      newErrors.strategy_type = 'Strategy type is required';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSave = () => {
-    if (validateForm()) {
-      onSave(formData);
-    }
+  const onSubmit = (data: StrategyFormData) => {
+    onSave(data);
   };
 
   const handleClose = () => {
-    setErrors({});
     onClose();
   };
 
@@ -115,47 +85,47 @@ const StrategyDialog: React.FC<StrategyDialogProps> = ({
         {strategy ? 'Edit Strategy' : 'Create New Strategy'}
       </DialogTitle>
       <DialogContent>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-          <TextField
-            label="Strategy Name"
-            value={formData.name}
-            onChange={(e) => handleInputChange('name', e.target.value)}
-            error={!!errors.name}
-            helperText={errors.name}
-            fullWidth
-            required
-          />
+        <FormProvider {...methods}>
+          <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <TextField
+              label="Strategy Name"
+              {...register('name', { required: true })}
+              error={!!errors.name}
+              helperText={errors.name ? 'Strategy name is required' : ''}
+              fullWidth
+              required
+            />
 
-          <TextField
-            label="Description"
-            value={formData.description}
-            onChange={(e) => handleInputChange('description', e.target.value)}
-            multiline
-            rows={3}
-            fullWidth
-          />
+            <TextField
+              label="Description"
+              {...register('description')}
+              multiline
+              rows={3}
+              fullWidth
+            />
 
-          <FormControl fullWidth error={!!errors.strategy_type}>
-            <InputLabel>Strategy Type</InputLabel>
-            <Select
-              value={formData.strategy_type}
-              onChange={(e) => handleInputChange('strategy_type', e.target.value)}
-              label="Strategy Type"
-            >
-              {STRATEGY_TYPES.map((type) => (
-                <MenuItem key={type.value} value={type.value}>
-                  {type.label}
-                </MenuItem>
-              ))}
-            </Select>
-            {errors.strategy_type && (
-              <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
-                {errors.strategy_type}
-              </Typography>
-            )}
-          </FormControl>
+            <FormControl fullWidth error={!!errors.strategy_type}>
+              <InputLabel>Strategy Type</InputLabel>
+              <Select
+                {...register('strategy_type', { required: true })}
+                value={watch('strategy_type')}
+                onChange={(e) => setValue('strategy_type', e.target.value as any)}
+                label="Strategy Type"
+              >
+                {STRATEGY_TYPES.map((type) => (
+                  <MenuItem key={type.value} value={type.value}>
+                    {type.label}
+                  </MenuItem>
+                ))}
+              </Select>
+              {errors.strategy_type && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
+                  Strategy type is required
+                </Typography>
+              )}
+            </FormControl>
 
-          {formData.backtest_results && (
+            {watch('backtest_results') && (
             <Box>
               <Typography variant="h6" gutterBottom>
                 Backtest Results
@@ -173,49 +143,51 @@ const StrategyDialog: React.FC<StrategyDialogProps> = ({
                   whiteSpace: 'pre-wrap',
                   wordBreak: 'break-word'
                 }}>
-                  {JSON.stringify(formData.backtest_results, null, 2)}
+                  {JSON.stringify(watch('backtest_results'), null, 2)}
                 </Typography>
               </Box>
             </Box>
-          )}
+            )}
 
-          <Divider sx={{ my: 2 }} />
+            <Divider sx={{ my: 2 }} />
 
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={formData.is_public || false}
-                onChange={(e) => handleInputChange('is_public', e.target.checked)}
-                color="primary"
-              />
-            }
-            label={
-              <Box>
-                <Typography variant="body1" fontWeight="medium">
-                  Make this strategy public
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Allow other users to discover and use this strategy for their trading. 
-                  Public strategies will be visible to all users in the Public Strategies section.
-                </Typography>
-              </Box>
-            }
-          />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={!!watch('is_public')}
+                  onChange={(e) => setValue('is_public', e.target.checked)}
+                  color="primary"
+                />
+              }
+              label={
+                <Box>
+                  <Typography variant="body1" fontWeight="medium">
+                    Make this strategy public
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Allow other users to discover and use this strategy for their trading. 
+                    Public strategies will be visible to all users in the Public Strategies section.
+                  </Typography>
+                </Box>
+              }
+            />
 
-          <Alert severity="info" sx={{ mt: 2 }}>
-            <Typography variant="body2">
-              Strategy configuration will be set based on the strategy type selected. 
-              You can modify the configuration after creating the strategy.
-            </Typography>
-          </Alert>
-        </Box>
+            <Alert severity="info" sx={{ mt: 2 }}>
+              <Typography variant="body2">
+                Strategy configuration will be set based on the strategy type selected. 
+                You can modify the configuration after creating the strategy.
+              </Typography>
+            </Alert>
+          </Box>
+        </FormProvider>
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose} disabled={isLoading}>
           Cancel
         </Button>
         <Button 
-          onClick={handleSave} 
+          type="submit"
+          onClick={handleSubmit(onSubmit)} 
           variant="contained" 
           disabled={isLoading}
           startIcon={isLoading ? <CircularProgress size={20} /> : null}
