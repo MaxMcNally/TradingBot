@@ -1,6 +1,21 @@
 version: "3.9"
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tradingbot-postgres
+    environment:
+      - POSTGRES_USER=trading
+      - POSTGRES_PASSWORD=trading
+      - POSTGRES_DB=tradingbot
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - tradingbot-network
+    restart: unless-stopped
+
   # API Service
   api:
     build:
@@ -14,6 +29,7 @@ services:
       - NODE_ENV=production
       - PORT=8001
       - FRONTEND_URL=http://localhost:3000
+      - DATABASE_URL=postgresql://trading:trading@postgres:5432/tradingbot
     volumes:
       - api_data:/app/api/db
       - core_data:/app/db
@@ -22,6 +38,7 @@ services:
     restart: unless-stopped
     depends_on:
       - core
+      - postgres
 
   # React Client
   client:
@@ -49,6 +66,7 @@ services:
     container_name: tradingbot-core
     environment:
       - NODE_ENV=production
+      - DATABASE_URL=postgresql://trading:trading@postgres:5432/tradingbot
     volumes:
       - core_data:/app/db
       - backtest_data:/app/backtest_data
@@ -72,6 +90,8 @@ services:
     command: redis-server --appendonly yes
 
 volumes:
+  pg_data:
+    driver: local
   api_data:
     driver: local
   core_data:

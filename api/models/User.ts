@@ -1,14 +1,14 @@
-import { db } from '../initDb';
+import { db, isPostgres } from '../initDb';
 
 export interface UserData {
   id?: number;
   username: string;
   password_hash: string;
   email?: string;
-  email_verified?: number; // 0 or 1
+  email_verified?: number | boolean;
   email_verification_token?: string | null;
   email_verification_sent_at?: string | null;
-  two_factor_enabled?: number; // 0 or 1
+  two_factor_enabled?: number | boolean;
   two_factor_secret?: string | null;
   password_reset_token?: string | null;
   password_reset_expires_at?: string | null;
@@ -20,15 +20,15 @@ export class User {
   static async findOne(where: { username: string; password?: string }): Promise<UserData | null> {
     return new Promise((resolve, reject) => {
       const { username, password } = where;
-      let query = 'SELECT * FROM users WHERE username = ?';
+      let query = isPostgres ? 'SELECT * FROM users WHERE username = $1' : 'SELECT * FROM users WHERE username = ?';
       const params: any[] = [username];
       
       if (password) {
-        query += ' AND password_hash = ?';
+        query += isPostgres ? ' AND password_hash = $2' : ' AND password_hash = ?';
         params.push(password);
       }
       
-      db.get(query, params, (err, row: any) => {
+      db.get(query, params, (err: any, row: any) => {
         if (err) {
           reject(err);
         } else {
@@ -40,7 +40,7 @@ export class User {
 
   static async findByUsername(username: string): Promise<UserData | null> {
     return new Promise((resolve, reject) => {
-      db.get('SELECT * FROM users WHERE username = ?', [username], (err, row: any) => {
+      db.get(isPostgres ? 'SELECT * FROM users WHERE username = $1' : 'SELECT * FROM users WHERE username = ?', [username], (err: any, row: any) => {
         if (err) {
           reject(err);
         } else {
@@ -54,9 +54,11 @@ export class User {
     return new Promise((resolve, reject) => {
       const { username, password_hash, email } = userData;
       db.run(
-        'INSERT INTO users (username, password_hash, email, email_verified, two_factor_enabled) VALUES (?, ?, ?, 0, 0)',
+        isPostgres
+          ? 'INSERT INTO users (username, password_hash, email, email_verified, two_factor_enabled) VALUES ($1, $2, $3, FALSE, FALSE)'
+          : 'INSERT INTO users (username, password_hash, email, email_verified, two_factor_enabled) VALUES (?, ?, ?, 0, 0)',
         [username, password_hash, email],
-        function(err) {
+        function(this: any, err: any) {
           if (err) {
             reject(err);
           } else {
@@ -65,8 +67,8 @@ export class User {
               username,
               password_hash,
               email,
-              email_verified: 0,
-              two_factor_enabled: 0,
+              email_verified: isPostgres ? false : 0,
+              two_factor_enabled: isPostgres ? false : 0,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             });
@@ -78,7 +80,7 @@ export class User {
 
   static async findById(id: number): Promise<UserData | null> {
     return new Promise((resolve, reject) => {
-      db.get('SELECT * FROM users WHERE id = ?', [id], (err, row: any) => {
+      db.get(isPostgres ? 'SELECT * FROM users WHERE id = $1' : 'SELECT * FROM users WHERE id = ?', [id], (err: any, row: any) => {
         if (err) {
           reject(err);
         } else {
