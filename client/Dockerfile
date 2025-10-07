@@ -34,6 +34,10 @@ RUN chmod +x /start.sh
 
 # nginx user already exists in nginx:alpine image, no need to create it
 
+# Remove nginx log symlinks and create regular files
+RUN rm -f /var/log/nginx/access.log /var/log/nginx/error.log && \
+    touch /var/log/nginx/access.log /var/log/nginx/error.log
+
 # Set proper permissions
 RUN chown -R nginx:nginx /usr/share/nginx/html && \
     chown -R nginx:nginx /var/cache/nginx && \
