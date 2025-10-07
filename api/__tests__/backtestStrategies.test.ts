@@ -20,9 +20,9 @@ describe('Backtest strategies list', () => {
 
     const payload = json.mock.calls[0][0];
     const names = payload.data.strategies.map((s: any) => s.name);
-    expect(names).toContain('sentimentAnalysis');
+    expect(names).toContain('SentimentAnalysis');
 
-    const sentiment = payload.data.strategies.find((s: any) => s.name === 'sentimentAnalysis');
+    const sentiment = payload.data.strategies.find((s: any) => s.name === 'SentimentAnalysis');
     expect(sentiment.parameters).toHaveProperty('lookbackDays');
     expect(sentiment.parameters).toHaveProperty('buyThreshold');
     expect(sentiment.parameters).toHaveProperty('sellThreshold');

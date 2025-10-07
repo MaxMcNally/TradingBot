@@ -4,14 +4,12 @@ module.exports = {
   rootDir: '.',
   testMatch: ['**/__tests__/**/*.ts'],
   moduleFileExtensions: ['ts', 'js', 'json'],
+  setupFilesAfterEnv: ['<rootDir>/setupTests.js'],
   transform: {
-    '^.+\\.(ts|tsx)$': ['ts-jest', { tsconfig: { esModuleInterop: true } }],
-  },
-  globals: {
-    'ts-jest': {
-      tsconfig: {
-        esModuleInterop: true,
-      },
-    },
+    '^.+\\.(ts|tsx)$': ['ts-jest', { 
+      tsconfig: { 
+        esModuleInterop: true 
+      } 
+    }],
   },
 };
