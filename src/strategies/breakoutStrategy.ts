@@ -144,7 +144,7 @@ export class BreakoutStrategy {
     if (rel < 0 || rel >= this.prices.length) {
       // Should not happen if deques are maintained correctly; fallback to edge values
       if (this.prices.length === 0) {
-        return undefined; // or NaN, depending on desired behavior
+        return 0; // Return 0 as fallback when no prices are available
       }
       return this.prices[Math.max(0, Math.min(this.prices.length - 1, rel))];
     }
