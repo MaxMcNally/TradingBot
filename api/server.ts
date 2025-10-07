@@ -37,15 +37,27 @@ app.use(bodyParser.json());
 
 // Routes
 console.log("Mounting API routes...");
-app.use("/api/auth", authRouter);
-app.use("/api/settings", settingsRouter);
-app.use("/api/backtest", backtestRouter);
-app.use("/api/symbols", symbolRouter);
-app.use("/api/cache", cacheRouter);
-app.use("/api/trading", tradingRouter);
-app.use("/api/strategies", strategyRouter);
-app.use("/api/test", testRouter);
-console.log("API routes mounted successfully");
+try {
+  console.log("Mounting auth router...");
+  app.use("/api/auth", authRouter);
+  console.log("Mounting settings router...");
+  app.use("/api/settings", settingsRouter);
+  console.log("Mounting backtest router...");
+  app.use("/api/backtest", backtestRouter);
+  console.log("Mounting symbols router...");
+  app.use("/api/symbols", symbolRouter);
+  console.log("Mounting cache router...");
+  app.use("/api/cache", cacheRouter);
+  console.log("Mounting trading router...");
+  app.use("/api/trading", tradingRouter);
+  console.log("Mounting strategies router...");
+  app.use("/api/strategies", strategyRouter);
+  console.log("Mounting test router...");
+  app.use("/api/test", testRouter);
+  console.log("API routes mounted successfully");
+} catch (error) {
+  console.error("Error mounting routes:", error);
+}
 
 app.get("/ping", (req, res) => {
   console.log("Ping route hit ✅");

@@ -15,6 +15,10 @@ import {
 
 const router = Router();
 
+// Test route
+router.get("/test", (req, res) => {
+  res.json({ message: "Strategies router is working" });
+});
 
 // Create a new strategy
 router.post("/users/:userId/strategies", createStrategy);
@@ -22,26 +26,26 @@ router.post("/users/:userId/strategies", createStrategy);
 // Get all strategies for a user
 router.get("/users/:userId/strategies", getUserStrategies);
 
-// Get all public strategies (must come before /strategies/:strategyId)
-router.get("/strategies/public", getPublicStrategies);
+// Get all public strategies (must come before /:strategyId)
+router.get("/public", getPublicStrategies);
 
-// Get public strategies by type (must come before /strategies/:strategyId)
-router.get("/strategies/public/:strategyType", getPublicStrategiesByType);
+// Get public strategies by type (must come before /:strategyId)
+router.get("/public/:strategyType", getPublicStrategiesByType);
 
 // Get a specific strategy by ID
-router.get("/strategies/:strategyId", getStrategyById);
+router.get("/:strategyId", getStrategyById);
 
 // Update a strategy
-router.put("/strategies/:strategyId", updateStrategy);
+router.put("/:strategyId", updateStrategy);
 
 // Delete a strategy
-router.delete("/strategies/:strategyId", deleteStrategy);
+router.delete("/:strategyId", deleteStrategy);
 
 // Deactivate a strategy
-router.patch("/strategies/:strategyId/deactivate", deactivateStrategy);
+router.patch("/:strategyId/deactivate", deactivateStrategy);
 
 // Activate a strategy
-router.patch("/strategies/:strategyId/activate", activateStrategy);
+router.patch("/:strategyId/activate", activateStrategy);
 
 // Save a strategy from backtest results
 router.post("/users/:userId/strategies/from-backtest", saveStrategyFromBacktest);
