@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import { db } from "../initDb";
+import { db, isPostgres } from "../initDb";
 import { generateToken, authenticateToken, AuthenticatedRequest } from "../middleware/auth";
 
 export const authRouter = Router();
@@ -13,9 +13,11 @@ authRouter.post("/login", (req: Request, res: Response) => {
   }
 
   db.get(
-    "SELECT id, username, password_hash, email, created_at FROM users WHERE username = ?",
+    isPostgres
+      ? "SELECT id, username, password_hash, email, created_at FROM users WHERE username = $1"
+      : "SELECT id, username, password_hash, email, created_at FROM users WHERE username = ?",
     [username],
-    (err, row: any) => {
+    (err: any, row: any) => {
       if (err) {
         console.error("Database error:", err);
         return res.status(500).json({ error: "Internal server error" });
@@ -77,9 +79,11 @@ authRouter.post("/signup", (req: Request, res: Response) => {
     }
 
     db.run(
-      "INSERT INTO users(username, password_hash, email) VALUES(?, ?, ?)",
+      isPostgres
+        ? "INSERT INTO users(username, password_hash, email) VALUES($1, $2, $3)"
+        : "INSERT INTO users(username, password_hash, email) VALUES(?, ?, ?)",
       [username, hashedPassword, email || null],
-      function (err) {
+      function (this: any, err: any) {
         if (err) {
           if (err.message.includes("UNIQUE constraint failed")) {
             return res.status(409).json({ error: "Username already exists" });
@@ -156,9 +160,11 @@ authRouter.put("/account", authenticateToken, (req: AuthenticatedRequest, res: R
 
   // Check if username is already taken by another user
   db.get(
-    "SELECT id FROM users WHERE username = ? AND id != ?",
+    isPostgres
+      ? "SELECT id FROM users WHERE username = $1 AND id != $2"
+      : "SELECT id FROM users WHERE username = ? AND id != ?",
     [username, userId],
-    (err, row: any) => {
+    (err: any, row: any) => {
       if (err) {
         console.error("Database error:", err);
         return res.status(500).json({ error: "Internal server error" });
@@ -170,7 +176,9 @@ authRouter.put("/account", authenticateToken, (req: AuthenticatedRequest, res: R
 
       // Update user information
       db.run(
-        "UPDATE users SET username = ?, email = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        isPostgres
+          ? "UPDATE users SET username = $1, email = $2, updated_at = NOW() WHERE id = $3"
+          : "UPDATE users SET username = ?, email = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
         [username, email, userId],
         function (err) {
           if (err) {
@@ -180,7 +188,9 @@ authRouter.put("/account", authenticateToken, (req: AuthenticatedRequest, res: R
 
           // Get updated user data
           db.get(
-            "SELECT id, username, email, created_at FROM users WHERE id = ?",
+            isPostgres
+              ? "SELECT id, username, email, created_at FROM users WHERE id = $1"
+              : "SELECT id, username, email, created_at FROM users WHERE id = ?",
             [userId],
             (err, user: any) => {
               if (err) {

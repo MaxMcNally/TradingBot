@@ -1,6 +1,20 @@
 version: "3.9"
 
 services:
+  postgres-dev:
+    image: postgres:16-alpine
+    container_name: tradingbot-postgres-dev
+    environment:
+      - POSTGRES_USER=trading
+      - POSTGRES_PASSWORD=trading
+      - POSTGRES_DB=tradingbot
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg_dev_data:/var/lib/postgresql/data
+    networks:
+      - tradingbot-dev-network
+    restart: unless-stopped
   # Development API Service
   api-dev:
     build:
@@ -14,7 +28,7 @@ services:
       - NODE_ENV=development
       - PORT=8001
       - FRONTEND_URL=http://localhost:3000
-      - DB_PATH=/app/api/db/trading_bot.db
+      - DATABASE_URL=postgresql://trading:trading@postgres-dev:5432/tradingbot
       - CACHE_DB_PATH=/app/db/cache.db
     volumes:
       - ./api:/app/api
@@ -29,6 +43,7 @@ services:
     command: ["yarn", "dev:server"]
     depends_on:
       - redis-dev
+      - postgres-dev
 
   # Development React Client
   client-dev:
@@ -61,7 +76,7 @@ services:
     container_name: tradingbot-core-dev
     environment:
       - NODE_ENV=development
-      - DB_PATH=/app/db/trading_bot.db
+      - DATABASE_URL=postgresql://trading:trading@postgres-dev:5432/tradingbot
       - CACHE_DB_PATH=/app/db/cache.db
     volumes:
       - ./src:/app/src
@@ -99,7 +114,7 @@ services:
     container_name: tradingbot-db-init
     environment:
       - NODE_ENV=development
-      - DB_PATH=/app/api/db/trading_bot.db
+      - DATABASE_URL=postgresql://trading:trading@postgres-dev:5432/tradingbot
     volumes:
       - ./api:/app/api
       - ./src:/app/src
@@ -110,8 +125,11 @@ services:
     command: ["yarn", "db:init"]
     depends_on:
       - redis-dev
+      - postgres-dev
 
 volumes:
+  pg_dev_data:
+    driver: local
   api_dev_data:
     driver: local
   core_dev_data:

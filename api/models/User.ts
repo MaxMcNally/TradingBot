@@ -1,4 +1,4 @@
-import { db } from '../initDb';
+import { db, isPostgres } from '../initDb';
 
 export interface UserData {
   id?: number;
@@ -13,15 +13,15 @@ export class User {
   static async findOne(where: { username: string; password?: string }): Promise<UserData | null> {
     return new Promise((resolve, reject) => {
       const { username, password } = where;
-      let query = 'SELECT * FROM users WHERE username = ?';
+      let query = isPostgres ? 'SELECT * FROM users WHERE username = $1' : 'SELECT * FROM users WHERE username = ?';
       const params: any[] = [username];
       
       if (password) {
-        query += ' AND password_hash = ?';
+        query += isPostgres ? ' AND password_hash = $2' : ' AND password_hash = ?';
         params.push(password);
       }
       
-      db.get(query, params, (err, row: any) => {
+      db.get(query, params, (err: any, row: any) => {
         if (err) {
           reject(err);
         } else {
@@ -33,7 +33,7 @@ export class User {
 
   static async findByUsername(username: string): Promise<UserData | null> {
     return new Promise((resolve, reject) => {
-      db.get('SELECT * FROM users WHERE username = ?', [username], (err, row: any) => {
+      db.get(isPostgres ? 'SELECT * FROM users WHERE username = $1' : 'SELECT * FROM users WHERE username = ?', [username], (err: any, row: any) => {
         if (err) {
           reject(err);
         } else {
@@ -47,9 +47,11 @@ export class User {
     return new Promise((resolve, reject) => {
       const { username, password_hash, email } = userData;
       db.run(
-        'INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)',
+        isPostgres
+          ? 'INSERT INTO users (username, password_hash, email) VALUES ($1, $2, $3)'
+          : 'INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)',
         [username, password_hash, email],
-        function(err) {
+        function(this: any, err: any) {
           if (err) {
             reject(err);
           } else {
@@ -69,7 +71,7 @@ export class User {
 
   static async findById(id: number): Promise<UserData | null> {
     return new Promise((resolve, reject) => {
-      db.get('SELECT * FROM users WHERE id = ?', [id], (err, row: any) => {
+      db.get(isPostgres ? 'SELECT * FROM users WHERE id = $1' : 'SELECT * FROM users WHERE id = ?', [id], (err: any, row: any) => {
         if (err) {
           reject(err);
         } else {
