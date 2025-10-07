@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Test Railway Deployment Script
-# This script tests the Railway deployment commands that CircleCI uses
+# This script deploys both API and client services to Railway
 # Usage: ./test-railway-deploy.sh [qa|prod]
 
 set -e
@@ -9,7 +9,7 @@ set -e
 # Get environment argument (default to qa)
 ENV=${1:-qa}
 
-echo "🚀 Testing Railway deployment for $ENV environment..."
+echo "🚀 Deploying to Railway $ENV environment..."
 
 # Check if Railway CLI is installed
 if ! command -v railway &> /dev/null; then
@@ -29,10 +29,12 @@ if [ -f ".env" ]; then
     # Set environment-specific variables
     if [ "$ENV" = "qa" ]; then
         RAILWAY_TOKEN_VAR="RAILWAY_TOKEN_QA"
-        SERVICE_NAME="api-qa"
+        API_SERVICE="api-qa"
+        CLIENT_SERVICE="client-qa"
     elif [ "$ENV" = "prod" ]; then
         RAILWAY_TOKEN_VAR="RAILWAY_TOKEN_PROD"
-        SERVICE_NAME="api"
+        API_SERVICE="api"
+        CLIENT_SERVICE="client"
     else
         echo "❌ Invalid environment. Use 'qa' or 'prod'"
         exit 1
@@ -98,24 +100,31 @@ else
     exit 1
 fi
 
-# Test the deployment command
-echo "🚀 Testing Railway deployment command..."
-echo "This will run: railway up --service $SERVICE_NAME"
-echo "Note: This will actually deploy to Railway!"
+# Deploy both API and client services
+echo "🚀 Deploying both API and client services to Railway..."
+echo "API Service: $API_SERVICE"
+echo "Client Service: $CLIENT_SERVICE"
 
 # Ask for confirmation
 read -p "Do you want to proceed with the deployment? (y/N): " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo "🚀 Deploying to Railway..."
-    railway up --service $SERVICE_NAME
+    echo "🚀 Deploying API service..."
+    railway up --service $API_SERVICE
+    
+    echo "🚀 Deploying client service..."
+    railway up --service $CLIENT_SERVICE
+    
+    echo "✅ Both services deployed successfully!"
+    echo ""
+    echo "You can check the deployment status at:"
+    echo "https://railway.app/dashboard"
 else
     echo "⏭️ Skipping deployment"
 fi
 
-echo "✅ Railway deployment test completed successfully!"
-echo "If you want to actually deploy, uncomment the 'railway up --service $SERVICE_NAME' line in this script"
+echo "✅ Railway deployment script completed!"
 echo ""
 echo "Usage examples:"
-echo "  ./test-railway-deploy.sh qa    # Test QA deployment"
-echo "  ./test-railway-deploy.sh prod  # Test production deployment"
+echo "  ./test-railway-deploy.sh qa    # Deploy to QA environment"
+echo "  ./test-railway-deploy.sh prod  # Deploy to production environment"
