@@ -106,23 +106,41 @@ const BacktestingSimple: React.FC = () => {
     }
   });
   const { watch, setValue, getValues } = methods;
-  const formData = watch([
+  const watchedFields = watch([
     'strategy',
     'symbols',
     'startDate',
     'endDate',
     'initialCapital',
     'sharesPerTrade',
-  ]) as Pick<
-    BacktestFormData,
-    'strategy' | 'symbols' | 'startDate' | 'endDate' | 'initialCapital' | 'sharesPerTrade'
-  >;
+  ]);
+  
+  const formData = {
+    strategy: watchedFields[0],
+    symbols: watchedFields[1],
+    startDate: watchedFields[2],
+    endDate: watchedFields[3],
+    initialCapital: watchedFields[4],
+    sharesPerTrade: watchedFields[5],
+  };
+  
 
   const [results, setResults] = useState<BacktestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   
+  // Local state for selected stocks (similar to Trading component)
+  const [selectedStocks, setSelectedStocks] = useState<string[]>([]);
+  
   // Strategy parameters for the reusable StrategySelector
   const [strategyParameters, setStrategyParameters] = useState<Record<string, any>>({});
+  
+  // Sync local state with form data on mount
+  useEffect(() => {
+    const formSymbols = getValues('symbols');
+    if (formSymbols && Array.isArray(formSymbols)) {
+      setSelectedStocks(formSymbols);
+    }
+  }, [getValues]);
   
   // Save strategy dialog state
   const [saveStrategyDialogOpen, setSaveStrategyDialogOpen] = useState(false);
@@ -140,10 +158,12 @@ const BacktestingSimple: React.FC = () => {
       
       switch (formData.strategy) {
         case 'meanReversion':
+        case 'MeanReversion':
           defaultParams.window = 20;
           defaultParams.threshold = 0.05;
           break;
         case 'sentimentAnalysis':
+        case 'SentimentAnalysis':
           defaultParams.lookbackDays = 3;
           defaultParams.pollIntervalMinutes = 0;
           defaultParams.minArticles = 2;
@@ -154,24 +174,29 @@ const BacktestingSimple: React.FC = () => {
           // newsSource is backend-controlled; do not expose toggle
           break;
         case 'movingAverage':
+        case 'MovingAverage':
           defaultParams.shortWindow = 5;
           defaultParams.longWindow = 10;
           break;
         case 'movingAverageCrossover':
+        case 'MovingAverageCrossover':
           defaultParams.fastWindow = 10;
           defaultParams.slowWindow = 30;
           defaultParams.maType = 'SMA';
           break;
         case 'momentum':
+        case 'Momentum':
           defaultParams.rsiWindow = 14;
           defaultParams.rsiOverbought = 70;
           defaultParams.rsiOversold = 30;
           break;
         case 'bollingerBands':
+        case 'BollingerBands':
           defaultParams.window = 20;
           defaultParams.multiplier = 2.0;
           break;
         case 'breakout':
+        case 'Breakout':
           defaultParams.lookbackWindow = 20;
           defaultParams.breakoutThreshold = 0.01;
           break;
@@ -191,6 +216,20 @@ const BacktestingSimple: React.FC = () => {
     setActiveTab(newValue);
   };
 
+  // Map frontend strategy names to backend expected names
+  const mapStrategyName = (frontendStrategy: string): string => {
+    const strategyMap: Record<string, string> = {
+      'SentimentAnalysis': 'sentimentAnalysis',
+      'MeanReversion': 'meanReversion',
+      'MovingAverage': 'movingAverageCrossover',
+      'MovingAverageCrossover': 'movingAverageCrossover',
+      'Momentum': 'momentum',
+      'BollingerBands': 'bollingerBands',
+      'Breakout': 'breakout',
+    };
+    return strategyMap[frontendStrategy] || frontendStrategy;
+  };
+
   const handleRunBacktest = async (): Promise<void> => {
     const current = getValues();
     if ((current.symbols || []).length === 0) {
@@ -201,7 +240,7 @@ const BacktestingSimple: React.FC = () => {
     try {
       setError(null);
       const response = await runBacktestMutation({
-        strategy: current.strategy,
+        strategy: mapStrategyName(current.strategy),
         symbols: current.symbols,
         startDate: current.startDate,
         endDate: current.endDate,
@@ -297,8 +336,11 @@ const BacktestingSimple: React.FC = () => {
             {/* Stock Selection Tab */}
             <TabPanel value={activeTab} index={0}>
               <StockSelectionSection
-                selectedStocks={formData.symbols}
-                onStocksChange={(symbols) => setValue('symbols', symbols)}
+                selectedStocks={selectedStocks}
+                onStocksChange={(symbols) => {
+                  setSelectedStocks(symbols);
+                  setValue('symbols', symbols);
+                }}
                 maxStocks={10}
                 title="Stock Selection"
                 description="Select the stocks you want to include in your backtest. You can choose up to {maxStocks} stocks."
@@ -339,7 +381,7 @@ const BacktestingSimple: React.FC = () => {
 
                 <Stack spacing={3}>
                   {/* Strategy-Specific Parameters */}
-                  {formData.strategy === 'sentimentAnalysis' && (
+                  {(formData.strategy === 'sentimentAnalysis' || formData.strategy === 'SentimentAnalysis') && (
                     <Box>
                   <Box display="flex" alignItems="center" gap={1}>
                     <Typography variant="subtitle2" gutterBottom>
@@ -405,7 +447,7 @@ const BacktestingSimple: React.FC = () => {
                       </Stack>
                     </Box>
                   )}
-                  {formData.strategy === 'meanReversion' && (
+                  {(formData.strategy === 'meanReversion' || formData.strategy === 'MeanReversion') && (
                     <Box>
                       <Box display="flex" alignItems="center" gap={1}>
                         <Typography variant="subtitle2" gutterBottom>
@@ -439,7 +481,7 @@ const BacktestingSimple: React.FC = () => {
                     </Box>
                   )}
 
-                  {formData.strategy === 'movingAverage' && (
+                  {(formData.strategy === 'movingAverage' || formData.strategy === 'MovingAverage') && (
                     <Box>
                       <Box display="flex" alignItems="center" gap={1}>
                         <Typography variant="subtitle2" gutterBottom>
@@ -483,7 +525,7 @@ const BacktestingSimple: React.FC = () => {
                     </Box>
                   )}
 
-                  {formData.strategy === 'movingAverageCrossover' && (
+                  {(formData.strategy === 'movingAverageCrossover' || formData.strategy === 'MovingAverageCrossover') && (
                     <Box>
                       <Box display="flex" alignItems="center" gap={1}>
                         <Typography variant="subtitle2" gutterBottom>
@@ -529,7 +571,7 @@ const BacktestingSimple: React.FC = () => {
                     </Box>
                   )}
 
-                  {formData.strategy === 'momentum' && (
+                  {(formData.strategy === 'momentum' || formData.strategy === 'Momentum') && (
                     <Box>
                       <Box display="flex" alignItems="center" gap={1}>
                         <Typography variant="subtitle2" gutterBottom>
@@ -543,7 +585,7 @@ const BacktestingSimple: React.FC = () => {
                         <TextField
                           label="RSI Window"
                           type="number"
-                          value={formData.rsiWindow}
+                          value={getValues('rsiWindow')}
                           onChange={(e) => handleInputChange('rsiWindow', parseInt(e.target.value))}
                           size="small"
                           fullWidth
@@ -552,7 +594,7 @@ const BacktestingSimple: React.FC = () => {
                         <TextField
                           label="Momentum Window"
                           type="number"
-                          value={formData.momentumWindow}
+                          value={getValues('momentumWindow')}
                           onChange={(e) => handleInputChange('momentumWindow', parseInt(e.target.value))}
                           size="small"
                           fullWidth
@@ -561,7 +603,7 @@ const BacktestingSimple: React.FC = () => {
                         <TextField
                           label="RSI Overbought"
                           type="number"
-                          value={formData.rsiOverbought}
+                          value={getValues('rsiOverbought')}
                           onChange={(e) => handleInputChange('rsiOverbought', parseInt(e.target.value))}
                           size="small"
                           fullWidth
@@ -570,7 +612,7 @@ const BacktestingSimple: React.FC = () => {
                         <TextField
                           label="RSI Oversold"
                           type="number"
-                          value={formData.rsiOversold}
+                          value={getValues('rsiOversold')}
                           onChange={(e) => handleInputChange('rsiOversold', parseInt(e.target.value))}
                           size="small"
                           fullWidth
@@ -580,7 +622,7 @@ const BacktestingSimple: React.FC = () => {
                           label="Momentum Threshold"
                           type="number"
                           inputProps={{ step: "0.01" }}
-                          value={formData.momentumThreshold}
+                          value={getValues('momentumThreshold')}
                           onChange={(e) => handleInputChange('momentumThreshold', parseFloat(e.target.value))}
                           size="small"
                           fullWidth
@@ -590,7 +632,7 @@ const BacktestingSimple: React.FC = () => {
                     </Box>
                   )}
 
-                  {formData.strategy === 'bollingerBands' && (
+                  {(formData.strategy === 'bollingerBands' || formData.strategy === 'BollingerBands') && (
                     <Box>
                       <Box display="flex" alignItems="center" gap={1}>
                         <Typography variant="subtitle2" gutterBottom>
@@ -604,7 +646,7 @@ const BacktestingSimple: React.FC = () => {
                         <TextField
                           label="Window"
                           type="number"
-                          value={formData.window}
+                          value={getValues('window')}
                           onChange={(e) => handleInputChange('window', parseInt(e.target.value))}
                           size="small"
                           fullWidth
@@ -614,7 +656,7 @@ const BacktestingSimple: React.FC = () => {
                           label="Multiplier"
                           type="number"
                           inputProps={{ step: "0.1" }}
-                          value={formData.multiplier}
+                          value={getValues('multiplier')}
                           onChange={(e) => handleInputChange('multiplier', parseFloat(e.target.value))}
                           size="small"
                           fullWidth
@@ -624,7 +666,7 @@ const BacktestingSimple: React.FC = () => {
                     </Box>
                   )}
 
-                  {formData.strategy === 'breakout' && (
+                  {(formData.strategy === 'breakout' || formData.strategy === 'Breakout') && (
                     <Box>
                       <Box display="flex" alignItems="center" gap={1}>
                         <Typography variant="subtitle2" gutterBottom>
@@ -638,7 +680,7 @@ const BacktestingSimple: React.FC = () => {
                         <TextField
                           label="Lookback Window"
                           type="number"
-                          value={formData.lookbackWindow}
+                          value={getValues('lookbackWindow')}
                           onChange={(e) => handleInputChange('lookbackWindow', parseInt(e.target.value))}
                           size="small"
                           fullWidth
@@ -648,7 +690,7 @@ const BacktestingSimple: React.FC = () => {
                           label="Breakout Threshold"
                           type="number"
                           inputProps={{ step: "0.01" }}
-                          value={formData.breakoutThreshold}
+                          value={getValues('breakoutThreshold')}
                           onChange={(e) => handleInputChange('breakoutThreshold', parseFloat(e.target.value))}
                           size="small"
                           fullWidth
@@ -658,7 +700,7 @@ const BacktestingSimple: React.FC = () => {
                           label="Min Volume Ratio"
                           type="number"
                           inputProps={{ step: "0.1" }}
-                          value={formData.minVolumeRatio}
+                          value={getValues('minVolumeRatio')}
                           onChange={(e) => handleInputChange('minVolumeRatio', parseFloat(e.target.value))}
                           size="small"
                           fullWidth
@@ -667,7 +709,7 @@ const BacktestingSimple: React.FC = () => {
                         <TextField
                           label="Confirmation Period"
                           type="number"
-                          value={formData.confirmationPeriod}
+                          value={getValues('confirmationPeriod')}
                           onChange={(e) => handleInputChange('confirmationPeriod', parseInt(e.target.value))}
                           size="small"
                           fullWidth
@@ -1005,7 +1047,7 @@ const BacktestingSimple: React.FC = () => {
         <Box sx={{ flex: 1, minWidth: 300 }}>
           <SessionSummary
             title="Backtest Configuration"
-            selectedStocks={formData.symbols}
+            selectedStocks={selectedStocks}
             selectedStrategy={formData.strategy}
             strategyParameters={strategyParameters}
             mode="backtesting"

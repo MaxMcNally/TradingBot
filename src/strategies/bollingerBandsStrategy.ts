@@ -78,7 +78,7 @@ export class BollingerBandsStrategy extends AbstractStrategy {
     }
 
     const bands = this.calculateBollingerBands();
-    const { upperBand, middleBand, lowerBand } = bands;
+    const { upperBand, lowerBand } = bands;
 
     // Buy signal: price touches or goes below lower band (and we're not already long)
     if (price <= lowerBand && this.currentPosition !== 'LONG') {

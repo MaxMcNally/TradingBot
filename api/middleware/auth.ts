@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction, RequestHandler } from "express";
+import { Request, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
@@ -21,7 +21,7 @@ export const authenticateToken: RequestHandler = (req, res, next) => {
     return res.status(403).json({ error: 'Access token required' });
   }
 
-  jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
+  jwt.verify(token, JWT_SECRET, (err: Error | null, user: any) => {
     if (err) {
       return res.status(403).json({ error: 'Invalid or expired token' });
     }

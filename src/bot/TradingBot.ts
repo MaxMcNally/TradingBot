@@ -267,7 +267,7 @@ export class TradingBot extends EventEmitter {
     const tradingConfig = this.config.getConfig();
     
     for (const trade of trades) {
-      const { sym: symbol, p: price, s: size, t: timestamp } = trade;
+      const { sym: symbol, p: price } = trade;
       
       // Only process trades for symbols we're trading
       if (!tradingConfig.symbols.includes(symbol)) continue;

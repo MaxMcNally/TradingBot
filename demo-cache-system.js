@@ -12,7 +12,7 @@
  */
 
 const { spawn } = require('child_process');
-const path = require('path');
+// const path = require('path'); // Unused import
 
 // Colors for console output
 const colors = {

@@ -58,6 +58,4 @@ export class MovingAverageStrategy extends AbstractStrategy {
   }
 }
 
-function avg(arr: number[]): number {
-  return arr.reduce((a, b) => a + b, 0) / arr.length;
-}
+// Removed unused function

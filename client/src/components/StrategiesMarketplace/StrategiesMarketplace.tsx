@@ -17,35 +17,24 @@ import {
   Alert,
   CircularProgress,
   Tooltip,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Divider,
   Stack,
-  Avatar,
-  Rating,
   Badge
 } from '@mui/material';
 import {
   Search as SearchIcon,
   FilterList as FilterIcon,
   TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
   Assessment as AssessmentIcon,
   Public as PublicIcon,
-  Person as PersonIcon,
-  Star as StarIcon,
-  StarBorder as StarBorderIcon,
   ContentCopy as CopyIcon,
-  Visibility as ViewIcon,
-  Download as DownloadIcon,
-  Share as ShareIcon,
-  CalendarToday as CalendarIcon,
-  Timeline as TimelineIcon
+  CalendarToday as CalendarIcon
 } from '@mui/icons-material';
-import { usePublicStrategies, useUserStrategies } from '../../hooks';
+import { usePublicStrategies } from '../../hooks';
 import { UserStrategy, copyPublicStrategy } from '../../api';
 import { useUser } from '../../hooks';
 

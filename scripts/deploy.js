@@ -5,9 +5,8 @@
  * Supports multiple environments: development, staging, production
  */
 
-const { execSync, spawn } = require('child_process');
+const { execSync } = require('child_process');
 const fs = require('fs');
-const path = require('path');
 
 // Colors for console output
 const colors = {

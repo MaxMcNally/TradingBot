@@ -214,7 +214,7 @@ async function testPublicStrategiesEndpoints() {
       });
 
       if (updateToPublicResponse.ok) {
-        const updateResult = await updateToPublicResponse.json();
+        // const updateResult = await updateToPublicResponse.json(); // Unused variable
         console.log('✅ Strategy updated to public successfully');
         
         // Verify it appears in public strategies

@@ -37,8 +37,8 @@ function logError(message) {
   log(`❌ ${message}`, 'red');
 }
 
-function logWarning(message) {
-  log(`⚠️  ${message}`, 'yellow');
+function logWarning(_message) {
+  // Unused function
 }
 
 // Test configuration
@@ -305,7 +305,7 @@ async function main() {
     // Wait for parallel tests
     if (parallel && testPromises.length > 0) {
       const parallelResults = await Promise.allSettled(testPromises);
-      parallelResults.forEach((result, index) => {
+      parallelResults.forEach((result) => {
         if (result.status === 'fulfilled') {
           testResults.push(result.value);
         } else {
@@ -315,7 +315,7 @@ async function main() {
     }
     
     // Generate report
-    const report = generateReport(testResults, lintResults);
+    // const report = generateReport(testResults, lintResults); // Unused variable
     
     // Check if all tests passed
     const allTestsPassed = testResults.every(r => r.success);

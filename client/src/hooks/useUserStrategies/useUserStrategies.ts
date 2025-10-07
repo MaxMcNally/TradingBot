@@ -7,7 +7,6 @@ import {
   deactivateStrategy, 
   activateStrategy, 
   saveStrategyFromBacktest,
-  UserStrategy,
   CreateStrategyData,
   UpdateStrategyData
 } from '../../api';

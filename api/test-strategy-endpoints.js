@@ -83,7 +83,7 @@ async function testStrategyEndpoints() {
       });
 
       if (updateResponse.ok) {
-        const updateResult = await updateResponse.json();
+        // const updateResult = await updateResponse.json(); // Unused variable
         console.log('✅ Strategy updated successfully');
       }
 

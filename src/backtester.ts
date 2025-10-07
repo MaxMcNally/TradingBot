@@ -1,7 +1,7 @@
-import fs from 'fs';
+// Removed unused import
 import { createObjectCsvWriter } from 'csv-writer';
 import { DataProvider } from './dataProviders/baseProvider';
-import { Portfolio, PortfolioStatus } from './portfolio';
+import { Portfolio } from './portfolio';
 import { Signal } from './strategies/movingAverage';
 
 export interface Trade {

@@ -1,4 +1,4 @@
-import js from "@eslint/js";
+// import js from "@eslint/js"; // Unused import
 import globals from "globals";
 import pluginReact from "eslint-plugin-react";
 import tseslint from "@typescript-eslint/eslint-plugin";
@@ -72,6 +72,11 @@ export default [
   {
     files: ["**/*.{jsx,tsx}"],
     ...pluginReact.configs.flat.recommended,
+    settings: {
+      react: {
+        version: "18.2.0"
+      }
+    },
     rules: {
       ...pluginReact.configs.flat.recommended.rules,
       "react/react-in-jsx-scope": "off", // Not needed with React 17+

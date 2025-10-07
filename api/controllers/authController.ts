@@ -4,7 +4,7 @@ import User from "../models/User";
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { username, password } = req.body;
+    const { username } = req.body;
     
     // Find user by username
     const user = await User.findByUsername(username);

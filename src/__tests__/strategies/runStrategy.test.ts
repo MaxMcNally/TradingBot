@@ -1,4 +1,4 @@
-import { runStrategy, StrategyConfig, BacktestResult } from '../../strategies/runStrategy';
+import { runStrategy, StrategyConfig } from '../../strategies/runStrategy';
 
 describe('runStrategy', () => {
   const mockData = [

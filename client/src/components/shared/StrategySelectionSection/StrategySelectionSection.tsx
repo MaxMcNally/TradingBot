@@ -1,5 +1,5 @@
 import React from 'react';
-import { Paper, Typography, Box } from '@mui/material';
+import { Paper, Typography } from '@mui/material';
 import { Settings } from '@mui/icons-material';
 import EnhancedStrategySelector from '../EnhancedStrategySelector';
 import StrategySummary from '../StrategySummary';
@@ -67,4 +67,3 @@ const StrategySelectionSection: React.FC<StrategySelectionSectionProps> = ({
 };
 
 export default StrategySelectionSection;
-

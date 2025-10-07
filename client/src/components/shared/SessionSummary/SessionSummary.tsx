@@ -7,16 +7,12 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  Chip,
   Divider,
 } from '@mui/material';
 import {
   CheckCircle,
   RadioButtonUnchecked,
   TrendingUp,
-  Settings,
-  Tune,
-  AccountBalance,
 } from '@mui/icons-material';
 import { SessionSummaryProps } from './types';
 
@@ -98,25 +94,7 @@ const SessionSummary: React.FC<SessionSummaryProps> = ({
                 primary={getStepText(stocksSelected, "Select Stocks")}
                 secondary={
                   stocksSelected ? (
-                    <Box display="flex" flexWrap="wrap" gap={0.5} mt={1}>
-                      {selectedStocks.slice(0, 5).map((stock) => (
-                        <Chip 
-                          key={stock} 
-                          label={stock} 
-                          size="small" 
-                          color="primary"
-                          variant="outlined"
-                        />
-                      ))}
-                      {selectedStocks.length > 5 && (
-                        <Chip 
-                          label={`+${selectedStocks.length - 5} more`} 
-                          size="small" 
-                          color="default"
-                          variant="outlined"
-                        />
-                      )}
-                    </Box>
+                    `Selected ${selectedStocks.length} stocks: ${selectedStocks.slice(0, 3).join(', ')}${selectedStocks.length > 3 ? ` +${selectedStocks.length - 3} more` : ''}`
                   ) : (
                     `Choose up to ${maxStocks} stocks for ${mode}`
                   )
@@ -163,25 +141,7 @@ const SessionSummary: React.FC<SessionSummaryProps> = ({
                 primary={getStepText(parametersConfigured, "Configure Parameters")}
                 secondary={
                   parametersConfigured ? (
-                    <Box display="flex" flexWrap="wrap" gap={0.5} mt={1}>
-                      {Object.entries(strategyParameters).slice(0, 3).map(([key, value]) => (
-                        <Chip 
-                          key={key} 
-                          label={`${key}: ${formatParameterValue(value)}`} 
-                          size="small" 
-                          color="secondary"
-                          variant="outlined"
-                        />
-                      ))}
-                      {Object.keys(strategyParameters).length > 3 && (
-                        <Chip 
-                          label={`+${Object.keys(strategyParameters).length - 3} more`} 
-                          size="small" 
-                          color="default"
-                          variant="outlined"
-                        />
-                      )}
-                    </Box>
+                    `Configured ${Object.keys(strategyParameters).length} parameters: ${Object.entries(strategyParameters).slice(0, 2).map(([key, value]) => `${key}: ${formatParameterValue(value)}`).join(', ')}${Object.keys(strategyParameters).length > 2 ? ` +${Object.keys(strategyParameters).length - 2} more` : ''}`
                   ) : (
                     strategySelected 
                       ? `Configure parameters for ${selectedStrategy}`

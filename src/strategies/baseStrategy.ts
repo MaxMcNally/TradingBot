@@ -63,7 +63,8 @@ export abstract class AbstractStrategy implements BaseStrategy {
   }
 
   // Default no-op for strategies that don't use news
-  addNews(articles: NewsArticle[]): void {
-    // no-op by default
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  addNews(_articles: NewsArticle[]): void {
+    // no-op by default - articles parameter is intentionally unused
   }
 }

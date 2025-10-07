@@ -69,20 +69,20 @@ export class MovingAverageCrossoverStrategy {
 
     // Check for crossover signals
     let signal: 'BUY' | 'SELL' | null = null;
-    let crossoverType: 'GOLDEN' | 'DEATH' | undefined = undefined;
+    // let crossoverType: 'GOLDEN' | 'DEATH' | undefined = undefined; // Unused variable
 
     if (this.previousFastMA !== null && this.previousSlowMA !== null) {
       // Golden Cross: Fast MA crosses above Slow MA
       if (this.previousFastMA <= this.previousSlowMA && fastMA > slowMA && this.currentPosition !== 'LONG') {
         signal = 'BUY';
-        crossoverType = 'GOLDEN';
+        // crossoverType = 'GOLDEN'; // Unused variable
         this.currentPosition = 'LONG';
         this.entryPrice = price;
       }
       // Death Cross: Fast MA crosses below Slow MA
       else if (this.previousFastMA >= this.previousSlowMA && fastMA < slowMA && this.currentPosition === 'LONG') {
         signal = 'SELL';
-        crossoverType = 'DEATH';
+        // crossoverType = 'DEATH'; // Unused variable
         this.currentPosition = 'NONE';
         this.entryPrice = 0;
       }

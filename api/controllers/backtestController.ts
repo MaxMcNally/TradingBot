@@ -1,9 +1,7 @@
 import { Request, Response } from "express";
 import { spawn } from "child_process";
 import path from "path";
-import { YahooDataProvider } from "../../src/dataProviders/yahooProvider";
-import { SmartCacheManager } from "../../src/cache/SmartCacheManager";
-import { CacheManager } from "../../src/cache/CacheManager";
+// Removed unused imports
 
 export interface BacktestRequest {
   strategy: string;

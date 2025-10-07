@@ -11,7 +11,7 @@ const StrategySummary: React.FC<StrategySummaryProps> = ({
   selectedStrategy,
   strategyParameters,
   showParameters = true,
-  compact = false,
+  compact: _compact = false,
 }) => {
   const formatParameterValue = (value: any): string => {
     if (typeof value === 'object' && value !== null) {

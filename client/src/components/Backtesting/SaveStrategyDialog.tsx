@@ -37,20 +37,34 @@ interface SaveStrategyDialogProps {
 
 const STRATEGY_TYPE_MAP: Record<string, string> = {
   'meanReversion': 'mean_reversion',
+  'MeanReversion': 'mean_reversion',
   'movingAverageCrossover': 'moving_average_crossover',
+  'MovingAverage': 'moving_average_crossover',
+  'MovingAverageCrossover': 'moving_average_crossover',
   'bollingerBands': 'bollinger_bands',
+  'BollingerBands': 'bollinger_bands',
   'momentum': 'momentum',
+  'Momentum': 'momentum',
   'breakout': 'breakout',
-  'sentimentAnalysis': 'sentiment_analysis'
+  'Breakout': 'breakout',
+  'sentimentAnalysis': 'sentiment_analysis',
+  'SentimentAnalysis': 'sentiment_analysis'
 };
 
 const STRATEGY_TYPE_LABELS: Record<string, string> = {
   'meanReversion': 'Mean Reversion',
+  'MeanReversion': 'Mean Reversion',
   'movingAverageCrossover': 'Moving Average Crossover',
+  'MovingAverage': 'Moving Average Crossover',
+  'MovingAverageCrossover': 'Moving Average Crossover',
   'bollingerBands': 'Bollinger Bands',
+  'BollingerBands': 'Bollinger Bands',
   'momentum': 'Momentum',
+  'Momentum': 'Momentum',
   'breakout': 'Breakout',
-  'sentimentAnalysis': 'Sentiment Analysis'
+  'Breakout': 'Breakout',
+  'sentimentAnalysis': 'Sentiment Analysis',
+  'SentimentAnalysis': 'Sentiment Analysis'
 };
 
 const SaveStrategyDialog: React.FC<SaveStrategyDialogProps> = ({

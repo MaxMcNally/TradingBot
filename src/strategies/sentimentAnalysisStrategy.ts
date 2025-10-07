@@ -44,6 +44,7 @@ export class SentimentAnalysisStrategy extends AbstractStrategy {
     this.newsProvider = new CachedNewsProvider(baseProvider, source);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   addPrice(_price: number): void {
     // Price is not used directly; we poll for news on a timer and update signal.
     const now = Date.now();
@@ -93,7 +94,7 @@ export class SentimentAnalysisStrategy extends AbstractStrategy {
       this.addNews(news);
     } catch (error) {
       // Swallow and keep running
-      // eslint-disable-next-line no-console
+       
       console.error('SentimentAnalysisStrategy poll error:', error);
     }
   }

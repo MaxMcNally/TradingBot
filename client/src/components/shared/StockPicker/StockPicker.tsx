@@ -100,22 +100,24 @@ const StockPicker: React.FC<StockPickerProps> = ({
   };
 
   const handleAddStock = (symbol: string) => {
-    if (selectedStocks.includes(symbol)) {
+    const currentStocks = selectedStocks || [];
+    if (currentStocks.includes(symbol)) {
       return; // Already selected
     }
     
-    if (selectedStocks.length >= maxStocks) {
+    if (currentStocks.length >= maxStocks) {
       setError(`Maximum ${maxStocks} stocks allowed`);
       return;
     }
 
-    onStocksChange([...selectedStocks, symbol]);
+    onStocksChange([...currentStocks, symbol]);
     setSearchQuery('');
     setSearchResults([]);
   };
 
   const handleRemoveStock = (symbol: string) => {
-    onStocksChange(selectedStocks.filter(s => s !== symbol));
+    const currentStocks = selectedStocks || [];
+    onStocksChange(currentStocks.filter(s => s !== symbol));
   };
 
   const handleSearchInputChange = (_event: React.SyntheticEvent, value: string) => {
@@ -189,16 +191,19 @@ const StockPicker: React.FC<StockPickerProps> = ({
           freeSolo
           options={searchResults}
           getOptionLabel={(option) => typeof option === 'string' ? option : option.symbol}
-          renderOption={(props, option) => (
-            <Box component="li" {...props}>
-              <Box>
-                <Typography variant="subtitle2">{option.symbol}</Typography>
-                <Typography variant="body2" color="textSecondary">
-                  {option.name} ({option.exchange})
-                </Typography>
+          renderOption={(props, option) => {
+            const { key, ...otherProps } = props;
+            return (
+              <Box component="li" key={key} {...otherProps}>
+                <Box>
+                  <Typography variant="subtitle2">{option.symbol}</Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    {option.name} ({option.exchange})
+                  </Typography>
+                </Box>
               </Box>
-            </Box>
-          )}
+            );
+          }}
           renderInput={(params) => (
             <TextField
               {...params}
@@ -246,17 +251,19 @@ const StockPicker: React.FC<StockPickerProps> = ({
           <Paper variant="outlined" sx={{ maxHeight: compact ? 200 : 300, overflow: 'auto' }}>
             <List dense>
               {popularSymbols.map((symbol, index) => (
-                <React.Fragment key={symbol.symbol}>
+                <React.Fragment key={`${symbol.symbol}-${index}`}>
                   <ListItem
-                    onClick={() => handleAddStock(symbol.symbol)}
-                    disabled={selectedStocks.includes(symbol.symbol) || selectedStocks.length >= maxStocks}
-                    sx={{ cursor: 'pointer' }}
+                    sx={{ 
+                      cursor: 'pointer',
+                      opacity: (selectedStocks || []).includes(symbol.symbol) || (selectedStocks || []).length >= maxStocks ? 0.5 : 1,
+                      pointerEvents: (selectedStocks || []).includes(symbol.symbol) || (selectedStocks || []).length >= maxStocks ? 'none' : 'auto'
+                    }}
                   >
                     <ListItemText
                       primary={
                         <Box display="flex" alignItems="center" gap={1}>
                           <Typography variant="subtitle2">{symbol.symbol}</Typography>
-                          {selectedStocks.includes(symbol.symbol) && (
+                          {(selectedStocks || []).includes(symbol.symbol) && (
                             <Chip label="Selected" size="small" color="primary" />
                           )}
                         </Box>
@@ -270,11 +277,14 @@ const StockPicker: React.FC<StockPickerProps> = ({
                       }
                     />
                     <ListItemSecondaryAction>
-                      {selectedStocks.includes(symbol.symbol) ? (
+                      {(selectedStocks || []).includes(symbol.symbol) ? (
                         <Tooltip title="Remove">
                           <IconButton
                             edge="end"
-                            onClick={() => handleRemoveStock(symbol.symbol)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveStock(symbol.symbol);
+                            }}
                             size="small"
                           >
                             <Remove />
@@ -284,8 +294,11 @@ const StockPicker: React.FC<StockPickerProps> = ({
                         <Tooltip title="Add">
                           <IconButton
                             edge="end"
-                            onClick={() => handleAddStock(symbol.symbol)}
-                            disabled={selectedStocks.length >= maxStocks}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddStock(symbol.symbol);
+                            }}
+                            disabled={(selectedStocks || []).length >= maxStocks}
                             size="small"
                           >
                             <Add />

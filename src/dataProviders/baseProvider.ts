@@ -9,11 +9,11 @@ export interface NewsArticle {
 }
 
 export class DataProvider {
-  async getQuote(symbol: string): Promise<any> {
+  async getQuote(_symbol: string): Promise<any> {
     return null;
   }
 
-  async getHistorical(symbol: string, interval = 'day', from: string, to: string): Promise<any[]> {
+  async getHistorical(_symbol: string, _interval = 'day', _from: string, _to: string): Promise<any[]> {
     return [];
   }
 
@@ -22,7 +22,7 @@ export class DataProvider {
     return [];
   }
 
-  connectStream(symbols: string[], onData: (data: any) => void): Promise<any> {
+  connectStream(_symbols: string[], _onData: (data: any) => void): Promise<any> {
     return Promise.resolve();
   }
 }

@@ -1,4 +1,4 @@
-import { MeanReversionStrategy, MeanReversionConfig, runMeanReversionStrategy } from './meanReversionStrategy';
+import { runMeanReversionStrategy } from './meanReversionStrategy';
 
 export interface Trade {
   symbol: string;

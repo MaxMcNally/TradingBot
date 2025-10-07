@@ -140,7 +140,7 @@ export const getTradesBySession = async (req: Request, res: Response) => {
 
 export const startTradingSession = async (req: Request, res: Response) => {
   try {
-    const { mode, initialCash, symbols, strategy, strategyParameters, scheduledEndTime } = req.body;
+    const { mode, initialCash, symbols, strategy, scheduledEndTime } = req.body;
     const userId = parseInt(req.body.userId || req.params.userId);
     
     if (isNaN(userId)) {

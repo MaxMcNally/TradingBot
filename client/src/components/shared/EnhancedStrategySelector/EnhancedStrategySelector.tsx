@@ -16,14 +16,12 @@ import {
   IconButton,
   Tabs,
   Tab,
-  Divider
 } from '@mui/material';
 import {
   Info,
   TrendingUp,
   Refresh,
   Public as PublicIcon,
-  Person as PersonIcon,
   Settings as SettingsIcon
 } from '@mui/icons-material';
 import { getAvailableStrategies, TradingStrategy } from '../../../api/tradingApi';

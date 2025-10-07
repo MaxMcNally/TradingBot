@@ -47,7 +47,6 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
     { label: 'Backtesting', path: '/backtesting', icon: <BacktestIcon /> },
     { label: 'Strategies', path: '/strategies', icon: <StrategiesIcon /> },
     { label: 'Marketplace', path: '/marketplace', icon: <MarketplaceIcon /> },
-    { label: 'Settings', path: '/settings', icon: <SettingsIcon /> },
   ];
 
   const isActive = (path: string) => {

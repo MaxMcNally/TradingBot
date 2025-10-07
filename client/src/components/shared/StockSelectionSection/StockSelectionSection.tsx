@@ -1,5 +1,5 @@
 import React from 'react';
-import { Paper, Typography, Box } from '@mui/material';
+import { Paper, Typography } from '@mui/material';
 import { TrendingUp } from '@mui/icons-material';
 import StockPicker from '../StockPicker';
 import SelectionSummary from '../SelectionSummary';
@@ -14,7 +14,7 @@ const StockSelectionSection: React.FC<StockSelectionSectionProps> = ({
   description = "Select the stocks you want to include. You can choose up to {maxStocks} stocks.",
   showSummary = true,
   summaryTitle = "Selection Summary",
-  compact = false,
+  compact: _compact = false,
   showQuickAdd = true,
   showPopularStocks = true,
   showTips = true,
