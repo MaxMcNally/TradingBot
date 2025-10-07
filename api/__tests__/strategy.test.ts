@@ -30,7 +30,7 @@ describe('Strategy Model', () => {
       };
 
       const mockLastID = 123;
-      mockDb.run.mockImplementation((query: string, params: any[], callback: Function) => {
+      mockDb.run.mockImplementation((query: string, params: any[], callback: (...args: any[]) => void) => {
         callback.call({ lastID: mockLastID });
         return {} as any;
       });
@@ -68,7 +68,7 @@ describe('Strategy Model', () => {
       };
 
       const mockLastID = 123;
-      mockDb.run.mockImplementation((query: string, params: any[], callback: Function) => {
+      mockDb.run.mockImplementation((query: string, params: any[], callback: (...args: any[]) => void) => {
         callback.call({ lastID: mockLastID });
         return {} as any;
       });
@@ -108,7 +108,7 @@ describe('Strategy Model', () => {
         }
       ];
 
-      mockDb.all.mockImplementation((query: string, params: any[], callback: Function) => {
+      mockDb.all.mockImplementation((query: string, params: any[], callback: (...args: any[]) => void) => {
         callback(null, mockStrategies);
         return {} as any;
       });
@@ -126,7 +126,7 @@ describe('Strategy Model', () => {
 
     it('should handle database errors', async () => {
       const mockError = new Error('Database error');
-      mockDb.all.mockImplementation((query: string, params: any[], callback: Function) => {
+      mockDb.all.mockImplementation((query: string, params: any[], callback: (...args: any[]) => void) => {
         callback(mockError, null);
         return {} as any;
       });
@@ -149,7 +149,7 @@ describe('Strategy Model', () => {
         }
       ];
 
-      mockDb.all.mockImplementation((query: string, params: any[], callback: Function) => {
+      mockDb.all.mockImplementation((query: string, params: any[], callback: (...args: any[]) => void) => {
         callback(null, mockStrategies);
         return {} as any;
       });
@@ -181,12 +181,12 @@ describe('Strategy Model', () => {
         updated_at: '2023-01-01'
       };
 
-      mockDb.run.mockImplementation((query: string, params: any[], callback: Function) => {
+      mockDb.run.mockImplementation((query: string, params: any[], callback: (...args: any[]) => void) => {
         callback.call({ changes: 1 });
         return {} as any;
       });
 
-      mockDb.get.mockImplementation((query: string, params: any[], callback: Function) => {
+      mockDb.get.mockImplementation((query: string, params: any[], callback: (...args: any[]) => void) => {
         callback(null, mockUpdatedStrategy);
         return {} as any;
       });

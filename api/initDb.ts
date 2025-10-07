@@ -54,7 +54,7 @@ if (isPostgres) {
     },
 
     // INSERT/UPDATE/DELETE
-    run(sql: string, params: any[], callback: Function) {
+    run(sql: string, params: any[], callback: (...args: any[]) => void) {
       // Add RETURNING id if it's an INSERT without RETURNING and an id column likely exists
       const needsId = /\binsert\s+into\s+\w+/i.test(sql) && !/returning\s+id/i.test(sql);
       const finalSql = needsId ? `${sql} RETURNING id` : sql;
@@ -70,7 +70,7 @@ if (isPostgres) {
     },
 
     // Compatibility no-op for serialize
-    serialize(fn: Function) {
+    serialize(fn: () => void) {
       // Execute immediately; internal queries are already promise-based
       fn();
     },
