@@ -1,4 +1,4 @@
-import { db } from '../initDb';
+import { db, isPostgres } from '../initDb';
 import User, { UserData } from './User';
 
 export interface SettingsData {
@@ -24,7 +24,9 @@ export class Settings {
         return new Promise<void>((resolveSetting, rejectSetting) => {
           // First, try to update existing setting
           db.run(
-            'UPDATE settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND key = ?',
+            isPostgres
+              ? 'UPDATE settings SET value = $1, updated_at = NOW() WHERE user_id = $2 AND key = $3'
+              : 'UPDATE settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND key = ?',
             [value, UserId, key],
             function(err) {
               if (err) {
@@ -35,7 +37,9 @@ export class Settings {
               // If no rows were affected, insert new setting
               if (this.changes === 0) {
                 db.run(
-                  'INSERT INTO settings (user_id, key, value) VALUES (?, ?, ?)',
+                  isPostgres
+                    ? 'INSERT INTO settings (user_id, key, value) VALUES ($1, $2, $3)'
+                    : 'INSERT INTO settings (user_id, key, value) VALUES (?, ?, ?)',
                   [UserId, key, value],
                   function(insertErr) {
                     if (insertErr) {

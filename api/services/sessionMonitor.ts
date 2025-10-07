@@ -77,22 +77,23 @@ export class SessionMonitor {
    */
   private async getSessionsToTerminate(currentTime: string): Promise<any[]> {
     return new Promise((resolve, reject) => {
-      const db = require('../initDb').db;
-      
-      db.all(
-        `SELECT * FROM trading_sessions 
-         WHERE status = 'ACTIVE' 
-         AND end_time IS NOT NULL 
-         AND end_time <= ?`,
-        [currentTime],
-        (err: any, rows: any[]) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(rows || []);
-          }
+      const { db, isPostgres } = require('../initDb');
+      const sql = isPostgres
+        ? `SELECT * FROM trading_sessions 
+           WHERE status = 'ACTIVE' 
+           AND end_time IS NOT NULL 
+           AND end_time <= $1`
+        : `SELECT * FROM trading_sessions 
+           WHERE status = 'ACTIVE' 
+           AND end_time IS NOT NULL 
+           AND end_time <= ?`;
+      db.all(sql, [currentTime], (err: any, rows: any[]) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows || []);
         }
-      );
+      });
     });
   }
 
