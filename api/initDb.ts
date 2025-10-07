@@ -63,9 +63,12 @@ if (isPostgres) {
 
     // INSERT/UPDATE/DELETE
     run(sql: string, params: any[], callback: (...args: any[]) => void) {
+      console.log('Postgres run method called with SQL:', sql.substring(0, 100) + '...');
+      console.log('Callback provided:', !!callback);
+      
       if (!pgPool) {
         console.error('Postgres pool is not initialized');
-        callback.call({ lastID: undefined, changes: 0 }, new Error('Postgres pool not initialized'));
+        if (callback) callback.call({ lastID: undefined, changes: 0 }, new Error('Postgres pool not initialized'));
         return;
       }
       
@@ -75,15 +78,19 @@ if (isPostgres) {
         const finalSql = needsId ? `${sql} RETURNING id` : sql;
         const { text, values } = toPg(finalSql, params);
         
+        console.log('Executing Postgres query:', text.substring(0, 100) + '...');
+        
         const queryPromise = pgPool.query(text, values);
         if (queryPromise && typeof queryPromise.then === 'function') {
           queryPromise
             .then((result: any) => {
+              console.log('Postgres query successful, calling callback');
               const lastID = needsId && result.rows[0] && result.rows[0].id ? result.rows[0].id : undefined;
               const changes = typeof result.rowCount === "number" ? result.rowCount : 0;
               if (callback) callback.call({ lastID, changes }, null);
             })
             .catch((err: any) => {
+              console.error('Postgres query failed:', err);
               if (callback) callback.call({ lastID: undefined, changes: 0 }, err);
             });
         } else {
