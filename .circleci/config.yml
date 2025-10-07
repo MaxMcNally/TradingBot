@@ -121,8 +121,11 @@ jobs:
             echo "Setting Railway environment variables..."
             echo "RAILWAY_TOKEN is set: $([ -n "$RAILWAY_TOKEN" ] && echo "YES" || echo "NO")"
             echo "RAILWAY_PROJECT_ID is set: $([ -n "$RAILWAY_PROJECT_ID" ] && echo "YES" || echo "NO")"
+            echo "RAILWAY_TOKEN length: ${#RAILWAY_TOKEN}"
+            echo "RAILWAY_TOKEN starts with: ${RAILWAY_TOKEN:0:10}..."
             export RAILWAY_TOKEN=$RAILWAY_TOKEN
             export RAILWAY_PROJECT_ID=$RAILWAY_PROJECT_ID
+            echo "Environment variables exported successfully"
       - run:
           name: Deploy to Railway QA
           command: |
@@ -157,8 +160,11 @@ jobs:
             echo "Setting Railway environment variables..."
             echo "RAILWAY_TOKEN is set: $([ -n "$RAILWAY_TOKEN" ] && echo "YES" || echo "NO")"
             echo "RAILWAY_PROJECT_ID is set: $([ -n "$RAILWAY_PROJECT_ID" ] && echo "YES" || echo "NO")"
+            echo "RAILWAY_TOKEN length: ${#RAILWAY_TOKEN}"
+            echo "RAILWAY_TOKEN starts with: ${RAILWAY_TOKEN:0:10}..."
             export RAILWAY_TOKEN=$RAILWAY_TOKEN
             export RAILWAY_PROJECT_ID=$RAILWAY_PROJECT_ID
+            echo "Environment variables exported successfully"
       - run:
           name: Deploy to Railway Production
           command: |
