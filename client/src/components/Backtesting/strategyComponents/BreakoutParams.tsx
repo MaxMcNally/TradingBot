@@ -1,13 +1,10 @@
 import React from 'react';
 import { TextField, Box, Typography, Grid } from '@mui/material';
+import { useFormContext, Controller } from 'react-hook-form';
 import { BacktestFormData } from '../Backtesting.types';
 
-interface BreakoutParamsProps {
-  formData: BacktestFormData;
-  onInputChange: (field: keyof BacktestFormData, value: string | number) => void;
-}
-
-const BreakoutParams: React.FC<BreakoutParamsProps> = ({ formData, onInputChange }) => {
+const BreakoutParams: React.FC = () => {
+  const { control } = useFormContext<BacktestFormData>();
   return (
     <Box>
       <Typography variant="subtitle2" gutterBottom>
@@ -22,26 +19,39 @@ const BreakoutParams: React.FC<BreakoutParamsProps> = ({ formData, onInputChange
         </Grid>
         
         <Grid item xs={6}>
-          <TextField
-            fullWidth
-            label="Lookback Window (days)"
-            type="number"
-            value={formData.lookbackWindow}
-            onChange={(e) => onInputChange('lookbackWindow', parseInt(e.target.value) || 20)}
-            inputProps={{ min: 10, max: 100 }}
-            helperText="Period to identify support/resistance levels"
+          <Controller
+            name="lookbackWindow"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label="Lookback Window (days)"
+                type="number"
+                inputProps={{ min: 10, max: 100 }}
+                helperText="Period to identify support/resistance levels"
+                onChange={(e) => field.onChange(parseInt(e.target.value) || 20)}
+              />
+            )}
           />
         </Grid>
         
         <Grid item xs={6}>
-          <TextField
-            fullWidth
-            label="Breakout Threshold (%)"
-            type="number"
-            value={formData.breakoutThreshold * 100}
-            onChange={(e) => onInputChange('breakoutThreshold', parseFloat(e.target.value) / 100 || 0.01)}
-            inputProps={{ min: 0.5, max: 5, step: 0.1 }}
-            helperText="Minimum price move to confirm breakout"
+          <Controller
+            name="breakoutThreshold"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label="Breakout Threshold (%)"
+                type="number"
+                value={(field.value ?? 0) * 100}
+                onChange={(e) => field.onChange(parseFloat(e.target.value) / 100 || 0.01)}
+                inputProps={{ min: 0.5, max: 5, step: 0.1 }}
+                helperText="Minimum price move to confirm breakout"
+              />
+            )}
           />
         </Grid>
         
@@ -52,26 +62,38 @@ const BreakoutParams: React.FC<BreakoutParamsProps> = ({ formData, onInputChange
         </Grid>
         
         <Grid item xs={6}>
-          <TextField
-            fullWidth
-            label="Minimum Volume Ratio"
-            type="number"
-            value={formData.minVolumeRatio}
-            onChange={(e) => onInputChange('minVolumeRatio', parseFloat(e.target.value) || 1.5)}
-            inputProps={{ min: 1.0, max: 3.0, step: 0.1 }}
-            helperText="Volume must be X times above average"
+          <Controller
+            name="minVolumeRatio"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label="Minimum Volume Ratio"
+                type="number"
+                inputProps={{ min: 1.0, max: 3.0, step: 0.1 }}
+                helperText="Volume must be X times above average"
+                onChange={(e) => field.onChange(parseFloat(e.target.value) || 1.5)}
+              />
+            )}
           />
         </Grid>
         
         <Grid item xs={6}>
-          <TextField
-            fullWidth
-            label="Confirmation Period (days)"
-            type="number"
-            value={formData.confirmationPeriod}
-            onChange={(e) => onInputChange('confirmationPeriod', parseInt(e.target.value) || 2)}
-            inputProps={{ min: 1, max: 10 }}
-            helperText="Days to hold position after breakout"
+          <Controller
+            name="confirmationPeriod"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label="Confirmation Period (days)"
+                type="number"
+                inputProps={{ min: 1, max: 10 }}
+                helperText="Days to hold position after breakout"
+                onChange={(e) => field.onChange(parseInt(e.target.value) || 2)}
+              />
+            )}
           />
         </Grid>
       </Grid>

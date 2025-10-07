@@ -1,13 +1,10 @@
 import React from 'react';
 import { TextField, Box, Typography, Grid } from '@mui/material';
+import { useFormContext, Controller } from 'react-hook-form';
 import { BacktestFormData } from '../Backtesting.types';
 
-interface MomentumParamsProps {
-  formData: BacktestFormData;
-  onInputChange: (field: keyof BacktestFormData, value: string | number) => void;
-}
-
-const MomentumParams: React.FC<MomentumParamsProps> = ({ formData, onInputChange }) => {
+const MomentumParams: React.FC = () => {
+  const { control } = useFormContext<BacktestFormData>();
   return (
     <Box>
       <Typography variant="subtitle2" gutterBottom>
@@ -22,38 +19,56 @@ const MomentumParams: React.FC<MomentumParamsProps> = ({ formData, onInputChange
         </Grid>
         
         <Grid item xs={6}>
-          <TextField
-            fullWidth
-            label="RSI Window (days)"
-            type="number"
-            value={formData.rsiWindow}
-            onChange={(e) => onInputChange('rsiWindow', parseInt(e.target.value) || 14)}
-            inputProps={{ min: 5, max: 50 }}
-            helperText="RSI calculation period"
+          <Controller
+            name="rsiWindow"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label="RSI Window (days)"
+                type="number"
+                inputProps={{ min: 5, max: 50 }}
+                helperText="RSI calculation period"
+                onChange={(e) => field.onChange(parseInt(e.target.value) || 14)}
+              />
+            )}
           />
         </Grid>
         
         <Grid item xs={6}>
-          <TextField
-            fullWidth
-            label="RSI Oversold Threshold"
-            type="number"
-            value={formData.rsiOversold}
-            onChange={(e) => onInputChange('rsiOversold', parseInt(e.target.value) || 30)}
-            inputProps={{ min: 10, max: 40 }}
-            helperText="RSI level considered oversold"
+          <Controller
+            name="rsiOversold"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label="RSI Oversold Threshold"
+                type="number"
+                inputProps={{ min: 10, max: 40 }}
+                helperText="RSI level considered oversold"
+                onChange={(e) => field.onChange(parseInt(e.target.value) || 30)}
+              />
+            )}
           />
         </Grid>
         
         <Grid item xs={6}>
-          <TextField
-            fullWidth
-            label="RSI Overbought Threshold"
-            type="number"
-            value={formData.rsiOverbought}
-            onChange={(e) => onInputChange('rsiOverbought', parseInt(e.target.value) || 70)}
-            inputProps={{ min: 60, max: 90 }}
-            helperText="RSI level considered overbought"
+          <Controller
+            name="rsiOverbought"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label="RSI Overbought Threshold"
+                type="number"
+                inputProps={{ min: 60, max: 90 }}
+                helperText="RSI level considered overbought"
+                onChange={(e) => field.onChange(parseInt(e.target.value) || 70)}
+              />
+            )}
           />
         </Grid>
         
@@ -64,26 +79,39 @@ const MomentumParams: React.FC<MomentumParamsProps> = ({ formData, onInputChange
         </Grid>
         
         <Grid item xs={6}>
-          <TextField
-            fullWidth
-            label="Momentum Window (days)"
-            type="number"
-            value={formData.momentumWindow}
-            onChange={(e) => onInputChange('momentumWindow', parseInt(e.target.value) || 10)}
-            inputProps={{ min: 5, max: 30 }}
-            helperText="Period for momentum calculation"
+          <Controller
+            name="momentumWindow"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label="Momentum Window (days)"
+                type="number"
+                inputProps={{ min: 5, max: 30 }}
+                helperText="Period for momentum calculation"
+                onChange={(e) => field.onChange(parseInt(e.target.value) || 10)}
+              />
+            )}
           />
         </Grid>
         
         <Grid item xs={6}>
-          <TextField
-            fullWidth
-            label="Momentum Threshold (%)"
-            type="number"
-            value={formData.momentumThreshold * 100}
-            onChange={(e) => onInputChange('momentumThreshold', parseFloat(e.target.value) / 100 || 0.02)}
-            inputProps={{ min: 1, max: 10, step: 0.1 }}
-            helperText="Minimum momentum percentage for signals"
+          <Controller
+            name="momentumThreshold"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label="Momentum Threshold (%)"
+                type="number"
+                value={(field.value ?? 0) * 100}
+                onChange={(e) => field.onChange(parseFloat(e.target.value) / 100 || 0.02)}
+                inputProps={{ min: 1, max: 10, step: 0.1 }}
+                helperText="Minimum momentum percentage for signals"
+              />
+            )}
           />
         </Grid>
       </Grid>
