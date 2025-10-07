@@ -52,3 +52,9 @@ export {
 
 // Strategy runner
 export { runStrategy, StrategyConfig, Trade, BacktestResult } from './runStrategy';
+
+// Sentiment Analysis Strategy
+export {
+  SentimentAnalysisStrategy,
+  SentimentAnalysisConfig
+} from './sentimentAnalysisStrategy';

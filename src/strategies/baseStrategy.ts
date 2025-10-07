@@ -7,6 +7,8 @@
 
 export type Signal = 'BUY' | 'SELL' | null;
 
+import { NewsArticle } from '../dataProviders/baseProvider';
+
 export interface BaseStrategy {
   /**
    * Add a new price point to the strategy
@@ -30,6 +32,11 @@ export interface BaseStrategy {
    * Reset the strategy state
    */
   reset(): void;
+
+  /**
+   * Optional: Ingest recent news articles for sentiment-driven strategies
+   */
+  addNews?(articles: NewsArticle[]): void;
 }
 
 export abstract class AbstractStrategy implements BaseStrategy {
@@ -53,5 +60,10 @@ export abstract class AbstractStrategy implements BaseStrategy {
   protected getAverage(prices: number[]): number {
     if (prices.length === 0) return 0;
     return prices.reduce((sum, price) => sum + price, 0) / prices.length;
+  }
+
+  // Default no-op for strategies that don't use news
+  addNews(articles: NewsArticle[]): void {
+    // no-op by default
   }
 }
