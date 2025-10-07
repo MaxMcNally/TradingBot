@@ -40,8 +40,12 @@ if (isPostgres) {
       const { text, values } = toPg(sql, params);
       pgPool!
         .query(text, values)
-        .then((result: any) => callback(null, result.rows[0]))
-        .catch((err: any) => callback(err));
+        .then((result: any) => {
+          if (callback) callback(null, result.rows[0]);
+        })
+        .catch((err: any) => {
+          if (callback) callback(err);
+        });
     },
 
     // SELECT many rows
@@ -49,8 +53,12 @@ if (isPostgres) {
       const { text, values } = toPg(sql, params);
       pgPool!
         .query(text, values)
-        .then((result: any) => callback(null, result.rows))
-        .catch((err: any) => callback(err));
+        .then((result: any) => {
+          if (callback) callback(null, result.rows);
+        })
+        .catch((err: any) => {
+          if (callback) callback(err);
+        });
     },
 
     // INSERT/UPDATE/DELETE
@@ -73,16 +81,18 @@ if (isPostgres) {
             .then((result: any) => {
               const lastID = needsId && result.rows[0] && result.rows[0].id ? result.rows[0].id : undefined;
               const changes = typeof result.rowCount === "number" ? result.rowCount : 0;
-              callback.call({ lastID, changes }, null);
+              if (callback) callback.call({ lastID, changes }, null);
             })
-            .catch((err: any) => callback.call({ lastID: undefined, changes: 0 }, err));
+            .catch((err: any) => {
+              if (callback) callback.call({ lastID: undefined, changes: 0 }, err);
+            });
         } else {
           console.error('pgPool.query did not return a Promise');
-          callback.call({ lastID: undefined, changes: 0 }, new Error('Query did not return a Promise'));
+          if (callback) callback.call({ lastID: undefined, changes: 0 }, new Error('Query did not return a Promise'));
         }
       } catch (error) {
         console.error('Error in run method:', error);
-        callback.call({ lastID: undefined, changes: 0 }, error);
+        if (callback) callback.call({ lastID: undefined, changes: 0 }, error);
       }
     },
 
