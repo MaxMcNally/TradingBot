@@ -29,7 +29,7 @@ if (isPostgres) {
   pgPool.on('error', (err: any) => {
     console.error('Unexpected Postgres pool error', err);
   });
-  pgPool.on('error', (err) => {
+  pgPool.on('error', (err: any) => {
     console.error('Unexpected Postgres pool error', err);
   });
 
