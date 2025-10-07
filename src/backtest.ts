@@ -26,6 +26,15 @@ const argv = yargs(hideBin(process.argv))
   .option("no-cache", { type: "boolean", default: false, description: "Disable caching for this run" })
   .option("prepopulate", { type: "boolean", default: false, description: "Pre-populate cache before running backtest" })
   .option("cache-stats", { type: "boolean", default: false, description: "Show cache statistics after backtest" })
+  // Sentiment Analysis parameters
+  .option("lookbackDays", { type: "number", default: 3, description: "Days of news to consider" })
+  .option("pollIntervalMinutes", { type: "number", default: 0, description: "Polling interval in minutes for news" })
+  .option("minArticles", { type: "number", default: 2, description: "Minimum news articles required" })
+  .option("buyThreshold", { type: "number", default: 0.4, description: "Aggregate sentiment threshold to BUY" })
+  .option("sellThreshold", { type: "number", default: -0.4, description: "Aggregate sentiment threshold to SELL" })
+  .option("titleWeight", { type: "number", default: 2.0, description: "Weight of title vs description" })
+  .option("recencyHalfLifeHours", { type: "number", default: 12, description: "Half-life in hours for recency weighting" })
+  .option("newsSource", { type: "string", default: "yahoo", choices: ["tiingo", "yahoo"], description: "News provider for sentiment strategy" })
   // Mean Reversion parameters
   .option("window", { type: "number", default: 20, description: "Moving average window (x days)" })
   .option("threshold", { type: "number", default: 0.05, description: "Percentage threshold (y percent, e.g., 0.05 for 5%)" })
@@ -167,6 +176,19 @@ async function main() {
           sharesPerTrade: argv.shares
         });
         strategyDescription = `${argv.lookbackWindow}-day levels, ${(argv.breakoutThreshold * 100).toFixed(1)}% threshold, ${argv.confirmationPeriod}-day hold`;
+        break;
+
+      case 'sentimentAnalysis':
+        // Placeholder aggregation behavior: backtest not available in core yet.
+        // Return neutral, allowing API to include this strategy in the list and client to configure.
+        result = {
+          trades: [],
+          finalPortfolioValue: argv.capital,
+          totalReturn: 0,
+          winRate: 0,
+          maxDrawdown: 0,
+        };
+        strategyDescription = `News Sentiment (lookback=${argv.lookbackDays}d, buy>=${argv.buyThreshold}, sell<=${argv.sellThreshold}, source=${argv.newsSource})`;
         break;
 
       default:

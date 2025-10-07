@@ -74,6 +74,15 @@ const BacktestingSimple: React.FC = () => {
       endDate: "2023-12-31",
       initialCapital: 10000,
       sharesPerTrade: 100,
+      // Sentiment Analysis parameters (defaults)
+      lookbackDays: 3,
+      pollIntervalMinutes: 0,
+      minArticles: 2,
+      buyThreshold: 0.4,
+      sellThreshold: -0.4,
+      titleWeight: 2.0,
+      recencyHalfLifeHours: 12,
+      newsSource: 'yahoo',
       // Mean Reversion parameters
       window: 20,
       threshold: 0.05,
@@ -133,6 +142,16 @@ const BacktestingSimple: React.FC = () => {
         case 'meanReversion':
           defaultParams.window = 20;
           defaultParams.threshold = 0.05;
+          break;
+        case 'sentimentAnalysis':
+          defaultParams.lookbackDays = 3;
+          defaultParams.pollIntervalMinutes = 0;
+          defaultParams.minArticles = 2;
+          defaultParams.buyThreshold = 0.4;
+          defaultParams.sellThreshold = -0.4;
+          defaultParams.titleWeight = 2.0;
+          defaultParams.recencyHalfLifeHours = 12;
+          defaultParams.newsSource = 'yahoo';
           break;
         case 'movingAverage':
           defaultParams.shortWindow = 5;
@@ -320,6 +339,66 @@ const BacktestingSimple: React.FC = () => {
 
                 <Stack spacing={3}>
                   {/* Strategy-Specific Parameters */}
+                  {formData.strategy === 'sentimentAnalysis' && (
+                    <Box>
+                      <Typography variant="subtitle2" gutterBottom>
+                        Sentiment Analysis Parameters
+                      </Typography>
+                      <Stack spacing={2}>
+                        <TextField
+                          label="Lookback Days"
+                          type="number"
+                          value={strategyParameters.lookbackDays ?? 3}
+                          onChange={(e) => setStrategyParameters(prev => ({ ...prev, lookbackDays: parseInt(e.target.value) }))}
+                          size="small"
+                          fullWidth
+                        />
+                        <TextField
+                          label="Min Articles"
+                          type="number"
+                          value={strategyParameters.minArticles ?? 2}
+                          onChange={(e) => setStrategyParameters(prev => ({ ...prev, minArticles: parseInt(e.target.value) }))}
+                          size="small"
+                          fullWidth
+                        />
+                        <TextField
+                          label="Buy Threshold"
+                          type="number"
+                          inputProps={{ step: "0.05" }}
+                          value={strategyParameters.buyThreshold ?? 0.4}
+                          onChange={(e) => setStrategyParameters(prev => ({ ...prev, buyThreshold: parseFloat(e.target.value) }))}
+                          size="small"
+                          fullWidth
+                        />
+                        <TextField
+                          label="Sell Threshold"
+                          type="number"
+                          inputProps={{ step: "0.05" }}
+                          value={strategyParameters.sellThreshold ?? -0.4}
+                          onChange={(e) => setStrategyParameters(prev => ({ ...prev, sellThreshold: parseFloat(e.target.value) }))}
+                          size="small"
+                          fullWidth
+                        />
+                        <TextField
+                          label="Title Weight"
+                          type="number"
+                          inputProps={{ step: "0.1" }}
+                          value={strategyParameters.titleWeight ?? 2.0}
+                          onChange={(e) => setStrategyParameters(prev => ({ ...prev, titleWeight: parseFloat(e.target.value) }))}
+                          size="small"
+                          fullWidth
+                        />
+                        <TextField
+                          label="Recency Half-Life (hours)"
+                          type="number"
+                          value={strategyParameters.recencyHalfLifeHours ?? 12}
+                          onChange={(e) => setStrategyParameters(prev => ({ ...prev, recencyHalfLifeHours: parseInt(e.target.value) }))}
+                          size="small"
+                          fullWidth
+                        />
+                      </Stack>
+                    </Box>
+                  )}
                   {formData.strategy === 'meanReversion' && (
                     <Box>
                       <Typography variant="subtitle2" gutterBottom>

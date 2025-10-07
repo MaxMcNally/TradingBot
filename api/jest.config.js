@@ -1,37 +1,17 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>'],
-  testMatch: [
-    '**/__tests__/**/*.test.ts',
-    '**/__tests__/**/*.spec.ts'
-  ],
-  testPathIgnorePatterns: [
-    '/node_modules/',
-    '/__tests__/disabled/'
-  ],
+  rootDir: '.',
+  testMatch: ['**/__tests__/**/*.ts'],
+  moduleFileExtensions: ['ts', 'js', 'json'],
   transform: {
-    '^.+\\.ts$': ['ts-jest', {
-      useESM: true
-    }],
+    '^.+\\.(ts|tsx)$': ['ts-jest', { tsconfig: { esModuleInterop: true } }],
   },
-  transformIgnorePatterns: [
-    'node_modules/(?!(yahoo-finance2|node-fetch)/)'
-  ],
-  collectCoverageFrom: [
-    '**/*.ts',
-    '!**/*.d.ts',
-    '!**/__tests__/**',
-    '!**/*.test.ts',
-    '!**/*.spec.ts'
-  ],
-  coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
-  setupFilesAfterEnv: [],
-  moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/$1'
+  globals: {
+    'ts-jest': {
+      tsconfig: {
+        esModuleInterop: true,
+      },
+    },
   },
-  testTimeout: 10000,
-  verbose: true,
-  extensionsToTreatAsEsm: ['.ts']
 };

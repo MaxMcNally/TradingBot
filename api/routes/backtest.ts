@@ -336,6 +336,74 @@ backtestRouter.get("/strategies", (req: Request, res: Response) => {
               min: 1
             }
           }
+        },
+        {
+          name: "sentimentAnalysis",
+          description: "Sentiment Analysis Strategy - Aggregates recent news sentiment to produce BUY/SELL signals",
+          category: "News/Sentiment",
+          parameters: {
+            lookbackDays: {
+              type: "number",
+              description: "Days of news to consider",
+              default: 3,
+              min: 1,
+              max: 30
+            },
+            pollIntervalMinutes: {
+              type: "number",
+              description: "Polling interval for fetching fresh news",
+              default: 0,
+              min: 0,
+              max: 120
+            },
+            minArticles: {
+              type: "number",
+              description: "Minimum number of articles required to act",
+              default: 2,
+              min: 1,
+              max: 50
+            },
+            buyThreshold: {
+              type: "number",
+              description: "Aggregate sentiment threshold to trigger BUY (0.4 = 40%)",
+              default: 0.4,
+              min: 0.0,
+              max: 1.0
+            },
+            sellThreshold: {
+              type: "number",
+              description: "Aggregate sentiment threshold to trigger SELL (-0.4 = -40%)",
+              default: -0.4,
+              min: -1.0,
+              max: 0.0
+            },
+            titleWeight: {
+              type: "number",
+              description: "Relative weight for title vs description",
+              default: 2.0,
+              min: 0.5,
+              max: 5.0
+            },
+            recencyHalfLifeHours: {
+              type: "number",
+              description: "Half-life in hours for recency weighting",
+              default: 12,
+              min: 1,
+              max: 72
+            },
+            initialCapital: {
+              type: "number",
+              description: "Starting capital amount",
+              default: 10000,
+              min: 1000
+            },
+            sharesPerTrade: {
+              type: "number",
+              description: "Maximum shares per trade",
+              default: 100,
+              min: 1
+            }
+          }
         }
       ]
     }

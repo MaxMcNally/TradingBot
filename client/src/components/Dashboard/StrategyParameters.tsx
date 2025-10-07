@@ -33,6 +33,16 @@ const StrategyParameters: React.FC<StrategyParametersProps> = ({
     const defaultParams: Record<string, any> = {};
     
     switch (selectedStrategy) {
+      case 'sentimentAnalysis':
+      case 'SentimentAnalysis':
+        defaultParams.lookbackDays = 3;
+        defaultParams.pollIntervalMinutes = 0;
+        defaultParams.minArticles = 2;
+        defaultParams.buyThreshold = 0.4;
+        defaultParams.sellThreshold = -0.4;
+        defaultParams.titleWeight = 2.0;
+        defaultParams.recencyHalfLifeHours = 12;
+        break;
       case 'meanReversion':
       case 'MeanReversion':
         defaultParams.window = 20;
@@ -94,6 +104,66 @@ const StrategyParameters: React.FC<StrategyParametersProps> = ({
 
   const renderParameterInputs = () => {
     switch (selectedStrategy) {
+      case 'sentimentAnalysis':
+      case 'SentimentAnalysis':
+        return (
+          <Stack spacing={2}>
+            <TextField
+              label="Lookback Days"
+              type="number"
+              value={localParameters.lookbackDays || 3}
+              onChange={(e) => handleParameterChange('lookbackDays', parseInt(e.target.value))}
+              size="small"
+              fullWidth
+              inputProps={{ min: 1, max: 30 }}
+            />
+            <TextField
+              label="Min Articles"
+              type="number"
+              value={localParameters.minArticles || 2}
+              onChange={(e) => handleParameterChange('minArticles', parseInt(e.target.value))}
+              size="small"
+              fullWidth
+              inputProps={{ min: 1, max: 50 }}
+            />
+            <TextField
+              label="Buy Threshold"
+              type="number"
+              inputProps={{ step: '0.05', min: 0, max: 1 }}
+              value={localParameters.buyThreshold ?? 0.4}
+              onChange={(e) => handleParameterChange('buyThreshold', parseFloat(e.target.value))}
+              size="small"
+              fullWidth
+            />
+            <TextField
+              label="Sell Threshold"
+              type="number"
+              inputProps={{ step: '0.05', min: -1, max: 0 }}
+              value={localParameters.sellThreshold ?? -0.4}
+              onChange={(e) => handleParameterChange('sellThreshold', parseFloat(e.target.value))}
+              size="small"
+              fullWidth
+            />
+            <TextField
+              label="Title Weight"
+              type="number"
+              inputProps={{ step: '0.1', min: 0.5, max: 5 }}
+              value={localParameters.titleWeight ?? 2.0}
+              onChange={(e) => handleParameterChange('titleWeight', parseFloat(e.target.value))}
+              size="small"
+              fullWidth
+            />
+            <TextField
+              label="Recency Half-Life (hours)"
+              type="number"
+              value={localParameters.recencyHalfLifeHours ?? 12}
+              onChange={(e) => handleParameterChange('recencyHalfLifeHours', parseInt(e.target.value))}
+              size="small"
+              fullWidth
+              inputProps={{ min: 1, max: 72 }}
+            />
+          </Stack>
+        );
       case 'meanReversion':
       case 'MeanReversion':
         return (
