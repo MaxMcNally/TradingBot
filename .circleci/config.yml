@@ -159,6 +159,33 @@ jobs:
             echo "QA Deployment URL:"
             npx railway domain
 
+  # Deploy client to Railway QA environment
+  deploy-client-railway-qa:
+    docker:
+      - image: cimg/node:20.0
+    steps:
+      - checkout
+      - run:
+          name: Install Railway CLI
+          command: npm install @railway/cli
+      - run:
+          name: Set Railway Environment Variables
+          command: |
+            echo "Setting Railway environment variables..."
+            export RAILWAY_TOKEN=$RAILWAY_TOKEN
+            export RAILWAY_PROJECT_ID=$RAILWAY_PROJECT_ID
+      - run:
+          name: Deploy Client to Railway QA
+          command: |
+            echo "Deploying client to Railway QA environment..."
+            npx railway environment qa
+            npx railway up --service client-qa
+      - run:
+          name: Get Client QA Deployment URL
+          command: |
+            echo "Client QA Deployment URL:"
+            npx railway domain --service client-qa
+
   # Deploy to Railway production environment
   deploy-railway-production:
     docker:
@@ -209,6 +236,33 @@ jobs:
             echo "Production Deployment URL:"
             npx railway domain
 
+  # Deploy client to Railway production environment
+  deploy-client-railway-production:
+    docker:
+      - image: cimg/node:20.0
+    steps:
+      - checkout
+      - run:
+          name: Install Railway CLI
+          command: npm install @railway/cli
+      - run:
+          name: Set Railway Environment Variables
+          command: |
+            echo "Setting Railway environment variables..."
+            export RAILWAY_TOKEN=$RAILWAY_TOKEN
+            export RAILWAY_PROJECT_ID=$RAILWAY_PROJECT_ID
+      - run:
+          name: Deploy Client to Railway Production
+          command: |
+            echo "Deploying client to Railway production environment..."
+            npx railway environment production
+            npx railway up --service client
+      - run:
+          name: Get Client Production Deployment URL
+          command: |
+            echo "Client Production Deployment URL:"
+            npx railway domain --service client
+
 # Define workflows
 workflows:
   # Main branch workflow - Deploy to QA after PR merge
@@ -230,6 +284,10 @@ workflows:
             - test-frontend
             - lint
       - deploy-railway-qa:
+          requires:
+            - build-images
+          context: tradebot-qa
+      - deploy-client-railway-qa:
           requires:
             - build-images
           context: tradebot-qa
@@ -278,6 +336,15 @@ workflows:
             branches:
               ignore: /.*/
       - deploy-railway-production:
+          requires:
+            - build-images
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+          context: tradebot-prod
+      - deploy-client-railway-production:
           requires:
             - build-images
           filters:
