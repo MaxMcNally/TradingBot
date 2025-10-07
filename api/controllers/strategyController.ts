@@ -253,7 +253,9 @@ export const saveStrategyFromBacktest = async (req: Request, res: Response) => {
 
 export const getPublicStrategies = async (req: Request, res: Response) => {
   try {
+    console.log("getPublicStrategies called");
     const strategies = await Strategy.findPublicStrategies();
+    console.log("Found strategies:", strategies.length);
     const parsedStrategies = strategies.map(strategy => Strategy.parseStrategyData(strategy));
 
     res.json({

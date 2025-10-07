@@ -47,7 +47,7 @@ export class CachedNewsProvider extends DataProvider {
     const query = `
       SELECT data_json, created_at
       FROM news_cache
-      WHERE symbol = ? AND provider = ? AND IFNULL(start_date, '') = ? AND IFNULL(end_date, '') = ? AND IFNULL(limit, -1) = ?
+      WHERE symbol = ? AND provider = ? AND COALESCE(start_date, '') = ? AND COALESCE(end_date, '') = ? AND COALESCE(result_limit, -1) = ?
     `;
 
     return new Promise((resolve) => {
@@ -77,7 +77,7 @@ export class CachedNewsProvider extends DataProvider {
 
     const query = `
       INSERT OR REPLACE INTO news_cache
-      (symbol, provider, start_date, end_date, limit, data_json, data_size, created_at, last_accessed, access_count)
+      (symbol, provider, start_date, end_date, result_limit, data_json, data_size, created_at, last_accessed, access_count)
       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1)
     `;
 
@@ -90,7 +90,7 @@ export class CachedNewsProvider extends DataProvider {
     const db = cacheDb.getDatabase();
     const query = `
       UPDATE news_cache SET last_accessed = CURRENT_TIMESTAMP, access_count = access_count + 1
-      WHERE symbol = ? AND provider = ? AND IFNULL(start_date, '') = ? AND IFNULL(end_date, '') = ? AND IFNULL(limit, -1) = ?
+      WHERE symbol = ? AND provider = ? AND COALESCE(start_date, '') = ? AND COALESCE(end_date, '') = ? AND COALESCE(result_limit, -1) = ?
     `;
 
     return new Promise((resolve) => {
@@ -102,7 +102,7 @@ export class CachedNewsProvider extends DataProvider {
     const db = cacheDb.getDatabase();
     const query = `
       DELETE FROM news_cache
-      WHERE symbol = ? AND provider = ? AND IFNULL(start_date, '') = ? AND IFNULL(end_date, '') = ? AND IFNULL(limit, -1) = ?
+      WHERE symbol = ? AND provider = ? AND COALESCE(start_date, '') = ? AND COALESCE(end_date, '') = ? AND COALESCE(result_limit, -1) = ?
     `;
 
     return new Promise((resolve) => {

@@ -2,6 +2,8 @@
 
 A comprehensive trading bot application with React frontend, Node.js API, and automated trading strategies. Features backtesting, real-time trading, caching, and deployment automation.
 
+**End-to-End CI/CD Pipeline Test** - This application includes automated deployment to Railway with CircleCI integration.
+
 ## 🚀 Quick Start
 
 ### Prerequisites

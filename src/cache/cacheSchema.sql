@@ -32,13 +32,13 @@ CREATE TABLE IF NOT EXISTS news_cache (
     provider TEXT NOT NULL, -- 'yahoo', 'tiingo', etc.
     start_date TEXT, -- optional filter lower bound
     end_date TEXT,   -- optional filter upper bound
-    limit INTEGER,   -- requested limit
+    result_limit INTEGER,   -- requested limit
     data_json TEXT NOT NULL, -- JSON string of NewsArticle[]
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_accessed DATETIME DEFAULT CURRENT_TIMESTAMP,
     access_count INTEGER DEFAULT 1,
     data_size INTEGER,
-    UNIQUE(symbol, provider, IFNULL(start_date, ''), IFNULL(end_date, ''), IFNULL(limit, -1))
+    UNIQUE(symbol, provider, start_date, end_date, result_limit)
 );
 
 CREATE INDEX IF NOT EXISTS idx_news_cache_symbol_dates ON news_cache(symbol, start_date, end_date);
