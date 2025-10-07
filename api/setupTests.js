@@ -1,3 +1,4 @@
+/* global beforeAll, afterAll */
 // Jest setup file to handle database initialization
 const { db } = require('./initDb');
 
