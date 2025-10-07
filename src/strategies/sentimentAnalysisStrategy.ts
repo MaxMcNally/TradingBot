@@ -1,6 +1,7 @@
 import { AbstractStrategy, Signal } from './baseStrategy';
-import { NewsArticle } from '../dataProviders/baseProvider';
+import { DataProvider, NewsArticle } from '../dataProviders/baseProvider';
 import { TiingoNewsProvider, TiingoNewsOptions } from '../dataProviders/TiingoNewsProvider';
+import { YahooDataProvider } from '../dataProviders/yahooProvider';
 
 export interface SentimentAnalysisConfig {
   symbol: string;
@@ -12,6 +13,7 @@ export interface SentimentAnalysisConfig {
   titleWeight?: number;            // Weight of title vs description (default: 2.0)
   recencyHalfLifeHours?: number;   // Half-life for recency decay (default: 12)
   tiingoApiKey?: string;           // Optional API key override; otherwise uses env TIINGO_API_KEY
+  newsSource?: 'tiingo' | 'yahoo'; // Which news API to use
 }
 
 /**
@@ -20,7 +22,7 @@ export interface SentimentAnalysisConfig {
  */
 export class SentimentAnalysisStrategy extends AbstractStrategy {
   private readonly config: SentimentAnalysisConfig;
-  private readonly newsProvider: TiingoNewsProvider;
+  private readonly newsProvider: DataProvider;
   private lastSignal: Signal = null;
   private lastPollAt: number = 0;
   private aggregatedArticles: NewsArticle[] = [];
@@ -32,7 +34,13 @@ export class SentimentAnalysisStrategy extends AbstractStrategy {
       recencyHalfLifeHours: 12,
       ...config,
     };
-    this.newsProvider = new TiingoNewsProvider(this.config.tiingoApiKey);
+    // Choose news provider by config; default to Tiingo
+    const source = (this.config.newsSource || 'tiingo').toLowerCase();
+    if (source === 'yahoo') {
+      this.newsProvider = new YahooDataProvider();
+    } else {
+      this.newsProvider = new TiingoNewsProvider(this.config.tiingoApiKey);
+    }
   }
 
   addPrice(_price: number): void {

@@ -109,7 +109,8 @@ function createStrategyConfigs(strategyType: string, symbols: string[]): Strateg
           sellThreshold: parseFloat(process.env.SENTIMENT_SELL_THRESHOLD || '-0.4'),
           titleWeight: parseFloat(process.env.SENTIMENT_TITLE_WEIGHT || '2.0'),
           recencyHalfLifeHours: parseInt(process.env.SENTIMENT_HALF_LIFE_HOURS || '12'),
-          tiingoApiKey: process.env.TIINGO_API_KEY
+          tiingoApiKey: process.env.TIINGO_API_KEY,
+          newsSource: (process.env.SENTIMENT_NEWS_SOURCE as 'tiingo' | 'yahoo') || 'tiingo'
         },
         symbols
       });
