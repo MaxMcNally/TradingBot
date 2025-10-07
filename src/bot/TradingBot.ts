@@ -4,6 +4,7 @@ import { Portfolio, PortfolioStatus } from '../portfolio';
 import { TradingConfig, ConfigManager } from '../config/tradingConfig';
 import { TradingDatabase, Trade, TradingSession, PortfolioSnapshot } from '../database/tradingSchema';
 import { BaseStrategy, Signal } from '../strategies/baseStrategy';
+import { SentimentAnalysisStrategy } from '../strategies/sentimentAnalysisStrategy';
 import { MovingAverageStrategy } from '../strategies/movingAverage';
 import { MeanReversionStrategy } from '../strategies/meanReversionStrategy';
 import { MomentumStrategy } from '../strategies/momentumStrategy';
@@ -93,6 +94,21 @@ export class TradingBot extends EventEmitter {
           case 'BollingerBands':
             const { window: bbWindow, multiplier } = strategyConfig.parameters;
             strategy = new BollingerBandsStrategy({ window: bbWindow, multiplier, maType: 'SMA' });
+            break;
+
+          case 'SentimentAnalysis':
+            const { lookbackDays, pollIntervalMinutes, minArticles, buyThreshold, sellThreshold, titleWeight, recencyHalfLifeHours, tiingoApiKey } = strategyConfig.parameters;
+            strategy = new SentimentAnalysisStrategy({
+              symbol,
+              lookbackDays,
+              pollIntervalMinutes,
+              minArticles,
+              buyThreshold,
+              sellThreshold,
+              titleWeight,
+              recencyHalfLifeHours,
+              tiingoApiKey,
+            });
             break;
 
           default:
@@ -310,7 +326,7 @@ export class TradingBot extends EventEmitter {
         quantity,
         price,
         timestamp: new Date().toISOString(),
-        strategy: 'MovingAverage',
+        strategy: this.strategies.get(symbol)?.getStrategyName() || 'Unknown',
         mode: tradingConfig.mode,
         pnl: signal === 'SELL' ? this.calculateTradePnL(symbol, price) : undefined
       };

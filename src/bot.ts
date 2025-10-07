@@ -96,6 +96,25 @@ function createStrategyConfigs(strategyType: string, symbols: string[]): Strateg
       });
       break;
 
+    case 'sentiment':
+    case 'sentimentanalysis':
+      strategies.push({
+        name: 'SentimentAnalysis',
+        enabled: true,
+        parameters: {
+          lookbackDays: parseInt(process.env.SENTIMENT_LOOKBACK_DAYS || '3'),
+          pollIntervalMinutes: parseInt(process.env.SENTIMENT_POLL_MINUTES || '15'),
+          minArticles: parseInt(process.env.SENTIMENT_MIN_ARTICLES || '3'),
+          buyThreshold: parseFloat(process.env.SENTIMENT_BUY_THRESHOLD || '0.4'),
+          sellThreshold: parseFloat(process.env.SENTIMENT_SELL_THRESHOLD || '-0.4'),
+          titleWeight: parseFloat(process.env.SENTIMENT_TITLE_WEIGHT || '2.0'),
+          recencyHalfLifeHours: parseInt(process.env.SENTIMENT_HALF_LIFE_HOURS || '12'),
+          tiingoApiKey: process.env.TIINGO_API_KEY
+        },
+        symbols
+      });
+      break;
+
     default:
       console.warn(`Unknown strategy type: ${strategyType}. Using default MovingAverage strategy.`);
       strategies.push({

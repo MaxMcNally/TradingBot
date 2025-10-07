@@ -49,6 +49,20 @@ export const defaultTradingConfig: TradingConfig = {
       enabled: true,
       parameters: { shortWindow: 5, longWindow: 10 },
       symbols: ['SPY', 'QQQ', 'AAPL', 'TSLA']
+    },
+    {
+      name: 'SentimentAnalysis',
+      enabled: false,
+      parameters: {
+        lookbackDays: 3,
+        pollIntervalMinutes: 15,
+        minArticles: 3,
+        buyThreshold: 0.4,
+        sellThreshold: -0.4,
+        titleWeight: 2.0,
+        recencyHalfLifeHours: 12
+      },
+      symbols: ['AAPL']
     }
   ],
   dataProvider: {
