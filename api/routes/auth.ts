@@ -124,7 +124,7 @@ authRouter.get("/me", authenticateToken, (req: AuthenticatedRequest, res: Respon
   db.get(
     "SELECT id, username, email, email_verified, two_factor_enabled, created_at FROM users WHERE id = ?",
     [userId],
-    (err, row: any) => {
+    (err: any, row: any) => {
       if (err) return res.status(500).json({ error: "Internal server error" });
       if (!row) return res.status(404).json({ error: "User not found" });
       const userData = {
@@ -196,7 +196,7 @@ authRouter.put("/account", authenticateToken, (req: AuthenticatedRequest, res: R
           ? "UPDATE users SET username = $1, email = $2, updated_at = NOW() WHERE id = $3"
           : "UPDATE users SET username = ?, email = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
         [username, email, userId],
-        function (err) {
+        function (err: any) {
           if (err) {
             console.error("Database error:", err);
             return res.status(500).json({ error: "Internal server error" });
@@ -208,7 +208,7 @@ authRouter.put("/account", authenticateToken, (req: AuthenticatedRequest, res: R
               ? "SELECT id, username, email, created_at FROM users WHERE id = $1"
               : "SELECT id, username, email, created_at FROM users WHERE id = ?",
             [userId],
-            (err, user: any) => {
+            (err: any, user: any) => {
               if (err) {
                 console.error("Database error:", err);
                 return res.status(500).json({ error: "Internal server error" });
@@ -243,7 +243,7 @@ authRouter.post("/verify-email/request", authenticateToken, (req: AuthenticatedR
   db.run(
     "UPDATE users SET email_verification_token = ?, email_verification_sent_at = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
     [token, sentAt, userId],
-    function (err) {
+    function (err: any) {
       if (err) return res.status(500).json({ error: "Internal server error" });
       res.json({ success: true, verificationToken: token }); // In production, email this instead
     }
@@ -253,13 +253,13 @@ authRouter.post("/verify-email/request", authenticateToken, (req: AuthenticatedR
 authRouter.post("/verify-email/confirm", (req: Request, res: Response) => {
   const { token } = req.body;
   if (!token) return res.status(400).json({ error: "Token is required" });
-  db.get("SELECT id FROM users WHERE email_verification_token = ?", [token], (err, row: any) => {
+  db.get("SELECT id FROM users WHERE email_verification_token = ?", [token], (err: any, row: any) => {
     if (err) return res.status(500).json({ error: "Internal server error" });
     if (!row) return res.status(400).json({ error: "Invalid token" });
     db.run(
       "UPDATE users SET email_verified = 1, email_verification_token = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
       [row.id],
-      function (err) {
+      function (err: any) {
         if (err) return res.status(500).json({ error: "Internal server error" });
         res.json({ success: true });
       }
@@ -276,7 +276,7 @@ authRouter.post("/2fa/setup", authenticateToken, async (req: AuthenticatedReques
     const otpauth = secret.otpauth_url as string;
     const qrDataUrl = await QRCode.toDataURL(otpauth);
     // Save temp secret to user for verification
-    db.run("UPDATE users SET two_factor_secret = ? WHERE id = ?", [secret.base32, userId], function (err) {
+    db.run("UPDATE users SET two_factor_secret = ? WHERE id = ?", [secret.base32, userId], function (err: any) {
       if (err) return res.status(500).json({ error: "Internal server error" });
       res.json({ success: true, secret: secret.base32, qrCodeDataUrl: qrDataUrl });
     });
@@ -290,12 +290,12 @@ authRouter.post("/2fa/enable", authenticateToken, (req: AuthenticatedRequest, re
   const { token } = req.body;
   if (!userId) return res.status(401).json({ error: "User not authenticated" });
   if (!token) return res.status(400).json({ error: "Token is required" });
-  db.get("SELECT two_factor_secret FROM users WHERE id = ?", [userId], (err, row: any) => {
+  db.get("SELECT two_factor_secret FROM users WHERE id = ?", [userId], (err: any, row: any) => {
     if (err) return res.status(500).json({ error: "Internal server error" });
     if (!row?.two_factor_secret) return res.status(400).json({ error: "2FA not initialized" });
     const verified = speakeasy.totp.verify({ secret: row.two_factor_secret, encoding: 'base32', token });
     if (!verified) return res.status(400).json({ error: "Invalid 2FA token" });
-    db.run("UPDATE users SET two_factor_enabled = 1 WHERE id = ?", [userId], function (err) {
+    db.run("UPDATE users SET two_factor_enabled = 1 WHERE id = ?", [userId], function (err: any) {
       if (err) return res.status(500).json({ error: "Internal server error" });
       res.json({ success: true });
     });
@@ -306,7 +306,7 @@ authRouter.post("/2fa/disable", authenticateToken, (req: AuthenticatedRequest, r
   const userId = req.user?.id;
   const { token } = req.body;
   if (!userId) return res.status(401).json({ error: "User not authenticated" });
-  db.run("UPDATE users SET two_factor_enabled = 0, two_factor_secret = NULL WHERE id = ?", [userId], function (err) {
+  db.run("UPDATE users SET two_factor_enabled = 0, two_factor_secret = NULL WHERE id = ?", [userId], function (err: any) {
     if (err) return res.status(500).json({ error: "Internal server error" });
     res.json({ success: true });
   });
@@ -315,7 +315,7 @@ authRouter.post("/2fa/disable", authenticateToken, (req: AuthenticatedRequest, r
 authRouter.post("/2fa/verify", (req: Request, res: Response) => {
   const { username, token } = req.body;
   if (!username || !token) return res.status(400).json({ error: "Username and token are required" });
-  db.get("SELECT id, username, email, email_verified, created_at, two_factor_secret FROM users WHERE username = ?", [username], (err, row: any) => {
+  db.get("SELECT id, username, email, email_verified, created_at, two_factor_secret FROM users WHERE username = ?", [username], (err: any, row: any) => {
     if (err) return res.status(500).json({ error: "Internal server error" });
     if (!row?.two_factor_secret) return res.status(400).json({ error: "2FA not enabled" });
     const verified = speakeasy.totp.verify({ secret: row.two_factor_secret, encoding: 'base32', token });
@@ -330,12 +330,12 @@ authRouter.post("/2fa/verify", (req: Request, res: Response) => {
 authRouter.post("/password/reset/request", (req: Request, res: Response) => {
   const { emailOrUsername } = req.body;
   if (!emailOrUsername) return res.status(400).json({ error: "Email or username is required" });
-  db.get("SELECT id FROM users WHERE email = ? OR username = ?", [emailOrUsername, emailOrUsername], (err, row: any) => {
+  db.get("SELECT id FROM users WHERE email = ? OR username = ?", [emailOrUsername, emailOrUsername], (err: any, row: any) => {
     if (err) return res.status(500).json({ error: "Internal server error" });
     if (!row) return res.json({ success: true }); // Do not leak existence
     const token = crypto.randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 1000 * 60 * 30).toISOString(); // 30 min
-    db.run("UPDATE users SET password_reset_token = ?, password_reset_expires_at = ? WHERE id = ?", [token, expiresAt, row.id], function (err) {
+    db.run("UPDATE users SET password_reset_token = ?, password_reset_expires_at = ? WHERE id = ?", [token, expiresAt, row.id], function (err: any) {
       if (err) return res.status(500).json({ error: "Internal server error" });
       res.json({ success: true, resetToken: token }); // In production, email this instead
     });
@@ -345,12 +345,13 @@ authRouter.post("/password/reset/request", (req: Request, res: Response) => {
 authRouter.post("/password/reset/confirm", (req: Request, res: Response) => {
   const { token, newPassword } = req.body;
   if (!token || !newPassword) return res.status(400).json({ error: "Token and newPassword are required" });
-  db.get("SELECT id FROM users WHERE password_reset_token = ? AND (password_reset_expires_at IS NULL OR password_reset_expires_at > CURRENT_TIMESTAMP)", [token], (err, row: any) => {
+  db.get("SELECT id FROM users WHERE password_reset_token = ? AND (password_reset_expires_at IS NULL OR password_reset_expires_at > CURRENT_TIMESTAMP)", [token], (err: any, row: any) => {
     if (err) return res.status(500).json({ error: "Internal server error" });
     if (!row) return res.status(400).json({ error: "Invalid or expired token" });
-    bcrypt.hash(newPassword, 10, (err, hashedPassword) => {
+    bcrypt.hash(newPassword, 10, (err: any, hashedPassword?: string) => {
       if (err) return res.status(500).json({ error: "Internal server error" });
-      db.run("UPDATE users SET password_hash = ?, password_reset_token = NULL, password_reset_expires_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [hashedPassword, row.id], function (err) {
+      if (!hashedPassword) return res.status(500).json({ error: "Password hashing failed" });
+      db.run("UPDATE users SET password_hash = ?, password_reset_token = NULL, password_reset_expires_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [hashedPassword, row.id], function (err: any) {
         if (err) return res.status(500).json({ error: "Internal server error" });
         res.json({ success: true });
       });
