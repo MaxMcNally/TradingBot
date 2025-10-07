@@ -66,26 +66,12 @@ else
     exit 1
 fi
 
-# Set Railway environment and test authentication
-echo "🌍 Setting Railway environment to $ENV and testing authentication..."
-if railway environment $ENV && railway whoami &> /dev/null; then
-    echo "✅ Railway authentication successful"
-    railway whoami
+# Set Railway environment
+echo "🌍 Setting Railway environment to $ENV..."
+if railway environment $ENV; then
+    echo "✅ Railway environment set to $ENV"
 else
-    echo "❌ Railway authentication failed"
-    echo ""
-    echo "This usually means you have User Tokens instead of Project Tokens."
-    echo "Project Tokens should start with 'railway_' prefix."
-    echo "Your token starts with: ${RAILWAY_TOKEN_VALUE:0:10}..."
-    echo ""
-    echo "To fix this:"
-    echo "1. Go to Railway Dashboard → Your Project → Settings → Tokens"
-    echo "2. Create a new 'Project Token' (not User Token)"
-    echo "3. Copy the token (should start with 'railway_')"
-    echo "4. Update your .env file with the Project Token"
-    echo ""
-    echo "Alternatively, you can try interactive login:"
-    echo "railway login"
+    echo "❌ Failed to set Railway environment"
     exit 1
 fi
 
