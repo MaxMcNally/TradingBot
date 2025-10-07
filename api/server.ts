@@ -34,11 +34,6 @@ app.use(
 
 app.use(bodyParser.json());
 
-// Debug route to test if routes are working
-app.get("/debug", (req, res) => {
-  console.log("Debug route hit ✅");
-  res.json({ status: "debug", message: "Routes are working" });
-});
 
 // Routes
 console.log("Mounting API routes...");

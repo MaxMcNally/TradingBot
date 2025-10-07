@@ -3,6 +3,11 @@ import { searchSymbols, getPopularSymbols, searchWithYahoo } from "../controller
 
 export const symbolRouter = Router();
 
+// Health check route
+symbolRouter.get("/", (req: Request, res: Response) => {
+  res.json({ status: "ok", message: "Symbols API is working" });
+});
+
 /**
  * GET /api/symbols/search?q=query&useYahoo=true
  * 

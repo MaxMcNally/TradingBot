@@ -15,10 +15,6 @@ import {
 
 const router = Router();
 
-// Simple test route
-router.get('/', (req, res) => {
-  res.json({ status: 'ok', message: 'Strategies router is working' });
-});
 
 // Create a new strategy
 router.post("/users/:userId/strategies", createStrategy);
