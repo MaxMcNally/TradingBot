@@ -148,10 +148,10 @@ jobs:
             npx railway variables --set "JWT_SECRET=$JWT_SECRET" --service api-qa
             npx railway variables --set "SESSION_SECRET=$SESSION_SECRET" --service api-qa
       - run:
-          name: Get QA Deployment URL
+          name: QA Deployment Complete
           command: |
-            echo "QA Deployment URL:"
-            npx railway domain
+            echo "✅ QA API deployment completed successfully!"
+            echo "Check Railway dashboard for deployment URL: https://railway.app/dashboard"
 
   # Deploy client to Railway QA environment
   deploy-client-railway-qa:
@@ -174,10 +174,10 @@ jobs:
             echo "Deploying client to Railway QA environment..."
             npx railway up --service client-qa
       - run:
-          name: Get Client QA Deployment URL
+          name: Client QA Deployment Complete
           command: |
-            echo "Client QA Deployment URL:"
-            npx railway domain --service client-qa
+            echo "✅ Client QA deployment completed successfully!"
+            echo "Check Railway dashboard for deployment URL: https://railway.app/dashboard"
 
   # Deploy to Railway production environment
   deploy-railway-production:
@@ -217,10 +217,10 @@ jobs:
             npx railway variables --set "JWT_SECRET=$JWT_SECRET" --service api
             npx railway variables --set "SESSION_SECRET=$SESSION_SECRET" --service api
       - run:
-          name: Get Production Deployment URL
+          name: Production Deployment Complete
           command: |
-            echo "Production Deployment URL:"
-            npx railway domain --service api
+            echo "✅ Production API deployment completed successfully!"
+            echo "Check Railway dashboard for deployment URL: https://railway.app/dashboard"
 
   # Deploy client to Railway production environment
   deploy-client-railway-production:
@@ -243,10 +243,10 @@ jobs:
             echo "Deploying client to Railway production environment..."
             npx railway up --service client
       - run:
-          name: Get Client Production Deployment URL
+          name: Client Production Deployment Complete
           command: |
-            echo "Client Production Deployment URL:"
-            npx railway domain --service client
+            echo "✅ Client production deployment completed successfully!"
+            echo "Check Railway dashboard for deployment URL: https://railway.app/dashboard"
 
 # Define workflows
 workflows:
