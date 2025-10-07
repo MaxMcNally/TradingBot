@@ -121,15 +121,8 @@ jobs:
             echo "Setting Railway environment variables..."
             echo "RAILWAY_TOKEN is set: $([ -n "$RAILWAY_TOKEN" ] && echo "YES" || echo "NO")"
             echo "RAILWAY_PROJECT_ID is set: $([ -n "$RAILWAY_PROJECT_ID" ] && echo "YES" || echo "NO")"
-            echo "RAILWAY_API_TOKEN is set: $([ -n "$RAILWAY_API_TOKEN" ] && echo "YES" || echo "NO")"
             export RAILWAY_TOKEN=$RAILWAY_TOKEN
-            export RAILWAY_API_TOKEN=$RAILWAY_API_TOKEN
             export RAILWAY_PROJECT_ID=$RAILWAY_PROJECT_ID
-            echo "Testing Railway authentication with RAILWAY_TOKEN..."
-            npx railway whoami || echo "RAILWAY_TOKEN failed"
-            echo "Testing Railway authentication with RAILWAY_API_TOKEN..."
-            unset RAILWAY_TOKEN
-            npx railway whoami || echo "RAILWAY_API_TOKEN failed"
       - run:
           name: Link Railway Project
           command: |
@@ -144,7 +137,7 @@ jobs:
           name: Deploy to Railway QA
           command: |
             echo "Deploying to Railway QA environment..."
-            npx railway up --service api-qa
+            npx railway up --detach --service api-qa
       - run:
           name: Set QA environment variables
           command: |
@@ -174,15 +167,8 @@ jobs:
             echo "Setting Railway environment variables..."
             echo "RAILWAY_TOKEN is set: $([ -n "$RAILWAY_TOKEN" ] && echo "YES" || echo "NO")"
             echo "RAILWAY_PROJECT_ID is set: $([ -n "$RAILWAY_PROJECT_ID" ] && echo "YES" || echo "NO")"
-            echo "RAILWAY_API_TOKEN is set: $([ -n "$RAILWAY_API_TOKEN" ] && echo "YES" || echo "NO")"
             export RAILWAY_TOKEN=$RAILWAY_TOKEN
-            export RAILWAY_API_TOKEN=$RAILWAY_API_TOKEN
             export RAILWAY_PROJECT_ID=$RAILWAY_PROJECT_ID
-            echo "Testing Railway authentication with RAILWAY_TOKEN..."
-            npx railway whoami || echo "RAILWAY_TOKEN failed"
-            echo "Testing Railway authentication with RAILWAY_API_TOKEN..."
-            unset RAILWAY_TOKEN
-            npx railway whoami || echo "RAILWAY_API_TOKEN failed"
       - run:
           name: Link Railway Project
           command: |
@@ -197,7 +183,7 @@ jobs:
           name: Deploy to Railway Production
           command: |
             echo "Deploying to Railway production environment..."
-            npx railway up --service api
+            npx railway up --detach --service api
       - run:
           name: Set production environment variables
           command: |
