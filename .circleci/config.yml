@@ -141,6 +141,7 @@ jobs:
           name: Deploy to Railway QA
           command: |
             echo "Deploying to Railway QA environment..."
+            npx railway environment qa
             npx railway up --service api-qa
       - run:
           name: Set QA environment variables
@@ -188,6 +189,8 @@ jobs:
             echo "Current working directory: $(pwd)"
             echo "Checking Railway CLI version:"
             npx railway --version
+            echo "Setting Railway environment to production..."
+            npx railway environment production
             echo "Deploying to Railway production environment:"
             npx railway up --service api
       - run:
