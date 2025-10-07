@@ -220,6 +220,13 @@ export const initDatabase = () => {
           username TEXT UNIQUE NOT NULL,
           password_hash TEXT NOT NULL,
           email TEXT,
+          email_verified INTEGER DEFAULT 0,
+          email_verification_token TEXT,
+          email_verification_sent_at DATETIME,
+          two_factor_enabled INTEGER DEFAULT 0,
+          two_factor_secret TEXT,
+          password_reset_token TEXT,
+          password_reset_expires_at DATETIME,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
