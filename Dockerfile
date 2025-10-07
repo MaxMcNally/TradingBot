@@ -44,6 +44,10 @@ COPY --from=base /app/api/package.json ./api/
 RUN yarn install --frozen-lockfile --production=true
 RUN cd api && yarn install --frozen-lockfile --production=true
 
+# Verify bcryptjs is installed
+RUN ls -la /app/api/node_modules/ | grep bcryptjs || echo "bcryptjs not found in api/node_modules"
+RUN ls -la /app/node_modules/ | grep bcryptjs || echo "bcryptjs not found in root node_modules"
+
 # Copy built application
 COPY --from=base /app/dist ./dist
 COPY --from=base /app/api ./api
