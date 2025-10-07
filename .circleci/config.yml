@@ -169,6 +169,11 @@ jobs:
           name: Deploy to Railway Production
           command: |
             echo "Deploying to Railway production environment..."
+            echo "Current working directory: $(pwd)"
+            echo "Files in current directory: $(ls -la)"
+            echo "Checking Railway CLI version:"
+            npx railway --version
+            echo "Attempting deployment with verbose output:"
             npx railway up --detach --verbose --service api
       - run:
           name: Set production environment variables
