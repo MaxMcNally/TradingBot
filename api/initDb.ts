@@ -55,18 +55,35 @@ if (isPostgres) {
 
     // INSERT/UPDATE/DELETE
     run(sql: string, params: any[], callback: (...args: any[]) => void) {
-      // Add RETURNING id if it's an INSERT without RETURNING and an id column likely exists
-      const needsId = /\binsert\s+into\s+\w+/i.test(sql) && !/returning\s+id/i.test(sql);
-      const finalSql = needsId ? `${sql} RETURNING id` : sql;
-      const { text, values } = toPg(finalSql, params);
-      pgPool!
-        .query(text, values)
-        .then((result: any) => {
-          const lastID = needsId && result.rows[0] && result.rows[0].id ? result.rows[0].id : undefined;
-          const changes = typeof result.rowCount === "number" ? result.rowCount : 0;
-          callback.call({ lastID, changes }, null);
-        })
-        .catch((err: any) => callback.call({ lastID: undefined, changes: 0 }, err));
+      if (!pgPool) {
+        console.error('Postgres pool is not initialized');
+        callback.call({ lastID: undefined, changes: 0 }, new Error('Postgres pool not initialized'));
+        return;
+      }
+      
+      try {
+        // Add RETURNING id if it's an INSERT without RETURNING and an id column likely exists
+        const needsId = /\binsert\s+into\s+\w+/i.test(sql) && !/returning\s+id/i.test(sql);
+        const finalSql = needsId ? `${sql} RETURNING id` : sql;
+        const { text, values } = toPg(finalSql, params);
+        
+        const queryPromise = pgPool.query(text, values);
+        if (queryPromise && typeof queryPromise.then === 'function') {
+          queryPromise
+            .then((result: any) => {
+              const lastID = needsId && result.rows[0] && result.rows[0].id ? result.rows[0].id : undefined;
+              const changes = typeof result.rowCount === "number" ? result.rowCount : 0;
+              callback.call({ lastID, changes }, null);
+            })
+            .catch((err: any) => callback.call({ lastID: undefined, changes: 0 }, err));
+        } else {
+          console.error('pgPool.query did not return a Promise');
+          callback.call({ lastID: undefined, changes: 0 }, new Error('Query did not return a Promise'));
+        }
+      } catch (error) {
+        console.error('Error in run method:', error);
+        callback.call({ lastID: undefined, changes: 0 }, error);
+      }
     },
 
     // Compatibility method for serialize - use Postgres transactions
