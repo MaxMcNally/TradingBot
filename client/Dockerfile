@@ -19,8 +19,8 @@ RUN yarn build
 # Production stage with nginx
 FROM nginx:alpine AS production
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+# Install curl for health checks and su-exec for user switching
+RUN apk add --no-cache curl su-exec
 
 # Copy built application
 COPY --from=base /app/dist /usr/share/nginx/html
@@ -44,8 +44,8 @@ RUN chown -R nginx:nginx /usr/share/nginx/html && \
 RUN mkdir -p /var/run/nginx && \
     chown -R nginx:nginx /var/run/nginx
 
-# Switch to non-root user
-USER nginx
+# Don't switch to nginx user here - we need root for the startup script
+# The startup script will switch to nginx user when starting nginx
 
 # Expose port
 EXPOSE 80
