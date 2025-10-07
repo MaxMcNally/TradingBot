@@ -18,6 +18,15 @@ export interface BacktestRequest {
   useCache?: boolean;
   prepopulateCache?: boolean;
   showCacheStats?: boolean;
+  // Sentiment Analysis parameters
+  lookbackDays?: number;
+  pollIntervalMinutes?: number;
+  minArticles?: number;
+  buyThreshold?: number;
+  sellThreshold?: number;
+  titleWeight?: number;
+  recencyHalfLifeHours?: number;
+  newsSource?: 'tiingo' | 'yahoo';
   // Mean Reversion parameters
   window?: number;
   threshold?: number;
@@ -78,6 +87,15 @@ export const runBacktest = async (req: Request, res: Response) => {
       useCache = true,
       prepopulateCache = false,
       showCacheStats = false,
+      // Sentiment Analysis defaults
+      lookbackDays = 3,
+      pollIntervalMinutes = 0,
+      minArticles = 2,
+      buyThreshold = 0.4,
+      sellThreshold = -0.4,
+      titleWeight = 2.0,
+      recencyHalfLifeHours = 12,
+      newsSource = 'yahoo',
       // Strategy-specific parameters with defaults
       window = 20,
       threshold = 0.05,
@@ -110,7 +128,8 @@ export const runBacktest = async (req: Request, res: Response) => {
       'movingAverageCrossover', 
       'momentum',
       'bollingerBands',
-      'breakout'
+      'breakout',
+      'sentimentAnalysis'
     ];
     if (!validStrategies.includes(strategy)) {
       return res.status(400).json({
@@ -151,7 +170,7 @@ export const runBacktest = async (req: Request, res: Response) => {
     }
 
     // Run backtests for each symbol
-    const results = [];
+    const results: any[] = [];
     
     for (const symbol of symbolArray) {
       try {
@@ -182,7 +201,16 @@ export const runBacktest = async (req: Request, res: Response) => {
           lookbackWindow,
           breakoutThreshold,
           minVolumeRatio,
-          confirmationPeriod
+          confirmationPeriod,
+          // Sentiment
+          lookbackDays,
+          pollIntervalMinutes,
+          minArticles,
+          buyThreshold,
+          sellThreshold,
+          titleWeight,
+          recencyHalfLifeHours,
+          newsSource
         });
         
         results.push({
@@ -262,7 +290,16 @@ export const runBacktest = async (req: Request, res: Response) => {
           lookbackWindow,
           breakoutThreshold,
           minVolumeRatio,
-          confirmationPeriod
+          confirmationPeriod,
+          // Sentiment
+          lookbackDays,
+          pollIntervalMinutes,
+          minArticles,
+          buyThreshold,
+          sellThreshold,
+          titleWeight,
+          recencyHalfLifeHours,
+          newsSource
         },
         results
       }
@@ -305,6 +342,15 @@ const runSingleBacktest = async (params: {
   breakoutThreshold: number;
   minVolumeRatio: number;
   confirmationPeriod: number;
+  // Sentiment
+  lookbackDays: number;
+  pollIntervalMinutes: number;
+  minArticles: number;
+  buyThreshold: number;
+  sellThreshold: number;
+  titleWeight: number;
+  recencyHalfLifeHours: number;
+  newsSource: string;
 }): Promise<any> => {
   return new Promise((resolve, reject) => {
     const { 
@@ -312,7 +358,8 @@ const runSingleBacktest = async (params: {
       initialCapital, sharesPerTrade, useCache, prepopulateCache, showCacheStats,
       window, threshold, fastWindow, slowWindow, maType,
       rsiWindow, rsiOverbought, rsiOversold, momentumWindow, momentumThreshold,
-      multiplier, lookbackWindow, breakoutThreshold, minVolumeRatio, confirmationPeriod
+      multiplier, lookbackWindow, breakoutThreshold, minVolumeRatio, confirmationPeriod,
+      lookbackDays, pollIntervalMinutes, minArticles, buyThreshold, sellThreshold, titleWeight, recencyHalfLifeHours, newsSource
     } = params;
     
     // Path to the backtest script
@@ -352,6 +399,15 @@ const runSingleBacktest = async (params: {
       args.push('--breakoutThreshold', breakoutThreshold.toString());
       args.push('--minVolumeRatio', minVolumeRatio.toString());
       args.push('--confirmationPeriod', confirmationPeriod.toString());
+    } else if (strategy === 'sentimentAnalysis') {
+      args.push('--lookbackDays', lookbackDays.toString());
+      args.push('--pollIntervalMinutes', pollIntervalMinutes.toString());
+      args.push('--minArticles', minArticles.toString());
+      args.push('--buyThreshold', buyThreshold.toString());
+      args.push('--sellThreshold', sellThreshold.toString());
+      args.push('--titleWeight', titleWeight.toString());
+      args.push('--recencyHalfLifeHours', recencyHalfLifeHours.toString());
+      args.push('--newsSource', newsSource);
     }
 
     // Add cache-related flags

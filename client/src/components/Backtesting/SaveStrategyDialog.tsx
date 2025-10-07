@@ -40,7 +40,8 @@ const STRATEGY_TYPE_MAP: Record<string, string> = {
   'movingAverageCrossover': 'moving_average_crossover',
   'bollingerBands': 'bollinger_bands',
   'momentum': 'momentum',
-  'breakout': 'breakout'
+  'breakout': 'breakout',
+  'sentimentAnalysis': 'sentiment_analysis'
 };
 
 const STRATEGY_TYPE_LABELS: Record<string, string> = {
@@ -48,7 +49,8 @@ const STRATEGY_TYPE_LABELS: Record<string, string> = {
   'movingAverageCrossover': 'Moving Average Crossover',
   'bollingerBands': 'Bollinger Bands',
   'momentum': 'Momentum',
-  'breakout': 'Breakout'
+  'breakout': 'Breakout',
+  'sentimentAnalysis': 'Sentiment Analysis'
 };
 
 const SaveStrategyDialog: React.FC<SaveStrategyDialogProps> = ({
@@ -101,6 +103,16 @@ const SaveStrategyDialog: React.FC<SaveStrategyDialogProps> = ({
         initialCapital: formData.initialCapital,
         sharesPerTrade: formData.sharesPerTrade,
         // Strategy-specific parameters
+        ...(formData.strategy === 'sentimentAnalysis' && {
+          lookbackDays: formData.lookbackDays,
+          pollIntervalMinutes: formData.pollIntervalMinutes,
+          minArticles: formData.minArticles,
+          buyThreshold: formData.buyThreshold,
+          sellThreshold: formData.sellThreshold,
+          titleWeight: formData.titleWeight,
+          recencyHalfLifeHours: formData.recencyHalfLifeHours,
+          // newsSource is backend-controlled
+        }),
         ...(formData.strategy === 'meanReversion' && {
           window: formData.window,
           threshold: formData.threshold

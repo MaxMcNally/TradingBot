@@ -270,6 +270,22 @@ export const getAvailableStrategies = async (req: Request, res: Response) => {
         symbols: [],
       },
       {
+        name: 'SentimentAnalysis',
+        description: 'News sentiment-based strategy using recent articles to generate BUY/SELL signals',
+        parameters: {
+          lookbackDays: 3,
+          pollIntervalMinutes: 0,
+          minArticles: 2,
+          buyThreshold: 0.4,
+          sellThreshold: -0.4,
+          titleWeight: 2.0,
+          recencyHalfLifeHours: 12,
+          newsSource: 'yahoo'
+        },
+        enabled: true,
+        symbols: [],
+      },
+      {
         name: 'BollingerBands',
         description: 'Uses Bollinger Bands to identify overbought/oversold conditions',
         parameters: {

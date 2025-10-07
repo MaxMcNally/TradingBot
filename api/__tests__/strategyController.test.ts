@@ -6,6 +6,7 @@ import {
   copyPublicStrategy
 } from '../controllers/strategyController';
 import { Strategy } from '../models/Strategy';
+import { getAvailableStrategies } from '../controllers/tradingController';
 
 // Mock the Strategy model
 jest.mock('../models/Strategy');
@@ -166,6 +167,19 @@ describe('Strategy Controller', () => {
       expect(mockJson).toHaveBeenCalledWith({
         message: 'Internal server error'
       });
+    });
+  });
+
+  describe('trading getAvailableStrategies integration shape', () => {
+    it('includes SentimentAnalysis in trading strategies list', async () => {
+      const { getAvailableStrategies } = await import('../controllers/tradingController');
+      const req = {} as any;
+      const json = jest.fn();
+      const res = { json } as any;
+      await getAvailableStrategies(req, res);
+      const payload = json.mock.calls[0][0];
+      const names = payload.strategies.map((s: any) => s.name);
+      expect(names).toContain('SentimentAnalysis');
     });
   });
 
@@ -398,5 +412,18 @@ describe('Strategy Controller', () => {
         message: 'You already have a strategy with this name. Please choose a different name.'
       });
     });
+  });
+});
+
+describe('Trading Controller - Strategies', () => {
+  it('returns SentimentAnalysis in available strategies', async () => {
+    const req = {} as any;
+    const json = jest.fn();
+    const res = { json } as any;
+    await getAvailableStrategies(req, res);
+    expect(json).toHaveBeenCalled();
+    const payload = json.mock.calls[0][0];
+    const names = (payload.strategies || []).map((s: any) => s.name);
+    expect(names).toContain('SentimentAnalysis');
   });
 });
