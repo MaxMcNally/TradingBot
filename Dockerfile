@@ -36,13 +36,18 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S tradingbot -u 1001
 
-# Copy built application and dependencies
+# Copy package files first
+COPY --from=base /app/package.json ./
+COPY --from=base /app/api/package.json ./api/
+
+# Install production dependencies
+RUN yarn install --frozen-lockfile --production=true
+RUN cd api && yarn install --frozen-lockfile --production=true
+
+# Copy built application
 COPY --from=base /app/dist ./dist
-COPY --from=base /app/node_modules ./node_modules
-COPY --from=base /app/api/node_modules ./api/node_modules
 COPY --from=base /app/api ./api
 COPY --from=base /app/src ./src
-COPY --from=base /app/package.json ./
 
 # Create directories for databases and set permissions
 RUN mkdir -p /app/db /app/api/db /app/backtest_data /app/cache && \

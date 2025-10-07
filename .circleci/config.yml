@@ -141,7 +141,8 @@ jobs:
           name: Deploy to Railway QA
           command: |
             echo "Deploying to Railway QA environment..."
-            npx railway run --service api-qa
+            npx railway environment qa
+            npx railway up --service api-qa
       - run:
           name: Set QA environment variables
           command: |
@@ -150,6 +151,8 @@ jobs:
             npx railway variables --set "LOG_LEVEL=debug" --service api-qa
             npx railway variables --set "ENVIRONMENT=qa" --service api-qa
             npx railway variables --set "DEBUG=true" --service api-qa
+            npx railway variables --set "JWT_SECRET=$JWT_SECRET" --service api-qa
+            npx railway variables --set "SESSION_SECRET=$SESSION_SECRET" --service api-qa
       - run:
           name: Get QA Deployment URL
           command: |
@@ -188,8 +191,10 @@ jobs:
             echo "Current working directory: $(pwd)"
             echo "Checking Railway CLI version:"
             npx railway --version
-            echo "Using railway run command (supports RAILWAY_TOKEN):"
-            npx railway run --service api
+            echo "Setting Railway environment to production..."
+            npx railway environment production
+            echo "Deploying to Railway production environment:"
+            npx railway up --service api
       - run:
           name: Set production environment variables
           command: |
