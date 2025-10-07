@@ -135,7 +135,7 @@ jobs:
           name: Deploy to Railway QA
           command: |
             echo "Deploying to Railway QA environment..."
-            npx railway up --detach --verbose --service api-qa
+            npx railway run --detach --verbose --service api-qa
       - run:
           name: Set QA environment variables
           command: |
@@ -182,12 +182,8 @@ jobs:
             echo "Current working directory: $(pwd)"
             echo "Checking Railway CLI version:"
             npx railway --version
-            echo "Testing Railway authentication:"
-            npx railway whoami || echo "whoami failed"
-            echo "Checking Railway project status:"
-            npx railway status || echo "status failed"
-            echo "Attempting deployment with verbose output:"
-            npx railway up --detach --verbose --service api
+            echo "Using railway run command (supports RAILWAY_TOKEN):"
+            npx railway run --detach --verbose --service api
       - run:
           name: Set production environment variables
           command: |
