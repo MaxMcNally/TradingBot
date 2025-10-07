@@ -13,6 +13,7 @@ import {strategyRouter} from "./routes/strategies";
 import { initDatabase } from "./initDb";
 import { sessionMonitor } from "./services/sessionMonitor";
 import testRouter from "./routes/test";
+import { authenticateToken } from "./middleware/auth";
 
 dotenv.config();
 
@@ -35,6 +36,36 @@ app.use(
 );
 
 app.use(bodyParser.json());
+
+// Global auth guard for API routes – allow only specific public auth endpoints
+app.use("/api", (req, res, next) => {
+  // Allow CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return next();
+  }
+
+  // Public auth endpoints (no token required)
+  const publicAuthRoutes = [
+    { method: "POST", path: "/auth/login" },
+    { method: "POST", path: "/auth/signup" },
+    { method: "POST", path: "/auth/2fa/verify" },
+    { method: "POST", path: "/auth/password/reset/request" },
+    { method: "POST", path: "/auth/password/reset/confirm" },
+    // Optional: allow logout without token for idempotency
+    { method: "POST", path: "/auth/logout" },
+  ];
+
+  const isPublic = publicAuthRoutes.some(
+    (r) => r.method === req.method && req.path === r.path
+  );
+
+  if (isPublic) {
+    return next();
+  }
+
+  // For all other /api routes, require a valid token
+  return authenticateToken(req, res, next);
+});
 
 
 // Routes

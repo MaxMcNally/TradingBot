@@ -4,7 +4,7 @@ import axios, { AxiosResponse } from "axios";
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8001/api";
 
 // Create axios instance with default config
-const api = axios.create({
+export const api = axios.create({
   baseURL: API_BASE,
   withCredentials: true
 });
@@ -31,13 +31,22 @@ api.interceptors.response.use(
         
         try {
           const response = await refreshToken();
-          const { token } = response.data.data;
+          interface RefreshTokenResponse {
+            token?: string;
+            data?: { token?: string };
+          }
+          const refreshData = response.data as RefreshTokenResponse;
+          const token: string | undefined = refreshData.token ?? refreshData.data?.token;
           
           // Update the stored token
-          localStorage.setItem('authToken', token);
+          if (token) {
+            localStorage.setItem('authToken', token);
+          }
           
           // Retry the original request with the new token
-          originalRequest.headers.Authorization = `Bearer ${token}`;
+          if (token) {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+          }
           return api(originalRequest);
         } catch (refreshError) {
           // Refresh failed, clear local data but don't redirect

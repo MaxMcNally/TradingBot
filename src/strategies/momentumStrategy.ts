@@ -43,6 +43,9 @@ export class MomentumStrategy extends AbstractStrategy {
   private currentPosition: 'LONG' | 'SHORT' | 'NONE' = 'NONE';
   private entryPrice: number = 0;
   private lastSignal: Signal = null;
+  // Wilder's smoothing state for O(1) RSI updates
+  private avgGain: number | null = null;
+  private avgLoss: number | null = null;
 
   constructor(config: MomentumConfig) {
     super();
@@ -56,15 +59,40 @@ export class MomentumStrategy extends AbstractStrategy {
    */
   addPrice(price: number): void {
     const maxWindow = Math.max(this.config.rsiWindow, this.config.momentumWindow);
-    this.addPriceToHistory(price, maxWindow);
+    // Maintain rolling window without reduce; keep at most maxWindow+1 for momentum diff
+    this.prices.push(price);
+    if (this.prices.length > maxWindow + 1) {
+      this.prices.shift();
+    }
 
-    // Need at least 'rsiWindow' prices to calculate RSI
+    // Need at least rsiWindow prices to start RSI smoothing
     if (this.prices.length < this.config.rsiWindow) {
       this.lastSignal = null;
       return;
     }
 
-    const rsi = this.calculateRSI();
+    // Initialize or update Wilder's RSI smoothing
+    const n = this.config.rsiWindow;
+    if (this.avgGain === null || this.avgLoss === null) {
+      // Seed averages using first n periods
+      let gains = 0;
+      let losses = 0;
+      for (let i = 1; i < Math.min(this.prices.length, n + 1); i++) {
+        const change = this.prices[i] - this.prices[i - 1];
+        if (change > 0) gains += change; else losses += -change;
+      }
+      this.avgGain = gains / n;
+      this.avgLoss = losses / n;
+    } else {
+      // Wilder update with last change
+      const change = this.prices[this.prices.length - 1] - this.prices[this.prices.length - 2];
+      const gain = Math.max(change, 0);
+      const loss = Math.max(-change, 0);
+      this.avgGain = ((this.avgGain * (n - 1)) + gain) / n;
+      this.avgLoss = ((this.avgLoss * (n - 1)) + loss) / n;
+    }
+
+    const rsi = this.computeRSIFromAverages();
     const momentum = this.calculateMomentum();
 
     // Buy signals
@@ -126,34 +154,32 @@ export class MomentumStrategy extends AbstractStrategy {
    * Calculate RSI (Relative Strength Index)
    */
   private calculateRSI(): number {
+    // Retained for compatibility; delegate to smoothed averages if available
+    if (this.avgGain !== null && this.avgLoss !== null) {
+      return this.computeRSIFromAverages();
+    }
     if (this.prices.length < this.config.rsiWindow + 1) {
-      return 50; // Neutral RSI if not enough data
+      return 50;
     }
-
-    const relevantPrices = this.prices.slice(-this.config.rsiWindow - 1);
-    let gains = 0;
-    let losses = 0;
-
-    for (let i = 1; i < relevantPrices.length; i++) {
-      const change = relevantPrices[i] - relevantPrices[i - 1];
-      if (change > 0) {
-        gains += change;
-      } else {
-        losses += Math.abs(change);
-      }
+    // Fallback initialization path
+    let gains = 0, losses = 0;
+    const start = this.prices.length - (this.config.rsiWindow + 1);
+    for (let i = start + 1; i < this.prices.length; i++) {
+      const change = this.prices[i] - this.prices[i - 1];
+      if (change > 0) gains += change; else losses += -change;
     }
-
     const avgGain = gains / this.config.rsiWindow;
     const avgLoss = losses / this.config.rsiWindow;
-
-    if (avgLoss === 0) {
-      return 100; // All gains, no losses
-    }
-
+    if (avgLoss === 0) return 100;
     const rs = avgGain / avgLoss;
-    const rsi = 100 - (100 / (1 + rs));
-    
-    return rsi;
+    return 100 - (100 / (1 + rs));
+  }
+
+  private computeRSIFromAverages(): number {
+    if (this.avgGain === null || this.avgLoss === null) return 50;
+    if (this.avgLoss === 0) return 100;
+    const rs = this.avgGain / this.avgLoss;
+    return 100 - (100 / (1 + rs));
   }
 
   /**
@@ -205,6 +231,8 @@ export class MomentumStrategy extends AbstractStrategy {
     this.prices = [];
     this.currentPosition = 'NONE';
     this.entryPrice = 0;
+    this.avgGain = null;
+    this.avgLoss = null;
   }
 
   /**
@@ -249,7 +277,6 @@ export function runMomentumStrategy(
 
   let currentShares = 0;
   let cash = config.initialCapital;
-  let portfolioValues: number[] = [];
   let winningTrades = 0;
   let totalTrades = 0;
   let maxPortfolioValue = config.initialCapital;
@@ -325,15 +352,13 @@ export function runMomentumStrategy(
 
     // Calculate current portfolio value
     const currentPortfolioValue = cash + (currentShares * dayData.close);
-    portfolioValues.push(currentPortfolioValue);
-    
-    // Track maximum drawdown
     if (currentPortfolioValue > maxPortfolioValue) {
       maxPortfolioValue = currentPortfolioValue;
-    }
-    const currentDrawdown = (maxPortfolioValue - currentPortfolioValue) / maxPortfolioValue;
-    if (currentDrawdown > maxDrawdown) {
-      maxDrawdown = currentDrawdown;
+    } else {
+      const currentDrawdown = (maxPortfolioValue - currentPortfolioValue) / maxPortfolioValue;
+      if (currentDrawdown > maxDrawdown) {
+        maxDrawdown = currentDrawdown;
+      }
     }
   }
 
