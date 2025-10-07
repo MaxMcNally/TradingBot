@@ -32,6 +32,7 @@ import {
   PersonAdd,
   Delete,
 } from '@mui/icons-material';
+import { api } from '../../api';
 
 interface TestUser {
   id: number;
@@ -84,9 +85,8 @@ const TestDataManager: React.FC<TestDataManagerProps> = ({ onTestUserCreated }) 
 
   const checkTestUser = async () => {
     try {
-      const response = await fetch('/api/test/test-user');
-      if (response.ok) {
-        const data = await response.json();
+      const { data } = await api.get('/test/test-user');
+      if (data?.success) {
         setTestUser(data.data);
       }
     } catch (err) {
@@ -99,13 +99,7 @@ const TestDataManager: React.FC<TestDataManagerProps> = ({ onTestUserCreated }) 
     setError(null);
     
     try {
-      const response = await fetch('/api/test/create-test-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      
-      const data = await response.json();
-      
+      const { data } = await api.post('/test/create-test-user');
       if (data.success) {
         setTestUser({
           id: data.data.user.id,
@@ -129,12 +123,7 @@ const TestDataManager: React.FC<TestDataManagerProps> = ({ onTestUserCreated }) 
     setError(null);
     
     try {
-      const response = await fetch('/api/test/cleanup', {
-        method: 'DELETE',
-      });
-      
-      const data = await response.json();
-      
+      const { data } = await api.delete('/test/cleanup');
       if (data.success) {
         setTestUser(null);
         setSuccess('Test data cleaned up successfully');
@@ -158,18 +147,11 @@ const TestDataManager: React.FC<TestDataManagerProps> = ({ onTestUserCreated }) 
     setError(null);
     
     try {
-      const response = await fetch('/api/test/mock-sessions/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: testUser.id,
-          ...mockConfig,
-          tradeInterval: mockConfig.tradeInterval * 1000, // Convert to milliseconds
-        }),
+      const { data } = await api.post('/test/mock-sessions/start', {
+        userId: testUser.id,
+        ...mockConfig,
+        tradeInterval: mockConfig.tradeInterval * 1000,
       });
-      
-      const data = await response.json();
-      
       if (data.success) {
         setSuccess(`Mock session started with ID: ${data.sessionId}`);
         fetchActiveMockSessions();
@@ -188,12 +170,7 @@ const TestDataManager: React.FC<TestDataManagerProps> = ({ onTestUserCreated }) 
     setError(null);
     
     try {
-      const response = await fetch(`/api/test/mock-sessions/${sessionId}/stop`, {
-        method: 'POST',
-      });
-      
-      const data = await response.json();
-      
+      const { data } = await api.post(`/test/mock-sessions/${sessionId}/stop`);
       if (data.success) {
         setSuccess('Mock session stopped successfully');
         fetchActiveMockSessions();
@@ -212,12 +189,7 @@ const TestDataManager: React.FC<TestDataManagerProps> = ({ onTestUserCreated }) 
     setError(null);
     
     try {
-      const response = await fetch('/api/test/mock-sessions/stop-all', {
-        method: 'POST',
-      });
-      
-      const data = await response.json();
-      
+      const { data } = await api.post('/test/mock-sessions/stop-all');
       if (data.success) {
         setSuccess('All mock sessions stopped successfully');
         fetchActiveMockSessions();
@@ -233,9 +205,8 @@ const TestDataManager: React.FC<TestDataManagerProps> = ({ onTestUserCreated }) 
 
   const fetchActiveMockSessions = async () => {
     try {
-      const response = await fetch('/api/test/mock-sessions/active');
-      if (response.ok) {
-        const data = await response.json();
+      const { data } = await api.get('/test/mock-sessions/active');
+      if (data?.success) {
         setActiveMockSessions(data.data.activeSessions);
       }
     } catch (err) {

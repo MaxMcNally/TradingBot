@@ -3,7 +3,7 @@ import axios, { AxiosResponse } from "axios";
 const API_BASE = "http://localhost:8001/api";
 
 // Create axios instance with default config
-const api = axios.create({
+export const api = axios.create({
   baseURL: API_BASE,
   withCredentials: true
 });
@@ -30,13 +30,18 @@ api.interceptors.response.use(
         
         try {
           const response = await refreshToken();
-          const { token } = response.data.data;
+          const anyData: any = response.data as any;
+          const token: string | undefined = anyData?.token ?? anyData?.data?.token;
           
           // Update the stored token
-          localStorage.setItem('authToken', token);
+          if (token) {
+            localStorage.setItem('authToken', token);
+          }
           
           // Retry the original request with the new token
-          originalRequest.headers.Authorization = `Bearer ${token}`;
+          if (token) {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+          }
           return api(originalRequest);
         } catch (refreshError) {
           // Refresh failed, clear local data but don't redirect
