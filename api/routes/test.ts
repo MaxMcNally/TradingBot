@@ -11,6 +11,11 @@ import {
 
 const router = express.Router();
 
+// Simple test route
+router.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'Test router is working' });
+});
+
 // Test data management routes
 router.post('/create-test-user', createTestUser);
 router.get('/test-user', getTestUser);

@@ -33,25 +33,25 @@ app.use(
 );
 
 app.use(bodyParser.json());
+
+// Debug route to test if routes are working
+app.get("/debug", (req, res) => {
+  console.log("Debug route hit ✅");
+  res.json({ status: "debug", message: "Routes are working" });
+});
+
 // Routes
 console.log("Mounting API routes...");
 app.use("/api/auth", authRouter);
-console.log("✅ Auth route mounted");
 app.use("/api/settings", settingsRouter);
-console.log("✅ Settings route mounted");
 app.use("/api/backtest", backtestRouter);
-console.log("✅ Backtest route mounted");
 app.use("/api/symbols", symbolRouter);
-console.log("✅ Symbols route mounted");
 app.use("/api/cache", cacheRouter);
-console.log("✅ Cache route mounted");
 app.use("/api/trading", tradingRouter);
-console.log("✅ Trading route mounted");
 app.use("/api/strategies", strategyRouter);
-console.log("✅ Strategies route mounted");
 app.use("/api/test", testRouter);
-console.log("✅ Test route mounted");
-console.log("All API routes mounted successfully");
+console.log("API routes mounted successfully");
+
 app.get("/ping", (req, res) => {
   console.log("Ping route hit ✅");
   res.json({ status: "ok" });
