@@ -1,7 +1,8 @@
 // Login component types and interfaces
 
 export interface LoginFormData {
-  email: string;
+  username: string;
+  email?: string;
   password: string;
 }
 
@@ -10,6 +11,7 @@ export interface LoginResponse {
   data: {
     token: string;
     user: User;
+    requires2fa?: boolean;
   };
 }
 
@@ -17,6 +19,9 @@ export interface User {
   id: string;
   email: string;
   name?: string;
+  username?: string;
+  email_verified?: number;
+  two_factor_enabled?: number;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -5,6 +5,8 @@ export interface User {
   email: string;
   name?: string;
   username?: string;
+  email_verified?: number;
+  two_factor_enabled?: number;
   createdAt?: string;
   updatedAt?: string;
 }
