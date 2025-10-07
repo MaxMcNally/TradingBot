@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
@@ -13,7 +13,7 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-export const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const authenticateToken: RequestHandler = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
@@ -25,8 +25,8 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
     if (err) {
       return res.status(403).json({ error: 'Invalid or expired token' });
     }
-    
-    req.user = user;
+
+    (req as AuthenticatedRequest).user = user;
     next();
   });
 };

@@ -30,8 +30,12 @@ api.interceptors.response.use(
         
         try {
           const response = await refreshToken();
-          const anyData: any = response.data as any;
-          const token: string | undefined = anyData?.token ?? anyData?.data?.token;
+          interface RefreshTokenResponse {
+            token?: string;
+            data?: { token?: string };
+          }
+          const refreshData = response.data as RefreshTokenResponse;
+          const token: string | undefined = refreshData.token ?? refreshData.data?.token;
           
           // Update the stored token
           if (token) {

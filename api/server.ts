@@ -62,7 +62,7 @@ app.use("/api", (req, res, next) => {
   }
 
   // For all other /api routes, require a valid token
-  return authenticateToken(req as any, res as any, next as any);
+  return authenticateToken(req, res, next);
 });
 
 
