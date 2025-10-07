@@ -51,6 +51,16 @@ app.get("/ping", (req, res) => {
   console.log("Ping route hit ✅");
   res.json({ status: "ok" });
 });
+
+app.get("/", (req, res) => {
+  console.log("Root route hit ✅");
+  res.json({ status: "ok", message: "API server is running" });
+});
+
+app.get("/api", (req, res) => {
+  console.log("API root route hit ✅");
+  res.json({ status: "ok", message: "API routes are available" });
+});
 // Initialize database and start server
 initDatabase()
   .then(() => {
