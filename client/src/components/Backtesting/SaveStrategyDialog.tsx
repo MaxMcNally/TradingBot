@@ -111,7 +111,7 @@ const SaveStrategyDialog: React.FC<SaveStrategyDialogProps> = ({
           sellThreshold: formData.sellThreshold,
           titleWeight: formData.titleWeight,
           recencyHalfLifeHours: formData.recencyHalfLifeHours,
-          newsSource: formData.newsSource,
+          // newsSource is backend-controlled
         }),
         ...(formData.strategy === 'meanReversion' && {
           window: formData.window,

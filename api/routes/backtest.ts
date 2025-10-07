@@ -338,7 +338,7 @@ backtestRouter.get("/strategies", (req: Request, res: Response) => {
           }
         },
         {
-          name: "sentimentAnalysis",
+          name: "SentimentAnalysis",
           description: "Sentiment Analysis Strategy - Aggregates recent news sentiment to produce BUY/SELL signals",
           category: "News/Sentiment",
           parameters: {

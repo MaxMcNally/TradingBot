@@ -48,6 +48,7 @@ const Trading: React.FC = () => {
         defaultParams.sellThreshold = -0.4;
         defaultParams.titleWeight = 2.0;
         defaultParams.recencyHalfLifeHours = 12;
+        // newsSource is backend-controlled; do not expose toggle in client
         break;
       case 'meanReversion':
       case 'MeanReversion':

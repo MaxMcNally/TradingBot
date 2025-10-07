@@ -42,6 +42,7 @@ const StrategyParameters: React.FC<StrategyParametersProps> = ({
         defaultParams.sellThreshold = -0.4;
         defaultParams.titleWeight = 2.0;
         defaultParams.recencyHalfLifeHours = 12;
+        // newsSource is backend-controlled; do not expose toggle in client
         break;
       case 'meanReversion':
       case 'MeanReversion':
@@ -162,6 +163,7 @@ const StrategyParameters: React.FC<StrategyParametersProps> = ({
               fullWidth
               inputProps={{ min: 1, max: 72 }}
             />
+            {/* newsSource is backend-controlled; do not render a control */}
           </Stack>
         );
       case 'meanReversion':

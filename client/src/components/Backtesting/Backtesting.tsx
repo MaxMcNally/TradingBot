@@ -82,7 +82,6 @@ const BacktestingSimple: React.FC = () => {
       sellThreshold: -0.4,
       titleWeight: 2.0,
       recencyHalfLifeHours: 12,
-      newsSource: 'yahoo',
       // Mean Reversion parameters
       window: 20,
       threshold: 0.05,
@@ -151,7 +150,7 @@ const BacktestingSimple: React.FC = () => {
           defaultParams.sellThreshold = -0.4;
           defaultParams.titleWeight = 2.0;
           defaultParams.recencyHalfLifeHours = 12;
-          defaultParams.newsSource = 'yahoo';
+          // newsSource is backend-controlled; do not expose toggle
           break;
         case 'movingAverage':
           defaultParams.shortWindow = 5;
@@ -396,6 +395,7 @@ const BacktestingSimple: React.FC = () => {
                           size="small"
                           fullWidth
                         />
+                        {/* newsSource is backend-controlled; no UI toggle here */}
                       </Stack>
                     </Box>
                   )}
