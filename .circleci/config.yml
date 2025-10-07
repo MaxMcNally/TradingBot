@@ -220,16 +220,18 @@ jobs:
             npx railway --version
             echo "Setting Railway environment to production..."
             npx railway environment production
+            echo "Checking available services:"
+            npx railway status
             echo "Deploying to Railway production environment:"
-            npx railway up --service api
+            npx railway up
       - run:
           name: Set production environment variables
           command: |
-            npx railway variables --set "NODE_ENV=production" --service api
-            npx railway variables --set "TRADING_MODE=paper" --service api
-            npx railway variables --set "LOG_LEVEL=info" --service api
-            npx railway variables --set "JWT_SECRET=$JWT_SECRET" --service api
-            npx railway variables --set "SESSION_SECRET=$SESSION_SECRET" --service api
+            npx railway variables --set "NODE_ENV=production"
+            npx railway variables --set "TRADING_MODE=paper"
+            npx railway variables --set "LOG_LEVEL=info"
+            npx railway variables --set "JWT_SECRET=$JWT_SECRET"
+            npx railway variables --set "SESSION_SECRET=$SESSION_SECRET"
       - run:
           name: Get Production Deployment URL
           command: |
@@ -256,12 +258,14 @@ jobs:
           command: |
             echo "Deploying client to Railway production environment..."
             npx railway environment production
-            npx railway up --service client
+            echo "Checking available services:"
+            npx railway status
+            npx railway up
       - run:
           name: Get Client Production Deployment URL
           command: |
             echo "Client Production Deployment URL:"
-            npx railway domain --service client
+            npx railway domain
 
 # Define workflows
 workflows:
