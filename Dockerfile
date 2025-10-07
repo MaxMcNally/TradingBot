@@ -1,5 +1,5 @@
 # Multi-stage build for API service
-FROM node:20-alpine AS base
+FROM node:18-alpine AS base
 
 # Install dependencies needed for native modules and Postgres client
 RUN apk add --no-cache python3 make g++ postgresql-client curl
