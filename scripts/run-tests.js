@@ -37,9 +37,6 @@ function logError(message) {
   log(`❌ ${message}`, 'red');
 }
 
-function logWarning(_message) {
-  // Unused function
-}
 
 // Test configuration
 const testConfig = {

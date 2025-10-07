@@ -14,7 +14,7 @@ module.exports = {
     '^.+\\.ts$': 'ts-jest',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(yahoo-finance2|node-fetch)/)'
+    'node_modules/(?!(yahoo-finance2|node-fetch|@types)/)'
   ],
   collectCoverageFrom: [
     'src/**/*.ts',
@@ -28,14 +28,13 @@ module.exports = {
   setupFilesAfterEnv: [],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '^node-fetch$': '<rootDir>/node_modules/node-fetch/src/index.js'
+    '^node-fetch$': '<rootDir>/src/__mocks__/node-fetch.js'
   },
   testTimeout: 10000,
   verbose: true,
-  extensionsToTreatAsEsm: ['.ts'],
   globals: {
     'ts-jest': {
-      useESM: true
+      useESM: false
     }
   }
 };

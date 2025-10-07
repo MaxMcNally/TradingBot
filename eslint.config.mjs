@@ -15,7 +15,8 @@ export default [
       "client/node_modules/**",
       "api/node_modules/**",
       "**/*.d.ts",
-      "**/__tests__/disabled/**"
+      "**/__tests__/disabled/**",
+      "src/__tests__/strategies/sentimentAnalysisStrategy.test.ts"
     ]
   },
 

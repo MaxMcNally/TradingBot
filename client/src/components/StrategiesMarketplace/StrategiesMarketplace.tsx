@@ -32,7 +32,9 @@ import {
   Assessment as AssessmentIcon,
   Public as PublicIcon,
   ContentCopy as CopyIcon,
-  CalendarToday as CalendarIcon
+  CalendarToday as CalendarIcon,
+  Person as PersonIcon,
+  Visibility as ViewIcon
 } from '@mui/icons-material';
 import { usePublicStrategies } from '../../hooks';
 import { UserStrategy, copyPublicStrategy } from '../../api';
