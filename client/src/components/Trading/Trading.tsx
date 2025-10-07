@@ -39,6 +39,17 @@ const Trading: React.FC = () => {
     const defaultParams: Record<string, any> = {};
     
     switch (selectedStrategy) {
+      case 'sentimentAnalysis':
+      case 'SentimentAnalysis':
+        defaultParams.lookbackDays = 3;
+        defaultParams.pollIntervalMinutes = 0;
+        defaultParams.minArticles = 2;
+        defaultParams.buyThreshold = 0.4;
+        defaultParams.sellThreshold = -0.4;
+        defaultParams.titleWeight = 2.0;
+        defaultParams.recencyHalfLifeHours = 12;
+        // newsSource is backend-controlled; do not expose toggle in client
+        break;
       case 'meanReversion':
       case 'MeanReversion':
         defaultParams.window = 20;

@@ -157,7 +157,7 @@ const StockPicker: React.FC<StockPickerProps> = ({
       )}
 
       {/* Selected Stocks */}
-      {selectedStocks.length > 0 && (
+      {Array.isArray(selectedStocks) && selectedStocks.length > 0 && (
         <Box mb={3}>
           {!compact && (
             <Typography variant="subtitle2" gutterBottom>
@@ -317,7 +317,7 @@ const StockPicker: React.FC<StockPickerProps> = ({
                 variant="outlined"
                 size="small"
                 onClick={() => handleAddStock(symbol)}
-                disabled={selectedStocks.includes(symbol) || selectedStocks.length >= maxStocks}
+                disabled={(selectedStocks || []).includes(symbol) || (selectedStocks || []).length >= maxStocks}
                 startIcon={<Add />}
               >
                 {symbol}

@@ -82,6 +82,22 @@ const EnhancedStrategySelector: React.FC<EnhancedStrategySelectorProps> = ({
       symbols: [],
     },
     {
+      name: 'SentimentAnalysis',
+      description: 'News sentiment-based strategy using recent articles to generate BUY/SELL signals.',
+      parameters: {
+        lookbackDays: 3,
+        pollIntervalMinutes: 0,
+        minArticles: 2,
+        buyThreshold: 0.4,
+        sellThreshold: -0.4,
+        titleWeight: 2.0,
+        recencyHalfLifeHours: 12,
+        // backend controls news source; default set server-side
+      },
+      enabled: true,
+      symbols: [],
+    },
+    {
       name: 'BollingerBands',
       description: 'Uses Bollinger Bands to identify overbought/oversold conditions. Buy when price touches lower band, sell when it touches upper band.',
       parameters: {

@@ -16,6 +16,15 @@ export interface BacktestFormData {
   // Common parameters
   initialCapital: number;
   sharesPerTrade: number;
+  // Sentiment Analysis parameters
+  lookbackDays?: number;
+  pollIntervalMinutes?: number;
+  minArticles?: number;
+  buyThreshold?: number;
+  sellThreshold?: number;
+  titleWeight?: number;
+  recencyHalfLifeHours?: number;
+  newsSource?: 'tiingo' | 'yahoo';
   // Mean Reversion parameters
   window: number;
   threshold: number;

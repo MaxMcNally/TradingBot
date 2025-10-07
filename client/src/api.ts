@@ -91,10 +91,40 @@ export interface BacktestRequest {
   symbols: string | string[];
   startDate: string;
   endDate: string;
-  window: number;
-  threshold: number;
-  initialCapital: number;
-  sharesPerTrade: number;
+  // Provider
+  provider?: 'yahoo' | 'polygon' | 'polygon-flatfiles';
+  // Common
+  initialCapital?: number;
+  sharesPerTrade?: number;
+  // Mean Reversion
+  window?: number;
+  threshold?: number;
+  // Moving Average Crossover
+  fastWindow?: number;
+  slowWindow?: number;
+  maType?: 'SMA' | 'EMA';
+  // Momentum
+  rsiWindow?: number;
+  rsiOverbought?: number;
+  rsiOversold?: number;
+  momentumWindow?: number;
+  momentumThreshold?: number;
+  // Bollinger Bands
+  multiplier?: number;
+  // Breakout
+  lookbackWindow?: number;
+  breakoutThreshold?: number;
+  minVolumeRatio?: number;
+  confirmationPeriod?: number;
+  // Sentiment Analysis
+  lookbackDays?: number;
+  pollIntervalMinutes?: number;
+  minArticles?: number;
+  buyThreshold?: number;
+  sellThreshold?: number;
+  titleWeight?: number;
+  recencyHalfLifeHours?: number;
+  newsSource?: 'tiingo' | 'yahoo';
 }
 
 export interface BacktestResult {
