@@ -1,6 +1,7 @@
 import axios, { AxiosResponse } from "axios";
 
-const API_BASE = "http://localhost:8001/api";
+// Use environment-based API URL for production, localhost for development
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8001/api";
 
 // Create axios instance with default config
 const api = axios.create({
