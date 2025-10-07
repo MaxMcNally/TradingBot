@@ -25,6 +25,26 @@ CREATE INDEX IF NOT EXISTS idx_cache_last_accessed ON historical_data_cache(last
 -- Index for provider-specific queries
 CREATE INDEX IF NOT EXISTS idx_cache_provider ON historical_data_cache(provider);
 
+-- News cache for provider.getNews results
+CREATE TABLE IF NOT EXISTS news_cache (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    symbol TEXT NOT NULL,
+    provider TEXT NOT NULL, -- 'yahoo', 'tiingo', etc.
+    start_date TEXT, -- optional filter lower bound
+    end_date TEXT,   -- optional filter upper bound
+    limit INTEGER,   -- requested limit
+    data_json TEXT NOT NULL, -- JSON string of NewsArticle[]
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_accessed DATETIME DEFAULT CURRENT_TIMESTAMP,
+    access_count INTEGER DEFAULT 1,
+    data_size INTEGER,
+    UNIQUE(symbol, provider, IFNULL(start_date, ''), IFNULL(end_date, ''), IFNULL(limit, -1))
+);
+
+CREATE INDEX IF NOT EXISTS idx_news_cache_symbol_dates ON news_cache(symbol, start_date, end_date);
+CREATE INDEX IF NOT EXISTS idx_news_cache_provider ON news_cache(provider);
+CREATE INDEX IF NOT EXISTS idx_news_cache_last_accessed ON news_cache(last_accessed);
+
 -- Cache metadata table for tracking cache statistics
 CREATE TABLE IF NOT EXISTS cache_metadata (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

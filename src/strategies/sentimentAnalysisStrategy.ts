@@ -2,6 +2,7 @@ import { AbstractStrategy, Signal } from './baseStrategy';
 import { DataProvider, NewsArticle } from '../dataProviders/baseProvider';
 import { TiingoNewsProvider, TiingoNewsOptions } from '../dataProviders/TiingoNewsProvider';
 import { YahooDataProvider } from '../dataProviders/yahooProvider';
+import { CachedNewsProvider } from '../cache/CachedNewsProvider';
 
 export interface SentimentAnalysisConfig {
   symbol: string;
@@ -34,13 +35,13 @@ export class SentimentAnalysisStrategy extends AbstractStrategy {
       recencyHalfLifeHours: 12,
       ...config,
     };
-    // Choose news provider by config; default to Tiingo
-    const source = (this.config.newsSource || 'tiingo').toLowerCase();
-    if (source === 'yahoo') {
-      this.newsProvider = new YahooDataProvider();
-    } else {
-      this.newsProvider = new TiingoNewsProvider(this.config.tiingoApiKey);
-    }
+    // Choose news provider by config; default to Yahoo per PR review
+    const source = (this.config.newsSource || 'yahoo').toLowerCase();
+    const baseProvider = source === 'yahoo'
+      ? new YahooDataProvider()
+      : new TiingoNewsProvider(this.config.tiingoApiKey);
+    // Wrap with cache
+    this.newsProvider = new CachedNewsProvider(baseProvider, source);
   }
 
   addPrice(_price: number): void {
