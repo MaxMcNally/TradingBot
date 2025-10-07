@@ -135,7 +135,7 @@ jobs:
           name: Deploy to Railway QA
           command: |
             echo "Deploying to Railway QA environment..."
-            npx railway run --verbose --service api-qa
+            npx railway run --service api-qa
       - run:
           name: Set QA environment variables
           command: |
@@ -183,7 +183,7 @@ jobs:
             echo "Checking Railway CLI version:"
             npx railway --version
             echo "Using railway run command (supports RAILWAY_TOKEN):"
-            npx railway run --verbose --service api
+            npx railway run --service api
       - run:
           name: Set production environment variables
           command: |
