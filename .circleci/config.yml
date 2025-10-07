@@ -122,15 +122,8 @@ jobs:
             echo "RAILWAY_TOKEN is set: $([ -n "$RAILWAY_TOKEN" ] && echo "YES" || echo "NO")"
             echo "RAILWAY_PROJECT_ID is set: $([ -n "$RAILWAY_PROJECT_ID" ] && echo "YES" || echo "NO")"
             export RAILWAY_TOKEN=$RAILWAY_TOKEN
-            export RAILWAY_API_TOKEN=$RAILWAY_API_TOKEN
             export RAILWAY_PROJECT_ID=$RAILWAY_PROJECT_ID
             echo "Testing Railway authentication..."
-            npx railway whoami || echo "Environment variable auth failed"
-            echo "Trying with RAILWAY_API_TOKEN..."
-            export RAILWAY_API_TOKEN=$RAILWAY_TOKEN
-            npx railway whoami || echo "API token auth failed"
-            echo "Trying manual login with token..."
-            echo $RAILWAY_TOKEN | npx railway login || echo "Manual login failed"
             npx railway whoami
       - run:
           name: Link Railway Project
@@ -177,15 +170,8 @@ jobs:
             echo "RAILWAY_TOKEN is set: $([ -n "$RAILWAY_TOKEN" ] && echo "YES" || echo "NO")"
             echo "RAILWAY_PROJECT_ID is set: $([ -n "$RAILWAY_PROJECT_ID" ] && echo "YES" || echo "NO")"
             export RAILWAY_TOKEN=$RAILWAY_TOKEN
-            export RAILWAY_API_TOKEN=$RAILWAY_API_TOKEN
             export RAILWAY_PROJECT_ID=$RAILWAY_PROJECT_ID
             echo "Testing Railway authentication..."
-            npx railway whoami || echo "Environment variable auth failed"
-            echo "Trying with RAILWAY_API_TOKEN..."
-            export RAILWAY_API_TOKEN=$RAILWAY_TOKEN
-            npx railway whoami || echo "API token auth failed"
-            echo "Trying manual login with token..."
-            echo $RAILWAY_TOKEN | npx railway login || echo "Manual login failed"
             npx railway whoami
       - run:
           name: Link Railway Project
