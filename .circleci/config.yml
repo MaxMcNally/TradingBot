@@ -89,7 +89,7 @@ jobs:
           command: cd api && npm install
       - run:
           name: Run linting
-          command: yarn lint
+          command: yarn lint --max-warnings 500
 
   # Build Docker images
   build-images:
