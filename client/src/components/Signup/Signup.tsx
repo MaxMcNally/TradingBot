@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useForm } from "react-hook-form";
 import { signup } from "../../api";
 import {
   TextField,
@@ -15,60 +16,36 @@ import { PersonAdd } from "@mui/icons-material";
 import { SignupProps, SignupFormData, User } from "./Signup.types";
 
 const Signup: React.FC<SignupProps> = ({ setUser, onSwitchToLogin }) => {
-  const [formData, setFormData] = useState<SignupFormData>({
-    username: "",
-    password: "",
-    confirmPassword: "",
-    email: ""
+  const { register, handleSubmit, formState: { errors }, reset, watch, getValues } = useForm<SignupFormData>({
+    defaultValues: { username: "", password: "", confirmPassword: "", email: "" },
+    mode: "onChange",
   });
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const handleInputChange = (field: keyof SignupFormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: e.target.value
-    }));
-    // Clear error when user starts typing
-    if (error) setError("");
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
-    e.preventDefault();
-    
-    if (!formData.username || !formData.password) {
+  const onSubmit = async (data: SignupFormData): Promise<void> => {
+    if (!data.username || !data.password) {
       setError("Username and password are required");
       return;
     }
-
-    if (formData.password.length < 6) {
+    if (data.password.length < 6) {
       setError("Password must be at least 6 characters long");
       return;
     }
-
-    if (formData.password !== formData.confirmPassword) {
+    if (data.password !== data.confirmPassword) {
       setError("Passwords do not match");
       return;
     }
 
     setIsLoading(true);
     setError("");
-
     try {
-      const res = await signup({
-        username: formData.username,
-        password: formData.password,
-        email: formData.email
-      });
-      
-      // Store token and user data
+      const res = await signup({ username: data.username, password: data.password, email: data.email });
       if (res.data.token) {
         localStorage.setItem('authToken', res.data.token);
         localStorage.setItem('user', JSON.stringify(res.data.user));
       }
-      
       setUser(res.data.user);
-      // Inform the user to verify email if required
       if ((res.data as any).emailVerificationRequired) {
         alert('Please verify your email address. Check your inbox.');
       }
@@ -110,24 +87,24 @@ const Signup: React.FC<SignupProps> = ({ setUser, onSwitchToLogin }) => {
           </Typography>
         </Box>
 
-        <Box component="form" onSubmit={handleSubmit}>
+        <Box component="form" onSubmit={handleSubmit(onSubmit)}>
           <TextField
             fullWidth
             label="Username"
-            value={formData.username}
-            onChange={handleInputChange("username")}
+            {...register("username", { required: true })}
             margin="normal"
             required
             disabled={isLoading}
             autoComplete="username"
+            error={!!errors.username}
+            helperText={errors.username ? "Username is required" : ""}
           />
 
           <TextField
             fullWidth
             label="Email (Optional)"
             type="email"
-            value={formData.email}
-            onChange={handleInputChange("email")}
+            {...register("email")}
             margin="normal"
             disabled={isLoading}
             autoComplete="email"
@@ -137,25 +114,26 @@ const Signup: React.FC<SignupProps> = ({ setUser, onSwitchToLogin }) => {
             fullWidth
             label="Password"
             type="password"
-            value={formData.password}
-            onChange={handleInputChange("password")}
+            {...register("password", { required: true, minLength: 6 })}
             margin="normal"
             required
             disabled={isLoading}
             autoComplete="new-password"
-            helperText="Must be at least 6 characters"
+            error={!!errors.password}
+            helperText={errors.password ? "Must be at least 6 characters" : "Must be at least 6 characters"}
           />
 
           <TextField
             fullWidth
             label="Confirm Password"
             type="password"
-            value={formData.confirmPassword}
-            onChange={handleInputChange("confirmPassword")}
+            {...register("confirmPassword", { required: true, validate: (v) => v === getValues("password") })}
             margin="normal"
             required
             disabled={isLoading}
             autoComplete="new-password"
+            error={!!errors.confirmPassword}
+            helperText={errors.confirmPassword ? "Passwords must match" : ""}
           />
 
           {error && (

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useForm, FormProvider } from "react-hook-form";
 import {
   Box,
   Typography,
@@ -64,35 +65,39 @@ const BacktestingSimple: React.FC = () => {
   // Tab state
   const [activeTab, setActiveTab] = useState(0);
   
-  // State management
-  const [formData, setFormData] = useState<BacktestFormData>({
-    strategy: "meanReversion",
-    symbols: [],
-    startDate: "2023-01-01",
-    endDate: "2023-12-31",
-    initialCapital: 10000,
-    sharesPerTrade: 100,
-    // Mean Reversion parameters
-    window: 20,
-    threshold: 0.05,
-    // Moving Average Crossover parameters
-    fastWindow: 10,
-    slowWindow: 30,
-    maType: 'SMA',
-    // Momentum parameters
-    rsiWindow: 14,
-    rsiOverbought: 70,
-    rsiOversold: 30,
-    momentumWindow: 10,
-    momentumThreshold: 0.02,
-    // Bollinger Bands parameters
-    multiplier: 2.0,
-    // Breakout parameters
-    lookbackWindow: 20,
-    breakoutThreshold: 0.01,
-    minVolumeRatio: 1.5,
-    confirmationPeriod: 2,
+  // Form management with react-hook-form
+  const methods = useForm<BacktestFormData>({
+    defaultValues: {
+      strategy: "meanReversion",
+      symbols: [],
+      startDate: "2023-01-01",
+      endDate: "2023-12-31",
+      initialCapital: 10000,
+      sharesPerTrade: 100,
+      // Mean Reversion parameters
+      window: 20,
+      threshold: 0.05,
+      // Moving Average Crossover parameters
+      fastWindow: 10,
+      slowWindow: 30,
+      maType: 'SMA',
+      // Momentum parameters
+      rsiWindow: 14,
+      rsiOverbought: 70,
+      rsiOversold: 30,
+      momentumWindow: 10,
+      momentumThreshold: 0.02,
+      // Bollinger Bands parameters
+      multiplier: 2.0,
+      // Breakout parameters
+      lookbackWindow: 20,
+      breakoutThreshold: 0.01,
+      minVolumeRatio: 1.5,
+      confirmationPeriod: 2,
+    }
   });
+  const { watch, setValue, getValues } = methods;
+  const formData = watch();
 
   const [results, setResults] = useState<BacktestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -150,10 +155,7 @@ const BacktestingSimple: React.FC = () => {
   }, [formData.strategy]);
 
   const handleInputChange = (field: keyof BacktestFormData, value: string | number): void => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setValue(field, value as any);
   };
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -161,7 +163,8 @@ const BacktestingSimple: React.FC = () => {
   };
 
   const handleRunBacktest = async (): Promise<void> => {
-    if (formData.symbols.length === 0) {
+    const current = getValues();
+    if ((current.symbols || []).length === 0) {
       setError("Please select at least one symbol");
       return;
     }
@@ -169,12 +172,12 @@ const BacktestingSimple: React.FC = () => {
     try {
       setError(null);
       const response = await runBacktestMutation({
-        strategy: formData.strategy,
-        symbols: formData.symbols,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        initialCapital: formData.initialCapital,
-        sharesPerTrade: formData.sharesPerTrade,
+        strategy: current.strategy,
+        symbols: current.symbols,
+        startDate: current.startDate,
+        endDate: current.endDate,
+        initialCapital: current.initialCapital,
+        sharesPerTrade: current.sharesPerTrade,
         ...strategyParameters  // Spread the parameters at the top level
       });
 
@@ -215,6 +218,7 @@ const BacktestingSimple: React.FC = () => {
   }
   
   return (
+    <FormProvider {...methods}>
     <Box>
       {/* Header */}
       <Box mb={3}>
@@ -265,7 +269,7 @@ const BacktestingSimple: React.FC = () => {
             <TabPanel value={activeTab} index={0}>
               <StockSelectionSection
                 selectedStocks={formData.symbols}
-                onStocksChange={(symbols) => setFormData(prev => ({ ...prev, symbols }))}
+                onStocksChange={(symbols) => setValue('symbols', symbols)}
                 maxStocks={10}
                 title="Stock Selection"
                 description="Select the stocks you want to include in your backtest. You can choose up to {maxStocks} stocks."
@@ -277,7 +281,7 @@ const BacktestingSimple: React.FC = () => {
             <TabPanel value={activeTab} index={1}>
               <StrategySelectionSection
                 selectedStrategy={formData.strategy}
-                onStrategyChange={(strategy) => handleInputChange('strategy', strategy)}
+                onStrategyChange={(strategy) => setValue('strategy', strategy)}
                 onParametersChange={setStrategyParameters}
                 strategyParameters={strategyParameters}
                 title="Select Strategy for Backtesting"
@@ -885,11 +889,12 @@ const BacktestingSimple: React.FC = () => {
         open={saveStrategyDialogOpen}
         onClose={() => setSaveStrategyDialogOpen(false)}
         onSave={handleSaveStrategy}
-        formData={formData}
+        formData={getValues()}
         results={results}
         isLoading={isSavingStrategy}
       />
     </Box>
+    </FormProvider>
   );
 };
 

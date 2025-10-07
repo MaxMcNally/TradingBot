@@ -1,7 +1,7 @@
 // Signup component types and interfaces
 
 export interface SignupFormData {
-  name: string;
+  username: string;
   email: string;
   password: string;
   confirmPassword: string;

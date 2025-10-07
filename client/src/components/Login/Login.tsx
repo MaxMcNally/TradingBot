@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useForm } from "react-hook-form";
 import { signup, verify2FAAfterLogin, requestPasswordReset } from "../../api";
 import {
   TextField,
@@ -17,10 +18,15 @@ import { useUser } from "../../hooks";
 
 const Login: React.FC = () => {
   const { login, isLoading: userLoading, error: userError } = useUser();
-  const [formData, setFormData] = useState<LoginFormData>({
-    username: "",
-    password: "",
-    email: ""
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    getValues,
+  } = useForm<LoginFormData>({
+    defaultValues: { username: "", password: "", email: "" },
+    mode: "onChange",
   });
   const [isSignup, setIsSignup] = useState<boolean>(false);
   const [requires2FA, setRequires2FA] = useState<boolean>(false);
@@ -29,24 +35,13 @@ const Login: React.FC = () => {
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const handleInputChange = (field: keyof LoginFormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: e.target.value
-    }));
-    // Clear error when user starts typing
-    if (error) setError("");
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
-    e.preventDefault();
-    
-    if (!formData.username || !formData.password) {
+  const onSubmit = async (data: LoginFormData): Promise<void> => {
+    if (!data.username || !data.password) {
       setError("Username and password are required");
       return;
     }
 
-    if (isSignup && formData.password.length < 6) {
+    if (isSignup && data.password.length < 6) {
       setError("Password must be at least 6 characters long");
       return;
     }
@@ -56,7 +51,7 @@ const Login: React.FC = () => {
 
     try {
       if (forgotMode) {
-        await requestPasswordReset(formData.username || formData.email);
+        await requestPasswordReset(data.username || data.email || "");
         setError("");
         setSuccessMessage("If the account exists, a reset link was sent.");
         setForgotMode(false);
@@ -64,21 +59,19 @@ const Login: React.FC = () => {
         if (!twoFAToken) {
           setError("Enter your 2FA code");
         } else {
-          const res = await verify2FAAfterLogin(formData.username, twoFAToken);
+          const res = await verify2FAAfterLogin(data.username, twoFAToken);
           localStorage.setItem('authToken', res.data.token);
           localStorage.setItem('user', JSON.stringify(res.data.user));
           setError("");
         }
       } else if (isSignup) {
-        const requestData = { username: formData.username, password: formData.password, email: formData.email };
+        const requestData = { username: data.username, password: data.password, email: data.email };
         await signup(requestData);
         setError("");
-        // After successful signup, automatically log in
-        await login(formData.username, formData.password);
+        await login(data.username, data.password);
       } else {
-        // Call login; if backend indicates 2FA required, show 2FA field
         try {
-          await login(formData.username, formData.password);
+          await login(data.username, data.password);
           setError("");
         } catch (err: any) {
           const resp = err.response?.data;
@@ -100,7 +93,7 @@ const Login: React.FC = () => {
   const toggleMode = (): void => {
     setIsSignup(!isSignup);
     setError("");
-    setFormData({ username: "", password: "", email: "" });
+    reset({ username: "", password: "", email: "" });
     setRequires2FA(false);
     setTwoFAToken("");
     setForgotMode(false);
@@ -145,16 +138,17 @@ const Login: React.FC = () => {
           </Typography>
         </Box>
 
-        <Box component="form" onSubmit={handleSubmit}>
+        <Box component="form" onSubmit={handleSubmit(onSubmit)}>
           <TextField
             fullWidth
             label="Username"
-            value={formData.username}
-            onChange={handleInputChange("username")}
+            {...register("username", { required: !forgotMode })}
             margin="normal"
             required
             disabled={isLoading}
             autoComplete="username"
+            error={!!errors.username}
+            helperText={errors.username ? "Username is required" : ""}
           />
 
           {isSignup && (
@@ -162,8 +156,7 @@ const Login: React.FC = () => {
               fullWidth
               label="Email (Optional)"
               type="email"
-              value={formData.email}
-              onChange={handleInputChange("email")}
+              {...register("email")}
               margin="normal"
               disabled={isLoading}
               autoComplete="email"
@@ -174,13 +167,13 @@ const Login: React.FC = () => {
             fullWidth
             label="Password"
             type="password"
-            value={formData.password}
-            onChange={handleInputChange("password")}
+            {...register("password", { required: !forgotMode, minLength: isSignup ? 6 : undefined })}
             margin="normal"
             required
             disabled={isLoading}
             autoComplete={isSignup ? "new-password" : "current-password"}
-            helperText={isSignup ? "Must be at least 6 characters" : ""}
+            error={!!errors.password}
+            helperText={isSignup ? "Must be at least 6 characters" : errors.password ? "Password is required" : ""}
           />
 
           {requires2FA && !isSignup && (

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Divider } from '@mui/material';
+import { useFormContext } from 'react-hook-form';
 import { BacktestFormData } from '../Backtesting.types';
 import {
   MeanReversionParams,
@@ -9,39 +10,24 @@ import {
   BreakoutParams
 } from './index';
 
-interface StrategyParamsSelectorProps {
-  strategy: string;
-  formData: BacktestFormData;
-  onInputChange: (field: keyof BacktestFormData, value: string | number) => void;
-}
+const StrategyParamsSelector: React.FC = () => {
+  const { watch } = useFormContext<BacktestFormData>();
+  const strategy = watch('strategy');
 
-const StrategyParamsSelector: React.FC<StrategyParamsSelectorProps> = ({ 
-  strategy, 
-  formData, 
-  onInputChange 
-}) => {
   const renderStrategyParams = () => {
-    console.log("Rendering Strategy Params"); 
-    console.log(strategy);
-    
     switch (strategy) {
       case 'meanReversion':
-        return <MeanReversionParams formData={formData} onInputChange={onInputChange} />;
-      
+        return <MeanReversionParams />;
       case 'movingAverageCrossover':
-        return <MovingAverageCrossoverParams formData={formData} onInputChange={onInputChange} />;
-      
+        return <MovingAverageCrossoverParams />;
       case 'momentum':
-        return <MomentumParams formData={formData} onInputChange={onInputChange} />;
-      
+        return <MomentumParams />;
       case 'bollingerBands':
-        return <BollingerBandsParams formData={formData} onInputChange={onInputChange} />;
-      
+        return <BollingerBandsParams />;
       case 'breakout':
-        return <BreakoutParams formData={formData} onInputChange={onInputChange} />;
-      
+        return <BreakoutParams />;
       default:
-        return <MeanReversionParams formData={formData} onInputChange={onInputChange} />;
+        return <MeanReversionParams />;
     }
   };
 
