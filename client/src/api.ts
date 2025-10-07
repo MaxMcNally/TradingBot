@@ -65,6 +65,9 @@ export interface User {
   id: string;
   email: string;
   name?: string;
+  username?: string;
+  email_verified?: number;
+  two_factor_enabled?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -177,6 +180,33 @@ export const getCurrentUser = (): Promise<AxiosResponse<ApiResponse<User>>> =>
 
 export const refreshToken = (): Promise<AxiosResponse<ApiResponse<AuthResponse>>> => 
   api.post('/auth/refresh');
+
+// Email verification API
+export const requestEmailVerification = (): Promise<AxiosResponse<ApiResponse<{ verificationToken: string }>>> => 
+  api.post('/auth/verify-email/request');
+
+export const confirmEmailVerification = (token: string): Promise<AxiosResponse<ApiResponse>> => 
+  api.post('/auth/verify-email/confirm', { token });
+
+// 2FA API
+export const setup2FA = (): Promise<AxiosResponse<ApiResponse<{ secret: string; qrCodeDataUrl: string }>>> => 
+  api.post('/auth/2fa/setup');
+
+export const enable2FA = (token: string): Promise<AxiosResponse<ApiResponse>> => 
+  api.post('/auth/2fa/enable', { token });
+
+export const disable2FA = (): Promise<AxiosResponse<ApiResponse>> => 
+  api.post('/auth/2fa/disable');
+
+export const verify2FAAfterLogin = (username: string, token: string): Promise<AxiosResponse<ApiResponse<AuthResponse>>> => 
+  api.post('/auth/2fa/verify', { username, token });
+
+// Password reset API
+export const requestPasswordReset = (emailOrUsername: string): Promise<AxiosResponse<ApiResponse<{ resetToken: string }>>> => 
+  api.post('/auth/password/reset/request', { emailOrUsername });
+
+export const confirmPasswordReset = (token: string, newPassword: string): Promise<AxiosResponse<ApiResponse>> => 
+  api.post('/auth/password/reset/confirm', { token, newPassword });
 
 // Settings API
 export const getSettings = (user_id: string): Promise<AxiosResponse<Setting[]>> => 

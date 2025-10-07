@@ -8,6 +8,8 @@ export interface AuthenticatedRequest extends Request {
     id: number;
     username: string;
     email?: string;
+    email_verified?: number;
+    two_factor_enabled?: number;
   };
 }
 
@@ -29,12 +31,14 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
   });
 };
 
-export const generateToken = (user: { id: number; username: string; email?: string }) => {
+export const generateToken = (user: { id: number; username: string; email?: string; email_verified?: number; two_factor_enabled?: number }) => {
   return jwt.sign(
     { 
       id: user.id, 
       username: user.username, 
-      email: user.email 
+      email: user.email,
+      email_verified: user.email_verified,
+      two_factor_enabled: user.two_factor_enabled,
     },
     JWT_SECRET,
     { expiresIn: '24h' }

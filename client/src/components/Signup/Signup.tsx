@@ -68,6 +68,10 @@ const Signup: React.FC<SignupProps> = ({ setUser, onSwitchToLogin }) => {
       }
       
       setUser(res.data.user);
+      // Inform the user to verify email if required
+      if ((res.data as any).emailVerificationRequired) {
+        alert('Please verify your email address. Check your inbox.');
+      }
       setError("");
     } catch (err: any) {
       setError(err.response?.data?.error || "An error occurred");
