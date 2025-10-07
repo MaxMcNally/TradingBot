@@ -12,10 +12,6 @@ sed -i "s|http://api-qa-qa.up.railway.app|$API_URL|g" /etc/nginx/nginx.conf
 mkdir -p /var/run/nginx
 chown -R nginx:nginx /var/run/nginx
 
-# Test nginx configuration
-echo "Testing nginx configuration..."
-nginx -t
-
 # Start nginx as nginx user
 echo "Starting nginx..."
 exec su-exec nginx nginx -g 'daemon off;'
