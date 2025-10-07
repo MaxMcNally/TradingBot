@@ -46,6 +46,10 @@ export class BreakoutStrategy {
   private positionHeldDays: number = 0;
   private lastSupportLevel: number = 0;
   private lastResistanceLevel: number = 0;
+  // Deques for O(1) sliding window min/max
+  private minDeque: number[] = []; // stores indices
+  private maxDeque: number[] = []; // stores indices
+  private baseIndex: number = 0; // absolute index of prices[0]
 
   constructor(config: BreakoutConfig) {
     this.config = config;
@@ -58,22 +62,33 @@ export class BreakoutStrategy {
    * @returns Trading signal: 'BUY', 'SELL', or null
    */
   addPrice(price: number, volume: number = 1): 'BUY' | 'SELL' | null {
+    const idx = this.baseIndex + this.prices.length; // absolute index of the incoming sample
     this.prices.push(price);
     this.volumes.push(volume);
-    
-    // Keep only the last 'lookbackWindow' prices
-    if (this.prices.length > this.config.lookbackWindow) {
+
+    // Maintain deques with absolute indices
+    this.pushToMinDeque(idx, price);
+    this.pushToMaxDeque(idx, price);
+
+    // Trim window size by removing the oldest element when exceeded
+    const window = this.config.lookbackWindow;
+    if (this.prices.length > window) {
       this.prices.shift();
       this.volumes.shift();
+      this.baseIndex += 1;
     }
 
+    const cutoff = idx - (window - 1);
+    this.popOutdatedFromDeques(cutoff);
+
     // Need at least 'lookbackWindow' prices to identify levels
-    if (this.prices.length < this.config.lookbackWindow) {
+    if (idx - this.baseIndex + 1 < window) {
       return null;
     }
 
-    // Update support and resistance levels
-    this.updateSupportResistanceLevels();
+    // Update support and resistance levels from deques (values via absolute index)
+    this.lastSupportLevel = this.valueAt(this.minDeque[0]);
+    this.lastResistanceLevel = this.valueAt(this.maxDeque[0]);
 
     // Check for position exit (time-based)
     if (this.currentPosition !== 'NONE') {
@@ -96,34 +111,41 @@ export class BreakoutStrategy {
    * Update support and resistance levels based on recent price history
    */
   private updateSupportResistanceLevels(): void {
-    if (this.prices.length < this.config.lookbackWindow) {
-      return;
-    }
-
+    // Retained for compatibility; not used in fast path with deques
+    if (this.prices.length < this.config.lookbackWindow) return;
     const recentPrices = this.prices.slice(-this.config.lookbackWindow);
-    
-    // Find local minima (support) and maxima (resistance)
-    const minima: number[] = [];
-    const maxima: number[] = [];
+    this.lastSupportLevel = Math.min(...recentPrices);
+    this.lastResistanceLevel = Math.max(...recentPrices);
+  }
 
-    for (let i = 1; i < recentPrices.length - 1; i++) {
-      // Local minimum (support)
-      if (recentPrices[i] < recentPrices[i - 1] && recentPrices[i] < recentPrices[i + 1]) {
-        minima.push(recentPrices[i]);
-      }
-      // Local maximum (resistance)
-      if (recentPrices[i] > recentPrices[i - 1] && recentPrices[i] > recentPrices[i + 1]) {
-        maxima.push(recentPrices[i]);
-      }
-    }
+  private pushToMinDeque(idx: number, value: number): void {
+    const window = this.config.lookbackWindow;
+    const cutoff = idx - (window - 1);
+    while (this.minDeque.length && this.minDeque[0] < cutoff) this.minDeque.shift();
+    while (this.minDeque.length && this.valueAt(this.minDeque[this.minDeque.length - 1]) >= value) this.minDeque.pop();
+    this.minDeque.push(idx);
+  }
 
-    // Use the most recent significant levels
-    if (minima.length > 0) {
-      this.lastSupportLevel = Math.min(...minima);
+  private pushToMaxDeque(idx: number, value: number): void {
+    const window = this.config.lookbackWindow;
+    const cutoff = idx - (window - 1);
+    while (this.maxDeque.length && this.maxDeque[0] < cutoff) this.maxDeque.shift();
+    while (this.maxDeque.length && this.valueAt(this.maxDeque[this.maxDeque.length - 1]) <= value) this.maxDeque.pop();
+    this.maxDeque.push(idx);
+  }
+
+  private popOutdatedFromDeques(cutoff: number): void {
+    while (this.minDeque.length && this.minDeque[0] < cutoff) this.minDeque.shift();
+    while (this.maxDeque.length && this.maxDeque[0] < cutoff) this.maxDeque.shift();
+  }
+
+  private valueAt(absIndex: number): number {
+    const rel = absIndex - this.baseIndex;
+    if (rel < 0 || rel >= this.prices.length) {
+      // Should not happen if deques are maintained correctly; fallback to edge values
+      return this.prices[Math.max(0, Math.min(this.prices.length - 1, rel))] ?? this.prices[this.prices.length - 1];
     }
-    if (maxima.length > 0) {
-      this.lastResistanceLevel = Math.max(...maxima);
-    }
+    return this.prices[rel];
   }
 
   /**
@@ -192,6 +214,9 @@ export class BreakoutStrategy {
     this.positionHeldDays = 0;
     this.lastSupportLevel = 0;
     this.lastResistanceLevel = 0;
+    this.minDeque = [];
+    this.maxDeque = [];
+    this.baseIndex = 0;
   }
 
   /**
@@ -235,7 +260,6 @@ export function runBreakoutStrategy(
 
   let currentShares = 0;
   let cash = config.initialCapital;
-  let portfolioValues: number[] = [];
   let winningTrades = 0;
   let totalTrades = 0;
   let maxPortfolioValue = config.initialCapital;
@@ -309,15 +333,13 @@ export function runBreakoutStrategy(
 
     // Calculate current portfolio value
     const currentPortfolioValue = cash + (currentShares * dayData.close);
-    portfolioValues.push(currentPortfolioValue);
-    
-    // Track maximum drawdown
     if (currentPortfolioValue > maxPortfolioValue) {
       maxPortfolioValue = currentPortfolioValue;
-    }
-    const currentDrawdown = (maxPortfolioValue - currentPortfolioValue) / maxPortfolioValue;
-    if (currentDrawdown > maxDrawdown) {
-      maxDrawdown = currentDrawdown;
+    } else {
+      const currentDrawdown = (maxPortfolioValue - currentPortfolioValue) / maxPortfolioValue;
+      if (currentDrawdown > maxDrawdown) {
+        maxDrawdown = currentDrawdown;
+      }
     }
   }
 

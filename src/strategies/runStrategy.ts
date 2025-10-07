@@ -35,7 +35,7 @@ export function runStrategy(
     sharesPerTrade: 100
   }
 ): BacktestResult {
-  // Use the dedicated mean reversion strategy
+  // Use the dedicated mean reversion strategy (already optimized for O(1) rolling MA)
   const result = runMeanReversionStrategy(symbol, data, config);
   
   // Convert the result to match the expected interface
