@@ -124,16 +124,6 @@ jobs:
             export RAILWAY_TOKEN=$RAILWAY_TOKEN
             export RAILWAY_PROJECT_ID=$RAILWAY_PROJECT_ID
       - run:
-          name: Link Railway Project
-          command: |
-            echo "Linking to Railway project..."
-            npx railway link --project $RAILWAY_PROJECT_ID
-      - run:
-          name: Switch to QA Environment
-          command: |
-            echo "Switching to QA environment..."
-            npx railway environment qa
-      - run:
           name: Deploy to Railway QA
           command: |
             echo "Deploying to Railway QA environment..."
@@ -169,16 +159,6 @@ jobs:
             echo "RAILWAY_PROJECT_ID is set: $([ -n "$RAILWAY_PROJECT_ID" ] && echo "YES" || echo "NO")"
             export RAILWAY_TOKEN=$RAILWAY_TOKEN
             export RAILWAY_PROJECT_ID=$RAILWAY_PROJECT_ID
-      - run:
-          name: Link Railway Project
-          command: |
-            echo "Linking to Railway project..."
-            npx railway link --project $RAILWAY_PROJECT_ID
-      - run:
-          name: Switch to Production Environment
-          command: |
-            echo "Switching to production environment..."
-            npx railway environment production
       - run:
           name: Deploy to Railway Production
           command: |
