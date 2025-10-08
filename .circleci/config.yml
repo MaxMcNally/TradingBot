@@ -320,24 +320,73 @@ jobs:
 
 # Define workflows
 workflows:
-  # Main workflow - Run tests on all branches, deploy only on main
-  build-and-test:
+  # PR workflow - Run tests and validation on pull requests
+  build:
     jobs:
-      - install-dependencies
+      - install-dependencies:
+          filters:
+            branches:
+              ignore: main
       - test-backend:
           requires:
             - install-dependencies
+          filters:
+            branches:
+              ignore: main
       - test-frontend:
           requires:
             - install-dependencies
+          filters:
+            branches:
+              ignore: main
       - lint:
           requires:
             - install-dependencies
+          filters:
+            branches:
+              ignore: main
       - build-images:
           requires:
             - test-backend
             - test-frontend
             - lint
+          filters:
+            branches:
+              ignore: main
+
+  # Main branch workflow - Deploy to QA after PR merge
+  staging:
+    jobs:
+      - install-dependencies:
+          filters:
+            branches:
+              only: main
+      - test-backend:
+          requires:
+            - install-dependencies
+          filters:
+            branches:
+              only: main
+      - test-frontend:
+          requires:
+            - install-dependencies
+          filters:
+            branches:
+              only: main
+      - lint:
+          requires:
+            - install-dependencies
+          filters:
+            branches:
+              only: main
+      - build-images:
+          requires:
+            - test-backend
+            - test-frontend
+            - lint
+          filters:
+            branches:
+              only: main
       - migrate-qa-database:
           requires:
             - build-images
