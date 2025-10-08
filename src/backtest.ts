@@ -23,6 +23,7 @@ const argv = yargs(hideBin(process.argv))
   // Common parameters
   .option("capital", { type: "number", default: 10000, description: "Initial capital" })
   .option("shares", { type: "number", default: 100, description: "Shares per trade" })
+  .option("interval", { type: "string", default: "day", choices: ["minute", "5min", "15min", "30min", "hour", "day"], description: "Data interval for backtesting" })
   .option("no-cache", { type: "boolean", default: false, description: "Disable caching for this run" })
   .option("prepopulate", { type: "boolean", default: false, description: "Pre-populate cache before running backtest" })
   .option("cache-stats", { type: "boolean", default: false, description: "Show cache statistics after backtest" })
@@ -97,19 +98,21 @@ async function main() {
   // Pre-populate cache if requested
   if (argv.prepopulate) {
     console.log("Pre-populating cache...");
-    await smartCache.prePopulateCache(argv.symbol, "day", argv.start, argv.end);
+    await smartCache.prePopulateCache(argv.symbol, argv.interval, argv.start, argv.end);
   }
   
   // Get data (with or without cache based on --no-cache flag)
   const data = argv.noCache 
-    ? await dataProvider.getHistorical(argv.symbol, "day", argv.start, argv.end)
-    : await smartCache.getHistoricalSmart(argv.symbol, "day", argv.start, argv.end);
+    ? await dataProvider.getHistorical(argv.symbol, argv.interval, argv.start, argv.end)
+    : await smartCache.getHistoricalSmart(argv.symbol, argv.interval, argv.start, argv.end);
   
   if(data){
     const formattedData = data.map((d) => {
-      const {date, close, open, volume} = d;
+      const {date, close, open, volume, timestamp} = d;
+      // Use timestamp for minute-level data, date for daily data
+      const dateStr = timestamp ? new Date(timestamp).toDateString() : new Date(date).toDateString();
       return {
-        date: new Date(date).toDateString(),
+        date: dateStr,
         close, 
         open,
         volume: volume || 1
@@ -206,6 +209,7 @@ async function main() {
     console.log(`\n=== Backtest Results for ${argv.symbol} ===`);
     console.log(`Period: ${argv.start} to ${argv.end}`);
     console.log(`Data Provider: ${argv.provider.toUpperCase()}`);
+    console.log(`Interval: ${argv.interval}`);
     console.log(`Strategy: ${strategyDescription}`);
     console.log(`Initial Capital: $${argv.capital.toLocaleString()}`);
     console.log(`Final Portfolio Value: $${result.finalPortfolioValue.toLocaleString()}`);

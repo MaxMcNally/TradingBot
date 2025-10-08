@@ -9,6 +9,8 @@ import { MovingAverageStrategy } from '../strategies/movingAverage';
 import { MeanReversionStrategy } from '../strategies/meanReversionStrategy';
 import { MomentumStrategy } from '../strategies/momentumStrategy';
 import { BollingerBandsStrategy } from '../strategies/bollingerBandsStrategy';
+import { BreakoutStrategy } from '../strategies/breakoutStrategy';
+import { MovingAverageCrossoverStrategy } from '../strategies/movingAverageCrossoverStrategy';
 
 export interface BotStatus {
   isRunning: boolean;
@@ -108,6 +110,25 @@ export class TradingBot extends EventEmitter {
               titleWeight,
               recencyHalfLifeHours,
               tiingoApiKey,
+            });
+            break;
+
+          case 'Breakout':
+            const { lookbackWindow, breakoutThreshold, minVolumeRatio, confirmationPeriod } = strategyConfig.parameters;
+            strategy = new BreakoutStrategy({
+              lookbackWindow: lookbackWindow || 20,
+              breakoutThreshold: breakoutThreshold || 0.01,
+              minVolumeRatio: minVolumeRatio || 1.5,
+              confirmationPeriod: confirmationPeriod || 1
+            });
+            break;
+
+          case 'MovingAverageCrossover':
+            const { fastWindow, slowWindow, maType } = strategyConfig.parameters;
+            strategy = new MovingAverageCrossoverStrategy({
+              fastWindow: fastWindow || 10,
+              slowWindow: slowWindow || 30,
+              maType: maType || 'SMA'
             });
             break;
 
@@ -218,6 +239,13 @@ export class TradingBot extends EventEmitter {
   private async startDataStream(): Promise<void> {
     const tradingConfig = this.config.getConfig();
     
+    // For PAPER mode, use polling instead of WebSocket for better reliability
+    if (tradingConfig.mode === 'PAPER' as any) {
+      console.log(`📡 Starting polling-based data feed for PAPER trading: ${tradingConfig.symbols.join(', ')}`);
+      this.startPollingDataFeed();
+      return;
+    }
+    
     try {
       console.log(`📡 Connecting to data stream for symbols: ${tradingConfig.symbols.join(', ')}`);
       
@@ -252,12 +280,72 @@ export class TradingBot extends EventEmitter {
       console.error('❌ Failed to connect to data stream:', error);
       this.emit('error', error as Error);
       
-      // Retry connection after 5 seconds
-      if (this.isRunning) {
-        console.log('🔄 Retrying connection in 5 seconds...');
-        setTimeout(() => this.startDataStream(), 5000);
+      // For PAPER mode, fall back to polling if WebSocket fails
+      if (tradingConfig.mode === 'PAPER' as any) {
+        console.log('🔄 Falling back to polling-based data feed...');
+        this.startPollingDataFeed();
+      } else {
+        // Retry connection after 5 seconds for LIVE mode
+        if (this.isRunning) {
+          console.log('🔄 Retrying connection in 5 seconds...');
+          setTimeout(() => this.startDataStream(), 5000);
+        }
       }
     }
+  }
+
+  private startPollingDataFeed(): void {
+    const tradingConfig = this.config.getConfig();
+    const pollInterval = 30000; // Poll every 30 seconds for paper trading
+    
+    console.log(`🔄 Starting polling data feed (${pollInterval/1000}s interval)`);
+    
+    const pollData = async () => {
+      if (!this.isRunning) return;
+      
+      try {
+        for (const symbol of tradingConfig.symbols) {
+          console.log(`📡 Fetching quote for ${symbol}...`);
+          const quote = await this.provider.getQuote(symbol);
+          
+          // Enhanced logging for Polygon data
+          console.log(`📊 Polygon Quote Data for ${symbol}:`, {
+            symbol: quote.symbol,
+            price: quote.price,
+            timestamp: quote.timestamp,
+            timestampFormatted: quote.timestamp ? new Date(quote.timestamp).toLocaleString() : 'N/A',
+            dataSource: 'Polygon Market Snapshot'
+          });
+          
+          if (quote.price) {
+            // Simulate trade data format for consistency
+            const mockTradeData = [{
+              ev: 'T',
+              sym: symbol,
+              p: quote.price,
+              s: 100, // Default size
+              t: quote.timestamp || Date.now()
+            }];
+            
+            console.log(`🔄 Processing market data for ${symbol}:`, mockTradeData[0]);
+            this.processMarketData(mockTradeData);
+          } else {
+            console.log(`⚠️  No price data received for ${symbol}`);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error polling data:', error);
+        this.emit('error', error as Error);
+      }
+      
+      // Schedule next poll
+      if (this.isRunning) {
+        setTimeout(pollData, pollInterval);
+      }
+    };
+    
+    // Start polling immediately
+    pollData();
   }
 
   private async processMarketData(data: any[]): Promise<void> {
@@ -279,6 +367,12 @@ export class TradingBot extends EventEmitter {
       if (strategy) {
         strategy.addPrice(price);
         const signal: Signal = strategy.getSignal();
+
+        // For PAPER mode, add more detailed logging
+        if (tradingConfig.mode === 'PAPER' as any) {
+          const portfolioStatus = this.portfolio.status(this.latestPrices);
+          console.log(`📊 ${symbol}: $${price.toFixed(2)} | Portfolio: $${portfolioStatus.totalValue.toFixed(2)} | Signal: ${signal || 'HOLD'}`);
+        }
 
         // Check for stop loss or take profit first
         const riskSignal = this.checkStopLossTakeProfit(symbol, price);
@@ -346,10 +440,18 @@ export class TradingBot extends EventEmitter {
       this.emit('trade', savedTrade);
       
       const reasonText = reason ? ` (${reason})` : '';
-      console.log(`📊 ${signal} ${quantity} ${symbol} at $${price.toFixed(2)}${reasonText}`);
+      const modeText = tradingConfig.mode === 'PAPER' as any ? '📄 PAPER' : '💰 LIVE';
+      console.log(`${modeText} ${signal} ${quantity} ${symbol} at $${price.toFixed(2)}${reasonText}`);
+      
       if (trade.pnl !== undefined) {
         const pnlColor = trade.pnl >= 0 ? '🟢' : '🔴';
         console.log(`${pnlColor} P&L: $${trade.pnl.toFixed(2)} | Daily P&L: $${this.dailyPnL.toFixed(2)}`);
+      }
+      
+      // Show portfolio status for paper trading
+      if (tradingConfig.mode === 'PAPER' as any) {
+        const portfolioStatus = this.portfolio.status(this.latestPrices);
+        console.log(`📊 Portfolio: $${portfolioStatus.totalValue.toFixed(2)} | Cash: $${portfolioStatus.cash.toFixed(2)} | Positions: ${Object.keys(portfolioStatus.positions).length}`);
       }
 
     } catch (error) {
@@ -359,7 +461,7 @@ export class TradingBot extends EventEmitter {
 
   private calculateTradePnL(symbol: string, sellPrice: number): number {
     const position = this.portfolio.status().positions[symbol];
-    if (position.shares > 0) {
+    if (position && position.shares > 0) {
       return (sellPrice - position.avgPrice) * 1; // quantity = 1
     }
     return 0;
@@ -481,7 +583,7 @@ export class TradingBot extends EventEmitter {
     const portfolioStatus = this.portfolio.status(this.latestPrices);
     const position = portfolioStatus.positions[symbol];
 
-    if (position.shares <= 0) return null;
+    if (!position || position.shares <= 0) return null;
 
     const entryPrice = position.avgPrice;
     const priceChange = (currentPrice - entryPrice) / entryPrice;

@@ -5,6 +5,7 @@ import {
   getUserRecentTrades,
   getUserTradingSessions,
   getUserPortfolioHistory,
+  getUserPerformanceMetrics,
   getActiveTradingSession,
   startTradingSession,
   stopTradingSession,
@@ -143,6 +144,32 @@ export const usePortfolioHistory = (userId: number, limit: number = 100): UsePor
 
   return {
     history,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  };
+};
+
+export const usePerformanceMetrics = (userId: number, limit: number = 50) => {
+  const {
+    data: metrics = [],
+    isLoading,
+    isError,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['performanceMetrics', userId, limit],
+    queryFn: async () => {
+      const response = await getUserPerformanceMetrics(userId, limit);
+      return response.data;
+    },
+    enabled: !!userId,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  return {
+    metrics,
     isLoading,
     isError,
     error,

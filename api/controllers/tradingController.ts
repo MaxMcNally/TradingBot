@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { UserManager } from "../../src/bot/UserManager";
 import { TradingDatabase } from "../../src/database/tradingSchema";
 import { PerformanceMetricsService } from "../services/performanceMetricsService";
+import { TradingBotManager } from "../services/tradingBotManager";
 
 export const getUserTradingStats = async (req: Request, res: Response) => {
   try {
@@ -96,6 +97,29 @@ export const getUserPortfolioHistory = async (req: Request, res: Response) => {
   }
 };
 
+export const getUserPerformanceMetrics = async (req: Request, res: Response) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    const limit = parseInt(req.query.limit as string) || 50;
+    
+    if (isNaN(userId)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    // Import StrategyPerformance here to avoid circular dependencies
+    const { StrategyPerformance } = await import('../models/StrategyPerformance');
+    const performances = await StrategyPerformance.findByUserId(userId, limit);
+    
+    // Parse the performance data
+    const parsedPerformances = performances.map(p => StrategyPerformance.parsePerformanceData(p));
+    
+    res.json(parsedPerformances);
+  } catch (error) {
+    console.error("Error getting user performance metrics:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 export const getActiveTradingSession = async (req: Request, res: Response) => {
   try {
     const userId = parseInt(req.params.userId);
@@ -141,7 +165,7 @@ export const getTradesBySession = async (req: Request, res: Response) => {
 
 export const startTradingSession = async (req: Request, res: Response) => {
   try {
-    const { mode, initialCash, symbols, strategy, scheduledEndTime } = req.body;
+    const { mode, initialCash, symbols, strategy, scheduledEndTime, dataProvider = 'polygon' } = req.body;
     const userId = parseInt(req.body.userId || req.params.userId);
     
     if (isNaN(userId)) {
@@ -165,6 +189,14 @@ export const startTradingSession = async (req: Request, res: Response) => {
       });
     }
 
+    // Check if user already has an active trading bot
+    const botManager = TradingBotManager.getInstance();
+    if (botManager.hasActiveBot(userId)) {
+      return res.status(400).json({ 
+        message: "User already has an active trading bot running"
+      });
+    }
+
     // Create new trading session
     const session = await TradingDatabase.createTradingSession({
       user_id: userId,
@@ -176,6 +208,28 @@ export const startTradingSession = async (req: Request, res: Response) => {
       total_trades: 0,
       winning_trades: 0
     });
+
+    // Start the actual trading bot
+    const botConfig = {
+      symbols,
+      strategies: [strategy],
+      dataProvider
+    };
+
+    const botStarted = await botManager.startTradingBot(userId, session.id!, botConfig);
+    
+    if (!botStarted) {
+      // If bot failed to start, mark session as failed
+      await TradingDatabase.updateTradingSession(session.id!, {
+        status: 'STOPPED',
+        end_time: new Date().toISOString()
+      });
+      
+      return res.status(500).json({ 
+        message: "Failed to start trading bot",
+        sessionId: session.id
+      });
+    }
 
     res.json({
       success: true,
@@ -200,6 +254,13 @@ export const stopTradingSession = async (req: Request, res: Response) => {
     // Get session data before stopping
     const session = await TradingDatabase.getTradesBySession(sessionId);
     const sessionData = await TradingDatabase.getActiveTradingSession(session[0]?.user_id || 0);
+    
+    // Stop the trading bot if it's running
+    const botManager = TradingBotManager.getInstance();
+    if (sessionData && botManager.hasActiveBot(sessionData.user_id)) {
+      await botManager.stopTradingBot(sessionData.user_id);
+      console.log(`🛑 Stopped trading bot for user ${sessionData.user_id}`);
+    }
     
     await TradingDatabase.updateTradingSession(sessionId, {
       end_time: new Date().toISOString(),
@@ -387,3 +448,4 @@ export const getAvailableStrategies = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+

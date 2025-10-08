@@ -155,7 +155,7 @@ describe('Backtesting Component', () => {
     expect(screen.getByText('Data & Settings Configuration')).toBeInTheDocument();
     expect(screen.getByTestId('stock-picker')).toBeInTheDocument();
     
-    // Click on Results tab
+    // Click on Run Test tab
     const resultsTab = screen.getByRole('tab', { name: /results/i });
     fireEvent.click(resultsTab);
     
@@ -309,7 +309,7 @@ describe('Backtesting Component', () => {
 
     renderWithQueryClient(<Backtesting />);
     
-    // Switch to Results tab
+    // Switch to Run Test tab
     const resultsTab = screen.getByRole('tab', { name: /results/i });
     fireEvent.click(resultsTab);
     
@@ -328,7 +328,7 @@ describe('Backtesting Component', () => {
 
     renderWithQueryClient(<Backtesting />);
     
-    // Switch to Results tab
+    // Switch to Run Test tab
     const resultsTab = screen.getByRole('tab', { name: /results/i });
     fireEvent.click(resultsTab);
     

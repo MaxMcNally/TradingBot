@@ -63,6 +63,43 @@ export interface PortfolioSnapshot {
   created_at: string;
 }
 
+export interface PerformanceMetrics {
+  id: number;
+  user_id: number;
+  strategy_name: string;
+  strategy_type: string;
+  execution_type: 'BACKTEST' | 'LIVE_TRADING';
+  session_id?: number;
+  symbols: string[];
+  start_date: string;
+  end_date: string;
+  initial_capital: number;
+  final_capital: number;
+  total_return: number;
+  total_return_dollar: number;
+  max_drawdown: number;
+  sharpe_ratio?: number;
+  sortino_ratio?: number;
+  win_rate: number;
+  total_trades: number;
+  winning_trades: number;
+  losing_trades: number;
+  avg_win: number;
+  avg_loss: number;
+  profit_factor: number;
+  largest_win: number;
+  largest_loss: number;
+  avg_trade_duration: number;
+  volatility: number;
+  beta?: number;
+  alpha?: number;
+  config: any;
+  trades_data: any[];
+  portfolio_history: any[];
+  created_at: string;
+  updated_at?: string;
+}
+
 export interface TradingStrategy {
   name: string;
   description: string;
@@ -128,6 +165,9 @@ export const getUserTradingSessions = (userId: number, limit: number = 20): Prom
 
 export const getUserPortfolioHistory = (userId: number, limit: number = 100): Promise<AxiosResponse<PortfolioSnapshot[]>> =>
   api.get(`/trading/users/${userId}/portfolio-history?limit=${limit}`);
+
+export const getUserPerformanceMetrics = (userId: number, limit: number = 50): Promise<AxiosResponse<PerformanceMetrics[]>> =>
+  api.get(`/trading/users/${userId}/performance-metrics?limit=${limit}`);
 
 export const getActiveTradingSession = (userId: number): Promise<AxiosResponse<TradingSession>> =>
   api.get(`/trading/users/${userId}/active-session`);

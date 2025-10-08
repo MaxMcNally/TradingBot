@@ -251,7 +251,7 @@ const BacktestingSimple: React.FC = () => {
 
       if (response) {
         setResults(response);
-        setActiveTab(3); // Switch to results tab
+        setActiveTab(3); // Switch to run test tab
       }
     } catch (err: any) {
       setError(err.message || "Failed to run backtest");
@@ -326,7 +326,7 @@ const BacktestingSimple: React.FC = () => {
                 />
                 <Tab
                   icon={<Timeline />}
-                  label="Results"
+                  label="Run Test"
                   id="backtest-tab-3"
                   aria-controls="backtest-tabpanel-3"
                 />
@@ -719,120 +719,114 @@ const BacktestingSimple: React.FC = () => {
                     </Box>
                   )}
                 </Stack>
-
-                {/* Backtest Controls */}
-                <Box sx={{ mt: 4, pt: 3, borderTop: 1, borderColor: 'divider' }}>
-                  <Typography variant="h6" gutterBottom>
-                    Backtest Configuration
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary" paragraph>
-                    Configure the date range and trading parameters for your backtest.
-                  </Typography>
-
-                  <Stack spacing={3}>
-                    {/* Date Range */}
-                    <Box>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Date Range
-                      </Typography>
-                      <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }}>
-                        <TextField
-                          label="Start Date"
-                          type="date"
-                          value={formData.startDate}
-                          onChange={(e) => handleInputChange('startDate', e.target.value)}
-                          InputLabelProps={{ shrink: true }}
-                          size="small"
-                          fullWidth
-                        />
-                        <TextField
-                          label="End Date"
-                          type="date"
-                          value={formData.endDate}
-                          onChange={(e) => handleInputChange('endDate', e.target.value)}
-                          InputLabelProps={{ shrink: true }}
-                          size="small"
-                          fullWidth
-                        />
-                      </Stack>
-                    </Box>
-
-                    {/* Trading Parameters */}
-                    <Box>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Trading Parameters
-                      </Typography>
-                      <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }}>
-                        <TextField
-                          label="Initial Capital"
-                          type="number"
-                          value={formData.initialCapital}
-                          onChange={(e) => handleInputChange('initialCapital', parseFloat(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Starting capital for backtest"
-                        />
-                        <TextField
-                          label="Shares Per Trade"
-                          type="number"
-                          value={formData.sharesPerTrade}
-                          onChange={(e) => handleInputChange('sharesPerTrade', parseInt(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Number of shares to trade per signal"
-                        />
-                      </Stack>
-                    </Box>
-
-                    {/* Run Backtest Button */}
-                    <Box>
-                      <Button
-                        variant="contained"
-                        startIcon={<PlayArrow />}
-                        onClick={handleRunBacktest}
-                        disabled={
-                          backtestLoading ||
-                          !Array.isArray(formData.symbols) ||
-                          formData.symbols.length === 0 ||
-                          !formData.strategy
-                        }
-                        fullWidth
-                        size="large"
-                      >
-                        {backtestLoading ? 'Running Backtest...' : 'Run Backtest'}
-                      </Button>
-                    </Box>
-
-                    {/* Error Display */}
-                    {error && (
-                      <Alert severity="error" onClose={() => setError(null)}>
-                        {error}
-                      </Alert>
-                    )}
-                  </Stack>
-                </Box>
               </Paper>
             </TabPanel>
 
 
-        {/* Results Tab */}
+        {/* Run Test Tab */}
         <TabPanel value={activeTab} index={3}>
-          {backtestLoading && (
-            <Paper sx={{ p: 3, mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Running Backtest...
-              </Typography>
-              <LinearProgress />
-            </Paper>
-          )}
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              <PlayArrow sx={{ mr: 1, verticalAlign: 'middle' }} />
+              Run Backtest
+            </Typography>
+            <Typography variant="body2" color="textSecondary" paragraph>
+              Configure the date range and trading parameters, then run your backtest to see results.
+            </Typography>
 
-          {results ? (
-            <Paper sx={{ p: 3 }}>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                <Typography variant="h6">
-                  <Timeline sx={{ mr: 1, verticalAlign: 'middle' }} />
-                  Backtest Results
+            {/* Backtest Configuration */}
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h6" gutterBottom>
+                Backtest Configuration
+              </Typography>
+              <Typography variant="body2" color="textSecondary" paragraph>
+                Configure the date range and trading parameters for your backtest.
+              </Typography>
+
+              <Stack spacing={3}>
+                {/* Date Range */}
+                <Box>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Date Range
+                  </Typography>
+                  <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }}>
+                    <TextField
+                      label="Start Date"
+                      type="date"
+                      value={formData.startDate}
+                      onChange={(e) => handleInputChange('startDate', e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      size="small"
+                      fullWidth
+                    />
+                    <TextField
+                      label="End Date"
+                      type="date"
+                      value={formData.endDate}
+                      onChange={(e) => handleInputChange('endDate', e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      size="small"
+                      fullWidth
+                    />
+                  </Stack>
+                </Box>
+
+                {/* Trading Parameters */}
+                <Box>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Trading Parameters
+                  </Typography>
+                  <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }}>
+                    <TextField
+                      label="Initial Capital"
+                      type="number"
+                      value={formData.initialCapital}
+                      onChange={(e) => handleInputChange('initialCapital', parseFloat(e.target.value))}
+                      size="small"
+                      fullWidth
+                      helperText="Starting capital for backtest"
+                    />
+                    <TextField
+                      label="Shares Per Trade"
+                      type="number"
+                      value={formData.sharesPerTrade}
+                      onChange={(e) => handleInputChange('sharesPerTrade', parseInt(e.target.value))}
+                      size="small"
+                      fullWidth
+                      helperText="Number of shares to trade per signal"
+                    />
+                  </Stack>
+                </Box>
+
+
+
+                {/* Error Display */}
+                {error && (
+                  <Alert severity="error" onClose={() => setError(null)}>
+                    {error}
+                  </Alert>
+                )}
+              </Stack>
+            </Box>
+
+            {/* Loading State */}
+            {backtestLoading && (
+              <Paper sx={{ p: 3, mb: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  Running Backtest...
                 </Typography>
+                <LinearProgress />
+              </Paper>
+            )}
+
+            {/* Results Section */}
+            {results && (
+              <Box sx={{ mt: 4, pt: 3, borderTop: 1, borderColor: 'divider' }}>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+                  <Typography variant="h6">
+                    <Timeline sx={{ mr: 1, verticalAlign: 'middle' }} />
+                    Backtest Results
+                  </Typography>
                 <Box display="flex" gap={1}>
                   <Button
                     variant="contained"
@@ -1030,15 +1024,33 @@ const BacktestingSimple: React.FC = () => {
                     </Table>
                   </TableContainer>
                 </Box>
-              </Stack>
-            </Paper>
-          ) : !backtestLoading && (
-            <Paper sx={{ p: 3, textAlign: 'center' }}>
-              <Typography variant="h6" color="text.secondary">
-                Configure your backtest and click "Run Backtest" to see results
-              </Typography>
-            </Paper>
-          )}
+                </Stack>
+              </Box>
+            )}
+
+            {/* No Results Message */}
+            {!results && !backtestLoading && (
+              <Box sx={{ mt: 4, pt: 3, borderTop: 1, borderColor: 'divider', textAlign: 'center' }}>
+                <Typography variant="h6" color="text.secondary" sx={{ mb: 3 }}>
+                  Ready to run your backtest?
+                </Typography>
+                <Button
+                  variant="contained"
+                  startIcon={<PlayArrow />}
+                  onClick={handleRunBacktest}
+                  disabled={
+                    backtestLoading ||
+                    !Array.isArray(formData.symbols) ||
+                    formData.symbols.length === 0 ||
+                    !formData.strategy
+                  }
+                  size="large"
+                >
+                  {backtestLoading ? 'Running Backtest...' : 'Run Backtest'}
+                </Button>
+              </Box>
+            )}
+          </Paper>
         </TabPanel>
           </Paper>
         </Box>

@@ -242,7 +242,7 @@ const BacktestingNew: React.FC = () => {
             />
             <Tab
               icon={<Timeline />}
-              label="Results"
+              label="Run Test"
               id="backtest-tab-3"
               aria-controls="backtest-tabpanel-3"
             />

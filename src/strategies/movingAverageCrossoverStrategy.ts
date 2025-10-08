@@ -9,6 +9,8 @@
  * Common configurations: 10/30, 20/50, 50/200 day moving averages
  */
 
+import { AbstractStrategy, Signal } from './baseStrategy';
+
 export interface MovingAverageCrossoverConfig {
   fastWindow: number;     // Fast moving average window (e.g., 10)
   slowWindow: number;     // Slow moving average window (e.g., 30)
@@ -41,15 +43,16 @@ export interface MovingAverageCrossoverResult {
   }>;
 }
 
-export class MovingAverageCrossoverStrategy {
+export class MovingAverageCrossoverStrategy extends AbstractStrategy {
   private config: MovingAverageCrossoverConfig;
-  private prices: number[] = [];
   private currentPosition: 'LONG' | 'SHORT' | 'NONE' = 'NONE';
   private entryPrice: number = 0;
   private previousFastMA: number | null = null;
   private previousSlowMA: number | null = null;
+  private lastSignal: Signal = null;
 
   constructor(config: MovingAverageCrossoverConfig) {
+    super();
     this.config = config;
   }
 
@@ -58,7 +61,7 @@ export class MovingAverageCrossoverStrategy {
    * @param price - The current price
    * @returns Trading signal: 'BUY', 'SELL', or null
    */
-  addPrice(price: number): 'BUY' | 'SELL' | null {
+  addPrice(price: number): Signal {
     this.prices.push(price);
     
     // Keep only the last 'slowWindow' prices (need the longest window)
@@ -99,7 +102,36 @@ export class MovingAverageCrossoverStrategy {
     this.previousFastMA = fastMA;
     this.previousSlowMA = slowMA;
 
+    this.lastSignal = signal;
     return signal;
+  }
+
+  /**
+   * Get the current trading signal
+   * @returns Trading signal: 'BUY', 'SELL', or null
+   */
+  getSignal(): Signal {
+    return this.lastSignal;
+  }
+
+  /**
+   * Get the strategy name
+   * @returns Strategy name
+   */
+  getStrategyName(): string {
+    return 'MovingAverageCrossover';
+  }
+
+  /**
+   * Reset the strategy state
+   */
+  reset(): void {
+    super.reset();
+    this.currentPosition = 'NONE';
+    this.entryPrice = 0;
+    this.previousFastMA = null;
+    this.previousSlowMA = null;
+    this.lastSignal = null;
   }
 
   /**
@@ -167,16 +199,6 @@ export class MovingAverageCrossoverStrategy {
     return this.entryPrice;
   }
 
-  /**
-   * Reset the strategy state
-   */
-  reset(): void {
-    this.prices = [];
-    this.currentPosition = 'NONE';
-    this.entryPrice = 0;
-    this.previousFastMA = null;
-    this.previousSlowMA = null;
-  }
 
   /**
    * Get strategy configuration

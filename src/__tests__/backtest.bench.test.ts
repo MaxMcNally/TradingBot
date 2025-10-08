@@ -2,6 +2,7 @@ import { runMeanReversionStrategy } from '../strategies/meanReversionStrategy';
 import { runMomentumStrategy } from '../strategies/momentumStrategy';
 import { runBollingerBandsStrategy } from '../strategies/bollingerBandsStrategy';
 import { runBreakoutStrategy } from '../strategies/breakoutStrategy';
+import { runMovingAverageCrossoverStrategy } from '../strategies/movingAverageCrossoverStrategy';
 
 function generateSeries(length: number, start = 100): { date: string; close: number; open: number; volume?: number }[] {
   let price = start;
@@ -11,6 +12,26 @@ function generateSeries(length: number, start = 100): { date: string; close: num
     const open = price;
     price = Math.max(1, price + change);
     data.push({ date: new Date(2023, 0, 1 + i).toDateString(), close: price, open, volume: 1 + (i % 5) });
+  }
+  return data;
+}
+
+function generateMinuteSeries(length: number, start = 100): { date: string; close: number; open: number; volume?: number }[] {
+  let price = start;
+  const data: { date: string; close: number; open: number; volume?: number }[] = [];
+  const baseTime = new Date('2023-12-20T09:30:00Z');
+  
+  for (let i = 0; i < length; i++) {
+    const change = (Math.sin(i / 10) + Math.random() - 0.5) * 0.5; // Smaller changes for minute data
+    const open = price;
+    price = Math.max(1, price + change);
+    const timestamp = new Date(baseTime.getTime() + i * 60000); // 1 minute intervals
+    data.push({ 
+      date: timestamp.toDateString(), 
+      close: price, 
+      open, 
+      volume: 1000 + Math.random() * 500 
+    });
   }
   return data;
 }
@@ -86,4 +107,42 @@ describe('Backtest micro-benchmarks', () => {
       expect(elapsed).toBeLessThan(budgetMs);
     });
   }
+
+  // Minute-level data benchmarks
+  describe('Minute-level data benchmarks', () => {
+    const minuteSizes = [1_000, 5_000, 10_000]; // Smaller sizes for minute data
+
+    for (const n of minuteSizes) {
+      it(`mean reversion minute data ${n} bars under budget`, () => {
+        const series = generateMinuteSeries(n);
+        const start = Date.now();
+        const result = runMeanReversionStrategy('TEST', series, {
+          window: 10,
+          threshold: 0.01,
+          initialCapital: 100000,
+          sharesPerTrade: 10
+        });
+        const elapsed = Date.now() - start;
+        expect(result.trades).toBeDefined();
+        const budgetMs = n <= 1_000 ? 100 : n <= 5_000 ? 500 : 1000;
+        expect(elapsed).toBeLessThan(budgetMs);
+      });
+
+      it(`moving average crossover minute data ${n} bars under budget`, () => {
+        const series = generateMinuteSeries(n);
+        const start = Date.now();
+        const result = runMovingAverageCrossoverStrategy('TEST', series, {
+          fastWindow: 5,
+          slowWindow: 15,
+          maType: 'SMA',
+          initialCapital: 100000,
+          sharesPerTrade: 10
+        });
+        const elapsed = Date.now() - start;
+        expect(result.trades).toBeDefined();
+        const budgetMs = n <= 1_000 ? 120 : n <= 5_000 ? 600 : 1200;
+        expect(elapsed).toBeLessThan(budgetMs);
+      });
+    }
+  });
 });

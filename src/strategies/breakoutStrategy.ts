@@ -10,6 +10,8 @@
  * assuming that breakouts will continue in the breakout direction.
  */
 
+import { AbstractStrategy, Signal } from './baseStrategy';
+
 export interface BreakoutConfig {
   lookbackWindow: number;     // Window to identify support/resistance levels (typically 20-50)
   breakoutThreshold: number;  // Minimum percentage move to confirm breakout (e.g., 0.01 for 1%)
@@ -37,9 +39,8 @@ export interface BreakoutResult {
   maxDrawdown: number;
 }
 
-export class BreakoutStrategy {
+export class BreakoutStrategy extends AbstractStrategy {
   private config: BreakoutConfig;
-  private prices: number[] = [];
   private volumes: number[] = [];
   private currentPosition: 'LONG' | 'SHORT' | 'NONE' = 'NONE';
   private entryPrice: number = 0;
@@ -50,8 +51,10 @@ export class BreakoutStrategy {
   private minDeque: number[] = []; // stores indices
   private maxDeque: number[] = []; // stores indices
   private baseIndex: number = 0; // absolute index of prices[0]
+  private lastSignal: Signal = null;
 
   constructor(config: BreakoutConfig) {
+    super();
     this.config = config;
   }
 
@@ -61,7 +64,7 @@ export class BreakoutStrategy {
    * @param volume - The current volume (optional, defaults to 1)
    * @returns Trading signal: 'BUY', 'SELL', or null
    */
-  addPrice(price: number, volume: number = 1): 'BUY' | 'SELL' | null {
+  addPrice(price: number, volume: number = 1): Signal {
     const idx = this.baseIndex + this.prices.length; // absolute index of the incoming sample
     this.prices.push(price);
     this.volumes.push(volume);
@@ -104,7 +107,41 @@ export class BreakoutStrategy {
 
     // Check for breakout signals
     const signal = this.checkBreakoutSignals(price, volume);
+    this.lastSignal = signal;
     return signal;
+  }
+
+  /**
+   * Get the current trading signal
+   * @returns Trading signal: 'BUY', 'SELL', or null
+   */
+  getSignal(): Signal {
+    return this.lastSignal;
+  }
+
+  /**
+   * Get the strategy name
+   * @returns Strategy name
+   */
+  getStrategyName(): string {
+    return 'Breakout';
+  }
+
+  /**
+   * Reset the strategy state
+   */
+  reset(): void {
+    super.reset();
+    this.volumes = [];
+    this.currentPosition = 'NONE';
+    this.entryPrice = 0;
+    this.positionHeldDays = 0;
+    this.lastSupportLevel = 0;
+    this.lastResistanceLevel = 0;
+    this.minDeque = [];
+    this.maxDeque = [];
+    this.baseIndex = 0;
+    this.lastSignal = null;
   }
 
   /**
@@ -206,21 +243,6 @@ export class BreakoutStrategy {
     return this.entryPrice;
   }
 
-  /**
-   * Reset the strategy state
-   */
-  reset(): void {
-    this.prices = [];
-    this.volumes = [];
-    this.currentPosition = 'NONE';
-    this.entryPrice = 0;
-    this.positionHeldDays = 0;
-    this.lastSupportLevel = 0;
-    this.lastResistanceLevel = 0;
-    this.minDeque = [];
-    this.maxDeque = [];
-    this.baseIndex = 0;
-  }
 
   /**
    * Get strategy configuration

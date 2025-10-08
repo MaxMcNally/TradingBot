@@ -17,19 +17,24 @@ import {
   ShowChart,
 } from "@mui/icons-material";
 import TradingResults from "./TradingResults";
+import PortfolioOverview from "./PortfolioOverview";
+import PerformanceMetrics from "./PerformanceMetrics";
 import { TabPanel } from "../shared";
 import { useUser } from "../../hooks";
+import { useTradingStats } from "../../hooks/useTrading/useTrading";
+import { formatCurrency, formatPercentage } from "../../api/tradingApi";
 
 
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
   const { user, isLoading: userLoading, error: userError } = useUser();
+  const { stats, isLoading: statsLoading, isError: statsError } = useTradingStats(Number(user?.id));
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
   };
 
-  if (userLoading) {
+  if (userLoading || statsLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
@@ -37,10 +42,10 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  if (userError) {
+  if (userError || statsError) {
     return (
       <Alert severity="error">
-        {userError.message}
+        {userError?.message || 'Failed to load trading statistics'}
       </Alert>
     );
   }
@@ -82,7 +87,7 @@ const Dashboard: React.FC = () => {
                   Total Sessions
                 </Typography>
                 <Typography variant="h4">
-                  12
+                  {stats?.totalTrades || 0}
                 </Typography>
               </Box>
               <AccountBalance color="primary" sx={{ fontSize: 40 }} />
@@ -96,11 +101,17 @@ const Dashboard: React.FC = () => {
                 <Typography color="textSecondary" gutterBottom variant="body2">
                   Total P&L
                 </Typography>
-                <Typography variant="h4" color="success.main">
-                  +$2,450
+                <Typography 
+                  variant="h4" 
+                  color={stats?.totalPnL && stats.totalPnL >= 0 ? "success.main" : "error.main"}
+                >
+                  {stats?.totalPnL ? formatCurrency(stats.totalPnL) : formatCurrency(0)}
                 </Typography>
               </Box>
-              <TrendingUp color="success" sx={{ fontSize: 40 }} />
+              <TrendingUp 
+                color={stats?.totalPnL && stats.totalPnL >= 0 ? "success" : "error"} 
+                sx={{ fontSize: 40 }} 
+              />
             </Box>
           </CardContent>
         </Card>
@@ -112,7 +123,7 @@ const Dashboard: React.FC = () => {
                   Win Rate
                 </Typography>
                 <Typography variant="h4">
-                  68%
+                  {stats?.winRate ? formatPercentage(stats.winRate) : formatPercentage(0)}
                 </Typography>
               </Box>
               <ShowChart color="primary" sx={{ fontSize: 40 }} />
@@ -127,7 +138,7 @@ const Dashboard: React.FC = () => {
                   Active Sessions
                 </Typography>
                 <Typography variant="h4">
-                  2
+                  {stats?.activeSessions || 0}
                 </Typography>
               </Box>
               <Assessment color="warning" sx={{ fontSize: 40 }} />
@@ -171,34 +182,12 @@ const Dashboard: React.FC = () => {
 
             {/* Portfolio Overview Tab */}
             <TabPanel value={activeTab} index={1}>
-              <Box p={3}>
-                <Typography variant="h6" gutterBottom>
-                  Portfolio Overview
-                </Typography>
-                <Typography variant="body2" color="textSecondary" paragraph>
-                  Your current portfolio holdings and performance metrics will be displayed here.
-                </Typography>
-                <Alert severity="info">
-                  Portfolio tracking features are coming soon. This will show your current holdings, 
-                  asset allocation, and real-time portfolio value.
-                </Alert>
-              </Box>
+              <PortfolioOverview userId={Number(user.id)} />
             </TabPanel>
 
             {/* Performance Metrics Tab */}
             <TabPanel value={activeTab} index={2}>
-              <Box p={3}>
-                <Typography variant="h6" gutterBottom>
-                  Performance Metrics
-                </Typography>
-                <Typography variant="body2" color="textSecondary" paragraph>
-                  Detailed performance analytics and trading statistics will be displayed here.
-                </Typography>
-                <Alert severity="info">
-                  Advanced performance metrics including Sharpe ratio, maximum drawdown, 
-                  and risk-adjusted returns are coming soon.
-                </Alert>
-              </Box>
+              <PerformanceMetrics userId={Number(user.id)} />
             </TabPanel>
           </Paper>
         </Box>
@@ -219,21 +208,27 @@ const Dashboard: React.FC = () => {
               </Typography>
               <Box display="flex" justifyContent="space-between" mb={1}>
                 <Typography variant="body2">Total Sessions:</Typography>
-                <Typography variant="body2" fontWeight="bold">12</Typography>
+                <Typography variant="body2" fontWeight="bold">{stats?.totalTrades || 0}</Typography>
               </Box>
               <Box display="flex" justifyContent="space-between" mb={1}>
                 <Typography variant="body2">Total P&L:</Typography>
-                <Typography variant="body2" fontWeight="bold" color="success.main">
-                  +$2,450
+                <Typography 
+                  variant="body2" 
+                  fontWeight="bold" 
+                  color={stats?.totalPnL && stats.totalPnL >= 0 ? "success.main" : "error.main"}
+                >
+                  {stats?.totalPnL ? formatCurrency(stats.totalPnL) : formatCurrency(0)}
                 </Typography>
               </Box>
               <Box display="flex" justifyContent="space-between" mb={1}>
                 <Typography variant="body2">Win Rate:</Typography>
-                <Typography variant="body2" fontWeight="bold">68%</Typography>
+                <Typography variant="body2" fontWeight="bold">
+                  {stats?.winRate ? formatPercentage(stats.winRate) : formatPercentage(0)}
+                </Typography>
               </Box>
               <Box display="flex" justifyContent="space-between">
                 <Typography variant="body2">Active Sessions:</Typography>
-                <Typography variant="body2" fontWeight="bold">2</Typography>
+                <Typography variant="body2" fontWeight="bold">{stats?.activeSessions || 0}</Typography>
               </Box>
             </Box>
           </Paper>

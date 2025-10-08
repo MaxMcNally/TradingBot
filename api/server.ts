@@ -13,6 +13,7 @@ import {strategyRouter} from "./routes/strategies";
 import adminRouter from "./routes/adminRoutes";
 import { initDatabase } from "./initDb";
 import { sessionMonitor } from "./services/sessionMonitor";
+import { TradingBotManager } from "./services/tradingBotManager";
 import testRouter from "./routes/test";
 import { authenticateToken } from "./middleware/auth";
 
@@ -111,12 +112,22 @@ app.get("/api", (req, res) => {
 });
 // Initialize database and start server
 initDatabase()
-  .then(() => {
-    app.listen(PORT, () => {
+  .then(async () => {
+    app.listen(PORT, async () => {
       console.log(`Server running on port ${PORT}`);
       
       // Start the session monitor
       sessionMonitor.start();
+      
+      // Recover active trading sessions after a short delay to ensure everything is initialized
+      setTimeout(async () => {
+        try {
+          const botManager = TradingBotManager.getInstance();
+          await botManager.recoverActiveSessions();
+        } catch (error) {
+          console.error('Error during session recovery:', error);
+        }
+      }, 2000); // 2 second delay
     });
   })
   .catch((error) => {
@@ -125,14 +136,32 @@ initDatabase()
   });
 
 // Graceful shutdown
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   console.log('Received SIGINT, shutting down gracefully...');
   sessionMonitor.stop();
+  
+  // Gracefully shutdown trading bots
+  try {
+    const botManager = TradingBotManager.getInstance();
+    await botManager.gracefulShutdown();
+  } catch (error) {
+    console.error('Error during graceful shutdown:', error);
+  }
+  
   process.exit(0);
 });
 
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   console.log('Received SIGTERM, shutting down gracefully...');
   sessionMonitor.stop();
+  
+  // Gracefully shutdown trading bots
+  try {
+    const botManager = TradingBotManager.getInstance();
+    await botManager.gracefulShutdown();
+  } catch (error) {
+    console.error('Error during graceful shutdown:', error);
+  }
+  
   process.exit(0);
 });

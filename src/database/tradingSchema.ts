@@ -312,6 +312,18 @@ export class TradingDatabase {
     });
   }
 
+  static async getActiveTradingSessions(): Promise<TradingSession[]> {
+    return new Promise((resolve, reject) => {
+      db.all('SELECT * FROM trading_sessions WHERE status = ? ORDER BY created_at DESC', ['ACTIVE'], (err: any, rows: any[]) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows || []);
+        }
+      });
+    });
+  }
+
   static async getTradesBySession(sessionId: number): Promise<Trade[]> {
     return new Promise((resolve, reject) => {
       db.all(
