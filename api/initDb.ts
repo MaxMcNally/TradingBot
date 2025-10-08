@@ -175,6 +175,7 @@ export const initDatabase = () => {
             two_factor_secret TEXT,
             password_reset_token TEXT,
             password_reset_expires_at TIMESTAMP,
+            role TEXT DEFAULT 'USER' CHECK (role IN ('USER', 'ADMIN')),
             created_at TIMESTAMP DEFAULT NOW(),
             updated_at TIMESTAMP DEFAULT NOW()
           )
@@ -187,6 +188,7 @@ export const initDatabase = () => {
         await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_secret TEXT`);
         await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token TEXT`);
         await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_expires_at TIMESTAMP`);
+        await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'USER' CHECK (role IN ('USER', 'ADMIN'))`);
 
         await pgPool!.query(`
           CREATE TABLE IF NOT EXISTS settings (
@@ -231,11 +233,55 @@ export const initDatabase = () => {
           )
         `);
 
+        await pgPool!.query(`
+          CREATE TABLE IF NOT EXISTS strategy_performance (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            strategy_name TEXT NOT NULL,
+            strategy_type TEXT NOT NULL,
+            execution_type TEXT NOT NULL CHECK (execution_type IN ('BACKTEST', 'LIVE_TRADING')),
+            session_id INTEGER,
+            symbols TEXT NOT NULL,
+            start_date TEXT NOT NULL,
+            end_date TEXT NOT NULL,
+            initial_capital DOUBLE PRECISION NOT NULL,
+            final_capital DOUBLE PRECISION NOT NULL,
+            total_return DOUBLE PRECISION NOT NULL,
+            total_return_dollar DOUBLE PRECISION NOT NULL,
+            max_drawdown DOUBLE PRECISION NOT NULL,
+            sharpe_ratio DOUBLE PRECISION,
+            sortino_ratio DOUBLE PRECISION,
+            win_rate DOUBLE PRECISION NOT NULL,
+            total_trades INTEGER NOT NULL,
+            winning_trades INTEGER NOT NULL,
+            losing_trades INTEGER NOT NULL,
+            avg_win DOUBLE PRECISION NOT NULL,
+            avg_loss DOUBLE PRECISION NOT NULL,
+            profit_factor DOUBLE PRECISION NOT NULL,
+            largest_win DOUBLE PRECISION NOT NULL,
+            largest_loss DOUBLE PRECISION NOT NULL,
+            avg_trade_duration DOUBLE PRECISION NOT NULL,
+            volatility DOUBLE PRECISION NOT NULL,
+            beta DOUBLE PRECISION,
+            alpha DOUBLE PRECISION,
+            config TEXT NOT NULL,
+            trades_data TEXT NOT NULL,
+            portfolio_history TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+          )
+        `);
+
         // Indexes
         await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`);
         await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_settings_user_id ON settings(user_id)`);
         await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_backtest_results_user_id ON backtest_results(user_id)`);
         await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_user_strategies_user_id ON user_strategies(user_id)`);
+        await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_user_id ON strategy_performance(user_id)`);
+        await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_strategy_name ON strategy_performance(strategy_name)`);
+        await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_strategy_type ON strategy_performance(strategy_type)`);
+        await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_execution_type ON strategy_performance(execution_type)`);
+        await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_created_at ON strategy_performance(created_at)`);
 
         // Ensure is_public column exists (idempotent)
         await pgPool!.query(`ALTER TABLE user_strategies ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE`);
@@ -249,8 +295,8 @@ export const initDatabase = () => {
           const defaultPassword = "admin123";
           const hashedPassword = bcrypt.hashSync(defaultPassword, 10);
           await pgPool!.query(
-            `INSERT INTO users (username, password_hash, email) VALUES ($1, $2, $3)`,
-            ["admin", hashedPassword, "admin@tradingbot.com"]
+            `INSERT INTO users (username, password_hash, email, role) VALUES ($1, $2, $3, $4)`,
+            ["admin", hashedPassword, "admin@tradingbot.com", "ADMIN"]
           );
           console.log("Default admin user created (username: admin, password: admin123)");
         }
@@ -281,6 +327,7 @@ export const initDatabase = () => {
           two_factor_secret TEXT,
           password_reset_token TEXT,
           password_reset_expires_at DATETIME,
+          role TEXT DEFAULT 'USER' CHECK (role IN ('USER', 'ADMIN')),
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -363,6 +410,54 @@ export const initDatabase = () => {
         }
       });
 
+      // Create strategy_performance table
+      db.run(`
+        CREATE TABLE IF NOT EXISTS strategy_performance (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          strategy_name TEXT NOT NULL,
+          strategy_type TEXT NOT NULL,
+          execution_type TEXT NOT NULL CHECK (execution_type IN ('BACKTEST', 'LIVE_TRADING')),
+          session_id INTEGER,
+          symbols TEXT NOT NULL,
+          start_date TEXT NOT NULL,
+          end_date TEXT NOT NULL,
+          initial_capital REAL NOT NULL,
+          final_capital REAL NOT NULL,
+          total_return REAL NOT NULL,
+          total_return_dollar REAL NOT NULL,
+          max_drawdown REAL NOT NULL,
+          sharpe_ratio REAL,
+          sortino_ratio REAL,
+          win_rate REAL NOT NULL,
+          total_trades INTEGER NOT NULL,
+          winning_trades INTEGER NOT NULL,
+          losing_trades INTEGER NOT NULL,
+          avg_win REAL NOT NULL,
+          avg_loss REAL NOT NULL,
+          profit_factor REAL NOT NULL,
+          largest_win REAL NOT NULL,
+          largest_loss REAL NOT NULL,
+          avg_trade_duration REAL NOT NULL,
+          volatility REAL NOT NULL,
+          beta REAL,
+          alpha REAL,
+          config TEXT NOT NULL,
+          trades_data TEXT NOT NULL,
+          portfolio_history TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+      `, (err: any) => {
+        if (err) {
+          console.error("Error creating strategy_performance table:", err);
+          reject(err);
+        } else {
+          console.log("Strategy performance table created/verified");
+        }
+      });
+
       // Create indexes for better performance
       db.run(`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`, (err: any) => {
         if (err) console.error("Error creating users index:", err);
@@ -377,6 +472,7 @@ export const initDatabase = () => {
         { name: 'two_factor_secret', ddl: 'TEXT' },
         { name: 'password_reset_token', ddl: 'TEXT' },
         { name: 'password_reset_expires_at', ddl: 'DATETIME' },
+        { name: 'role', ddl: "TEXT DEFAULT 'USER' CHECK (role IN ('USER', 'ADMIN'))" },
       ];
       userSecurityColumns.forEach((col) => {
         db.run(`ALTER TABLE users ADD COLUMN ${col.name} ${col.ddl}`,(err: any)=>{
@@ -396,6 +492,26 @@ export const initDatabase = () => {
 
       db.run(`CREATE INDEX IF NOT EXISTS idx_user_strategies_user_id ON user_strategies(user_id)`, (err: any) => {
         if (err) console.error("Error creating user_strategies index:", err);
+      });
+
+      db.run(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_user_id ON strategy_performance(user_id)`, (err: any) => {
+        if (err) console.error("Error creating strategy_performance user_id index:", err);
+      });
+
+      db.run(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_strategy_name ON strategy_performance(strategy_name)`, (err: any) => {
+        if (err) console.error("Error creating strategy_performance strategy_name index:", err);
+      });
+
+      db.run(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_strategy_type ON strategy_performance(strategy_type)`, (err: any) => {
+        if (err) console.error("Error creating strategy_performance strategy_type index:", err);
+      });
+
+      db.run(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_execution_type ON strategy_performance(execution_type)`, (err: any) => {
+        if (err) console.error("Error creating strategy_performance execution_type index:", err);
+      });
+
+      db.run(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_created_at ON strategy_performance(created_at)`, (err: any) => {
+        if (err) console.error("Error creating strategy_performance created_at index:", err);
       });
 
       // Add is_public column if it doesn't exist (migration for existing databases)
@@ -425,8 +541,8 @@ export const initDatabase = () => {
           const hashedPassword = bcrypt.hashSync(defaultPassword, 10);
           
           db.run(
-            "INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)",
-            ["admin", hashedPassword, "admin@tradingbot.com"],
+            "INSERT INTO users (username, password_hash, email, role) VALUES (?, ?, ?, ?)",
+            ["admin", hashedPassword, "admin@tradingbot.com", "ADMIN"],
             (err: any) => {
               if (err) {
                 console.error("Error creating default admin user:", err);

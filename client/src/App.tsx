@@ -10,6 +10,7 @@ import Settings from "./components/Settings";
 import Backtesting from "./components/Backtesting/Backtesting";
 import { Strategies } from "./components/Strategies";
 import { StrategiesMarketplace } from "./components/StrategiesMarketplace";
+import { AdminDashboard, AdminRoute } from "./components/Admin";
 import ThemeProvider from "./components/ThemeProvider";
 import { QueryProvider } from "./providers/QueryProvider";
 import { useUser } from "./hooks";
@@ -33,6 +34,14 @@ const AppContent: React.FC = () => {
             <Route path="/backtesting" element={<Backtesting />} />
             <Route path="/strategies" element={<Strategies />} />
             <Route path="/marketplace" element={<StrategiesMarketplace />} />
+            <Route 
+              path="/admin" 
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              } 
+            />
           </Routes>
         </AppLayout>
       </ThemeProvider>

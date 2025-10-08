@@ -4,3 +4,9 @@ node_modules/
 dist/*
 .env.backup
 .env.*
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+db/

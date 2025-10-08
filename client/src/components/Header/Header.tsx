@@ -18,7 +18,8 @@ import {
   Logout as LogoutIcon,
   Psychology as StrategiesIcon,
   Store as MarketplaceIcon,
-  TrendingUp as TradingIcon
+  TrendingUp as TradingIcon,
+  AdminPanelSettings as AdminIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { HeaderProps } from './Header.types';
@@ -47,6 +48,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
     { label: 'Backtesting', path: '/backtesting', icon: <BacktestIcon /> },
     { label: 'Strategies', path: '/strategies', icon: <StrategiesIcon /> },
     { label: 'Marketplace', path: '/marketplace', icon: <MarketplaceIcon /> },
+    ...(user?.role === 'ADMIN' ? [{ label: 'Admin', path: '/admin', icon: <AdminIcon /> }] : []),
   ];
 
   const isActive = (path: string) => {

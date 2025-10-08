@@ -37,6 +37,13 @@ export interface BollingerBandsResult {
   totalReturn: number;
   winRate: number;
   maxDrawdown: number;
+  portfolioHistory: Array<{
+    date: string;
+    portfolioValue: number;
+    cash: number;
+    shares: number;
+    price: number;
+  }>;
 }
 
 import { AbstractStrategy, Signal } from './baseStrategy';
@@ -265,6 +272,13 @@ export function runBollingerBandsStrategy(
 
   let currentShares = 0;
   let cash = config.initialCapital;
+  let portfolioHistory: Array<{
+    date: string;
+    portfolioValue: number;
+    cash: number;
+    shares: number;
+    price: number;
+  }> = [];
   let winningTrades = 0;
   let totalTrades = 0;
   let maxPortfolioValue = config.initialCapital;
@@ -336,6 +350,16 @@ export function runBollingerBandsStrategy(
 
     // Calculate current portfolio value
     const currentPortfolioValue = cash + (currentShares * dayData.close);
+    
+    // Track detailed portfolio history
+    portfolioHistory.push({
+      date: dayData.date,
+      portfolioValue: currentPortfolioValue,
+      cash: cash,
+      shares: currentShares,
+      price: dayData.close
+    });
+    
     if (currentPortfolioValue > maxPortfolioValue) {
       maxPortfolioValue = currentPortfolioValue;
     } else {
@@ -357,7 +381,8 @@ export function runBollingerBandsStrategy(
     finalPortfolioValue, 
     totalReturn,
     winRate,
-    maxDrawdown
+    maxDrawdown,
+    portfolioHistory
   };
 }
 

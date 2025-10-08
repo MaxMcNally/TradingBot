@@ -231,6 +231,10 @@ async function main() {
       console.log(`${index + 1}. ${trade.date}: ${trade.action} ${trade.shares} shares at $${trade.price.toFixed(2)}${extraInfo}`);
     });
     
+    // Output the complete result as JSON for the API to parse
+    console.log(`\n=== JSON_RESULT ===`);
+    console.log(JSON.stringify(result));
+    
     // Show cache statistics if requested
     if (argv.cacheStats && !argv.noCache) {
       console.log(`\n=== Cache Statistics ===`);

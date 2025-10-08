@@ -12,6 +12,7 @@ export interface UserData {
   two_factor_secret?: string | null;
   password_reset_token?: string | null;
   password_reset_expires_at?: string | null;
+  role?: 'USER' | 'ADMIN';
   created_at?: string;
   updated_at?: string;
 }
@@ -52,12 +53,12 @@ export class User {
 
   static async create(userData: Omit<UserData, 'id' | 'created_at' | 'updated_at'>): Promise<UserData> {
     return new Promise((resolve, reject) => {
-      const { username, password_hash, email } = userData;
+      const { username, password_hash, email, role = 'USER' } = userData;
       db.run(
         isPostgres
-          ? 'INSERT INTO users (username, password_hash, email, email_verified, two_factor_enabled) VALUES ($1, $2, $3, FALSE, FALSE)'
-          : 'INSERT INTO users (username, password_hash, email, email_verified, two_factor_enabled) VALUES (?, ?, ?, 0, 0)',
-        [username, password_hash, email],
+          ? 'INSERT INTO users (username, password_hash, email, email_verified, two_factor_enabled, role) VALUES ($1, $2, $3, FALSE, FALSE, $4)'
+          : 'INSERT INTO users (username, password_hash, email, email_verified, two_factor_enabled, role) VALUES (?, ?, ?, 0, 0, ?)',
+        [username, password_hash, email, role],
         function(this: any, err: any) {
           if (err) {
             reject(err);
@@ -69,6 +70,7 @@ export class User {
               email,
               email_verified: isPostgres ? false : 0,
               two_factor_enabled: isPostgres ? false : 0,
+              role,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             });

@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { spawn } from "child_process";
 import path from "path";
+import { PerformanceMetricsService } from "../services/performanceMetricsService";
 // Removed unused imports
 
 export interface BacktestRequest {
@@ -253,54 +254,84 @@ export const runBacktest = async (req: Request, res: Response) => {
 
     const winRate = totalTrades > 0 ? totalWins / totalTrades : 0;
 
-    res.json({
-      success: true,
-      data: {
+    const responseData = {
+      strategy,
+      symbols: symbolArray,
+      startDate,
+      endDate,
+      provider,
+      // Overall aggregated metrics
+      totalReturn,
+      finalPortfolioValue,
+      winRate,
+      totalTrades,
+      maxDrawdown,
+      config: {
+        // Data provider
+        provider,
+        // Common parameters
+        initialCapital,
+        sharesPerTrade,
+        // Strategy-specific parameters
+        window,
+        threshold,
+        fastWindow,
+        slowWindow,
+        maType,
+        rsiWindow,
+        rsiOverbought,
+        rsiOversold,
+        momentumWindow,
+        momentumThreshold,
+        multiplier,
+        lookbackWindow,
+        breakoutThreshold,
+        minVolumeRatio,
+        confirmationPeriod,
+        // Sentiment
+        lookbackDays,
+        pollIntervalMinutes,
+        minArticles,
+        buyThreshold,
+        sellThreshold,
+        titleWeight,
+        recencyHalfLifeHours,
+        newsSource
+      },
+      results
+    };
+
+    // Save performance metrics to database
+    try {
+      const userId = (req as any).user?.id || 1; // Default to admin user if no auth
+      
+      // Convert results to performance metrics format
+      const performanceMetrics = PerformanceMetricsService.convertBacktestResults(
+        {
+          trades: results.flatMap(r => r.trades || []),
+          finalPortfolioValue,
+          portfolioHistory: results.flatMap(r => r.portfolioHistory || [])
+        },
         strategy,
-        symbols: symbolArray,
+        strategy,
+        responseData.config,
         startDate,
         endDate,
-        provider,
-        // Overall aggregated metrics
-        totalReturn,
-        finalPortfolioValue,
-        winRate,
-        totalTrades,
-        maxDrawdown,
-        config: {
-          // Data provider
-          provider,
-          // Common parameters
-          initialCapital,
-          sharesPerTrade,
-          // Strategy-specific parameters
-          window,
-          threshold,
-          fastWindow,
-          slowWindow,
-          maType,
-          rsiWindow,
-          rsiOverbought,
-          rsiOversold,
-          momentumWindow,
-          momentumThreshold,
-          multiplier,
-          lookbackWindow,
-          breakoutThreshold,
-          minVolumeRatio,
-          confirmationPeriod,
-          // Sentiment
-          lookbackDays,
-          pollIntervalMinutes,
-          minArticles,
-          buyThreshold,
-          sellThreshold,
-          titleWeight,
-          recencyHalfLifeHours,
-          newsSource
-        },
-        results
-      }
+        symbolArray,
+        initialCapital
+      );
+
+      // Save to database
+      await PerformanceMetricsService.savePerformanceMetrics(performanceMetrics, userId);
+      console.log(`Performance metrics saved for backtest: ${strategy}`);
+    } catch (error) {
+      console.error('Error saving performance metrics:', error);
+      // Don't fail the request if metrics saving fails
+    }
+
+    res.json({
+      success: true,
+      data: responseData
     });
 
   } catch (error) {
@@ -473,9 +504,33 @@ const runSingleBacktest = async (params: {
 };
 
 const parseBacktestOutput = (output: string): any => {
-  // Extract key metrics from the console output
+  // First try to parse the JSON result if available
   const lines = output.split('\n');
+  let jsonResult = null;
   
+  // Look for the JSON result section
+  let inJsonSection = false;
+  for (const line of lines) {
+    if (line.includes('=== JSON_RESULT ===')) {
+      inJsonSection = true;
+      continue;
+    }
+    if (inJsonSection && line.trim()) {
+      try {
+        jsonResult = JSON.parse(line);
+        break;
+      } catch (e) {
+        // Continue looking for valid JSON
+      }
+    }
+  }
+  
+  // If we found a JSON result, use it
+  if (jsonResult) {
+    return jsonResult;
+  }
+  
+  // Fallback to parsing console output (legacy)
   const result: any = {
     trades: [],
     finalPortfolioValue: 0,
