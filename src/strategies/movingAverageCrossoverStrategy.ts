@@ -32,6 +32,13 @@ export interface MovingAverageCrossoverResult {
   totalReturn: number;
   winRate: number;
   maxDrawdown: number;
+  portfolioHistory: Array<{
+    date: string;
+    portfolioValue: number;
+    cash: number;
+    shares: number;
+    price: number;
+  }>;
 }
 
 export class MovingAverageCrossoverStrategy {
@@ -212,6 +219,13 @@ export function runMovingAverageCrossoverStrategy(
   let currentShares = 0;
   let cash = config.initialCapital;
   let portfolioValues: number[] = [];
+  let portfolioHistory: Array<{
+    date: string;
+    portfolioValue: number;
+    cash: number;
+    shares: number;
+    price: number;
+  }> = [];
   let winningTrades = 0;
   let totalTrades = 0;
   let maxPortfolioValue = config.initialCapital;
@@ -274,6 +288,15 @@ export function runMovingAverageCrossoverStrategy(
     const currentPortfolioValue = cash + (currentShares * dayData.close);
     portfolioValues.push(currentPortfolioValue);
     
+    // Track detailed portfolio history
+    portfolioHistory.push({
+      date: dayData.date,
+      portfolioValue: currentPortfolioValue,
+      cash: cash,
+      shares: currentShares,
+      price: dayData.close
+    });
+    
     // Track maximum drawdown
     if (currentPortfolioValue > maxPortfolioValue) {
       maxPortfolioValue = currentPortfolioValue;
@@ -295,7 +318,8 @@ export function runMovingAverageCrossoverStrategy(
     finalPortfolioValue, 
     totalReturn,
     winRate,
-    maxDrawdown
+    maxDrawdown,
+    portfolioHistory
   };
 }
 

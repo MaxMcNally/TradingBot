@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { UserManager } from "../../src/bot/UserManager";
 import { TradingDatabase } from "../../src/database/tradingSchema";
+import { PerformanceMetricsService } from "../services/performanceMetricsService";
 
 export const getUserTradingStats = async (req: Request, res: Response) => {
   try {
@@ -196,10 +197,63 @@ export const stopTradingSession = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid session ID" });
     }
 
+    // Get session data before stopping
+    const session = await TradingDatabase.getTradesBySession(sessionId);
+    const sessionData = await TradingDatabase.getActiveTradingSession(session[0]?.user_id || 0);
+    
     await TradingDatabase.updateTradingSession(sessionId, {
       end_time: new Date().toISOString(),
       status: 'COMPLETED'
     });
+
+    // Save performance metrics for the completed session
+    try {
+      if (sessionData && session.length > 0) {
+        const userId = sessionData.user_id;
+        
+        // Convert trades to the format expected by PerformanceMetricsService
+        const trades = session.map(trade => ({
+          date: new Date(trade.timestamp).getTime(),
+          symbol: trade.symbol,
+          action: trade.action,
+          price: trade.price,
+          quantity: trade.quantity,
+          pnl: trade.pnl || 0
+        }));
+
+        // Create portfolio history (simplified for now)
+        const portfolioHistory = [
+          {
+            timestamp: sessionData.start_time,
+            totalValue: sessionData.initial_cash,
+            cash: sessionData.initial_cash,
+            positions: {}
+          },
+          {
+            timestamp: new Date().toISOString(),
+            totalValue: sessionData.final_cash || sessionData.initial_cash,
+            cash: sessionData.final_cash || sessionData.initial_cash,
+            positions: {}
+          }
+        ];
+
+        const performanceMetrics = PerformanceMetricsService.convertLiveTradingResults(
+          sessionData,
+          trades,
+          portfolioHistory,
+          'Live Trading', // Strategy name - could be extracted from session data
+          'Live Trading', // Strategy type
+          {}, // Config - could be stored in session data
+          [] // Symbols - could be extracted from trades
+        );
+
+        await PerformanceMetricsService.savePerformanceMetrics(performanceMetrics, userId);
+        console.log(`Performance metrics saved for live trading session: ${sessionId}`);
+      }
+    } catch (error) {
+      console.error('Error saving live trading performance metrics:', error);
+      // Don't fail the request if metrics saving fails
+    }
 
     res.json({
       success: true,

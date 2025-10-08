@@ -22,6 +22,7 @@ export interface User {
   username?: string;
   email_verified?: number;
   two_factor_enabled?: number;
+  role?: 'USER' | 'ADMIN';
   createdAt?: string;
   updatedAt?: string;
 }

@@ -54,6 +54,8 @@ export const useUser = (): UseUserReturn => {
       localStorage.setItem('authToken', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       queryClient.setQueryData(['user'], data.user);
+      // Force refetch to get latest user data from server
+      queryClient.invalidateQueries({ queryKey: ['user'] });
     },
     onError: (error) => {
       console.error('Login failed:', error);

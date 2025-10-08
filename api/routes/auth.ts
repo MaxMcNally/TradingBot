@@ -17,8 +17,8 @@ authRouter.post("/login", (req: Request, res: Response) => {
 
   db.get(
     isPostgres
-      ? "SELECT id, username, password_hash, email, email_verified, two_factor_enabled, created_at FROM users WHERE username = $1"
-      : "SELECT id, username, password_hash, email, email_verified, two_factor_enabled, created_at FROM users WHERE username = ?",
+      ? "SELECT id, username, password_hash, email, email_verified, two_factor_enabled, role, created_at FROM users WHERE username = $1"
+      : "SELECT id, username, password_hash, email, email_verified, two_factor_enabled, role, created_at FROM users WHERE username = ?",
     [username],
     (err: any, row: any) => {
       if (err) {
@@ -46,7 +46,7 @@ authRouter.post("/login", (req: Request, res: Response) => {
           return res.json({
             success: true,
             requires2fa: true,
-            user: { id: row.id, username: row.username, email: row.email, email_verified: row.email_verified },
+            user: { id: row.id, username: row.username, email: row.email, email_verified: row.email_verified, role: row.role },
           });
         }
 
@@ -56,6 +56,7 @@ authRouter.post("/login", (req: Request, res: Response) => {
           email: row.email,
           email_verified: row.email_verified,
           two_factor_enabled: row.two_factor_enabled,
+          role: row.role,
           createdAt: row.created_at,
         };
         const token = generateToken(userData);
@@ -122,7 +123,7 @@ authRouter.get("/me", authenticateToken, (req: AuthenticatedRequest, res: Respon
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ error: "User not authenticated" });
   db.get(
-    "SELECT id, username, email, email_verified, two_factor_enabled, created_at FROM users WHERE id = ?",
+    "SELECT id, username, email, email_verified, two_factor_enabled, role, created_at FROM users WHERE id = ?",
     [userId],
     (err: any, row: any) => {
       if (err) return res.status(500).json({ error: "Internal server error" });
@@ -133,6 +134,7 @@ authRouter.get("/me", authenticateToken, (req: AuthenticatedRequest, res: Respon
         email: row.email,
         email_verified: row.email_verified,
         two_factor_enabled: row.two_factor_enabled,
+        role: row.role,
         createdAt: row.created_at,
       };
       res.json({ success: true, user: userData });
