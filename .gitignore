@@ -10,3 +10,5 @@ dist/*
 *.sqlite
 *.sqlite3
 db/
+db/cache.db
+db/trading_bot.db
