@@ -323,58 +323,91 @@ workflows:
   # PR workflow - Run tests and validation on pull requests
   build:
     jobs:
-      - install-dependencies
+      - install-dependencies:
+          filters:
+            branches:
+              ignore: main
       - test-backend:
           requires:
             - install-dependencies
+          filters:
+            branches:
+              ignore: main
       - test-frontend:
           requires:
             - install-dependencies
+          filters:
+            branches:
+              ignore: main
       - lint:
           requires:
             - install-dependencies
+          filters:
+            branches:
+              ignore: main
       - build-images:
           requires:
             - test-backend
             - test-frontend
             - lint
-    filters:
-      branches:
-        ignore: main
+          filters:
+            branches:
+              ignore: main
 
   # Main branch workflow - Deploy to QA after PR merge
   staging:
     jobs:
-      - install-dependencies
+      - install-dependencies:
+          filters:
+            branches:
+              only: main
       - test-backend:
           requires:
             - install-dependencies
+          filters:
+            branches:
+              only: main
       - test-frontend:
           requires:
             - install-dependencies
+          filters:
+            branches:
+              only: main
       - lint:
           requires:
             - install-dependencies
+          filters:
+            branches:
+              only: main
       - build-images:
           requires:
             - test-backend
             - test-frontend
             - lint
+          filters:
+            branches:
+              only: main
       - migrate-qa-database:
           requires:
             - build-images
           context: tradebot-qa
+          filters:
+            branches:
+              only: main
       - deploy-railway-qa:
           requires:
             - migrate-qa-database
           context: tradebot-qa
+          filters:
+            branches:
+              only: main
       - deploy-client-railway-qa:
           requires:
             - build-images
           context: tradebot-qa
-    filters:
-      branches:
-        only: main
+          filters:
+            branches:
+              only: main
 
   # Production release pipeline - Deploy to production on GitHub releases
   release:
