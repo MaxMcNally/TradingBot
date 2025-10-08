@@ -9,6 +9,6 @@ dist/*
 *.db
 *.sqlite
 *.sqlite3
-db/
+db/*
 db/cache.db
 db/trading_bot.db

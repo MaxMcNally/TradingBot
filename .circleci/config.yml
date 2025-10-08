@@ -112,6 +112,40 @@ jobs:
           name: Build client image
           command: docker build -t tradingbot-client -f client/Dockerfile client/
 
+  # Run database migrations for QA
+  migrate-qa-database:
+    docker:
+      - image: cimg/node:20.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-deps-{{ checksum "yarn.lock" }}
+            - v1-deps-
+      - run:
+          name: Install dependencies
+          command: yarn install --frozen-lockfile
+      - run:
+          name: Install API dependencies
+          command: cd api && yarn install --frozen-lockfile
+      - run:
+          name: Set QA Database Environment Variables
+          command: |
+            echo "Setting QA database environment variables..."
+            export DATABASE_URL=$QA_DATABASE_URL
+            export NODE_ENV=qa
+            echo "DATABASE_URL is set: $([ -n "$DATABASE_URL" ] && echo "YES" || echo "NO")"
+      - run:
+          name: Run QA Database Migrations
+          command: |
+            echo "🔄 Running database migrations for QA environment..."
+            yarn migrate:run
+      - run:
+          name: Verify QA Migration Status
+          command: |
+            echo "📊 Checking migration status..."
+            yarn migrate:status
+
   # Deploy to Railway QA environment
   deploy-railway-qa:
     docker:
@@ -147,6 +181,7 @@ jobs:
             npx railway variables --set "DEBUG=true" --service api-qa
             npx railway variables --set "JWT_SECRET=$JWT_SECRET" --service api-qa
             npx railway variables --set "SESSION_SECRET=$SESSION_SECRET" --service api-qa
+            npx railway variables --set "DATABASE_URL=$QA_DATABASE_URL" --service api-qa
       - run:
           name: QA Deployment Complete
           command: |
@@ -178,6 +213,40 @@ jobs:
           command: |
             echo "✅ Client QA deployment completed successfully!"
             echo "Check Railway dashboard for deployment URL: https://railway.app/dashboard"
+
+  # Run database migrations for Production
+  migrate-production-database:
+    docker:
+      - image: cimg/node:20.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-deps-{{ checksum "yarn.lock" }}
+            - v1-deps-
+      - run:
+          name: Install dependencies
+          command: yarn install --frozen-lockfile
+      - run:
+          name: Install API dependencies
+          command: cd api && yarn install --frozen-lockfile
+      - run:
+          name: Set Production Database Environment Variables
+          command: |
+            echo "Setting production database environment variables..."
+            export DATABASE_URL=$PROD_DATABASE_URL
+            export NODE_ENV=production
+            echo "DATABASE_URL is set: $([ -n "$DATABASE_URL" ] && echo "YES" || echo "NO")"
+      - run:
+          name: Run Production Database Migrations
+          command: |
+            echo "🔄 Running database migrations for production environment..."
+            yarn migrate:run
+      - run:
+          name: Verify Production Migration Status
+          command: |
+            echo "📊 Checking migration status..."
+            yarn migrate:status
 
   # Deploy to Railway production environment
   deploy-railway-production:
@@ -216,6 +285,7 @@ jobs:
             npx railway variables --set "LOG_LEVEL=info" --service api
             npx railway variables --set "JWT_SECRET=$JWT_SECRET" --service api
             npx railway variables --set "SESSION_SECRET=$SESSION_SECRET" --service api
+            npx railway variables --set "DATABASE_URL=$PROD_DATABASE_URL" --service api
       - run:
           name: Production Deployment Complete
           command: |
@@ -268,9 +338,13 @@ workflows:
             - test-backend
             - test-frontend
             - lint
-      - deploy-railway-qa:
+      - migrate-qa-database:
           requires:
             - build-images
+          context: tradebot-qa
+      - deploy-railway-qa:
+          requires:
+            - migrate-qa-database
           context: tradebot-qa
       - deploy-client-railway-qa:
           requires:
@@ -320,9 +394,18 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-      - deploy-railway-production:
+      - migrate-production-database:
           requires:
             - build-images
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+          context: tradebot-prod
+      - deploy-railway-production:
+          requires:
+            - migrate-production-database
           filters:
             tags:
               only: /^v.*/
