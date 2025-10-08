@@ -4,6 +4,33 @@ A comprehensive trading bot application with React frontend, Node.js API, and au
 
 **End-to-End CI/CD Pipeline Test** - This application includes automated deployment to Railway with CircleCI integration.
 
+**Database Migration System** - Comprehensive migration system with automatic QA/production database synchronization.
+
+## 🗄️ Database Migration System
+
+This project includes a comprehensive database migration system that automatically keeps QA and production databases in sync with schema changes.
+
+### Features
+- ✅ **Version tracking** for all database changes
+- ✅ **Automatic migrations** in CI/CD pipeline  
+- ✅ **Rollback capabilities** for failed migrations
+- ✅ **Multi-database support** (PostgreSQL/SQLite)
+- ✅ **Schema validation** and integrity checks
+
+### Migration Commands
+```bash
+yarn migrate:status           # Check migration status
+yarn migrate:run              # Run pending migrations
+yarn migrate:create 1.0.3 name # Create new migration
+yarn migrate:rollback 1.0.1   # Rollback to version
+yarn migrate:validate:schema  # Validate database health
+```
+
+### CI/CD Integration
+- **PRs**: Run tests and validation (no database changes)
+- **Main branch**: Run migrations and deploy to QA
+- **Releases**: Run migrations and deploy to production
+
 ## 🚀 Quick Start
 
 ### Prerequisites
