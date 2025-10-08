@@ -320,6 +320,25 @@ jobs:
 
 # Define workflows
 workflows:
+  # PR workflow - Run tests and validation on pull requests
+  pull-request:
+    jobs:
+      - install-dependencies
+      - test-backend:
+          requires:
+            - install-dependencies
+      - test-frontend:
+          requires:
+            - install-dependencies
+      - lint:
+          requires:
+            - install-dependencies
+      - build-images:
+          requires:
+            - test-backend
+            - test-frontend
+            - lint
+
   # Main branch workflow - Deploy to QA after PR merge
   main:
     jobs:
