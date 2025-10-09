@@ -148,9 +148,9 @@ describe('PerformanceMetrics Component', () => {
     expect(screen.getByText('BACKTEST')).toBeInTheDocument();
     expect(screen.getByText('LIVE_TRADING')).toBeInTheDocument();
     
-    // Check return values
-    expect(screen.getByText('12.50%')).toBeInTheDocument();
-    expect(screen.getByText('8.00%')).toBeInTheDocument();
+    // Check return values (formatted as percentages)
+    expect(screen.getByText('12.5%')).toBeInTheDocument();
+    expect(screen.getByText('8.0%')).toBeInTheDocument();
   });
 
   it('shows loading state', () => {

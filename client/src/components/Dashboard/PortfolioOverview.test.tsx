@@ -94,9 +94,9 @@ describe('PortfolioOverview Component', () => {
     // Check table headers
     expect(screen.getByText('Symbol')).toBeInTheDocument();
     expect(screen.getByText('Shares')).toBeInTheDocument();
-    expect(screen.getByText('Current Price')).toBeInTheDocument();
-    expect(screen.getByText('Total Value')).toBeInTheDocument();
-    expect(screen.getByText('P&L')).toBeInTheDocument();
+    expect(screen.getByText('Avg Price')).toBeInTheDocument();
+    expect(screen.getByText('Current Value')).toBeInTheDocument();
+    expect(screen.getByText('% of Portfolio')).toBeInTheDocument();
     
     // Check holdings data
     expect(screen.getAllByText('AAPL')).toHaveLength(2);
@@ -151,7 +151,7 @@ describe('PortfolioOverview Component', () => {
 
     renderWithQueryClient(<PortfolioOverview userId={1} />);
     
-    expect(screen.getByText('No holdings found')).toBeInTheDocument();
+    expect(screen.getByText('No Active Positions')).toBeInTheDocument();
   });
 
   it('displays portfolio history', () => {
