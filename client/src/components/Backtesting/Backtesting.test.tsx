@@ -8,14 +8,13 @@ import Backtesting from './Backtesting';
 // Mock the hooks
 vi.mock('../../hooks', () => ({
   useUser: vi.fn(),
-}));
-
-vi.mock('../../hooks/useTrading/useTrading', () => ({
+  useStrategies: vi.fn(),
   useBacktest: vi.fn(),
+  useUserStrategies: vi.fn(),
 }));
 
-import { useUser } from '../../hooks';
-import { useBacktest } from '../../hooks/useTrading/useTrading';
+
+import { useUser, useStrategies, useBacktest, useUserStrategies } from '../../hooks';
 
 // Mock child components
 vi.mock('./StockSelectionSection', () => ({
@@ -137,10 +136,24 @@ describe('Backtesting Component', () => {
       error: null,
     });
     
+    (useStrategies as vi.Mock).mockReturnValue({
+      strategies: [
+        { id: 1, name: 'movingAverageCrossover', displayName: 'Moving Average Crossover' },
+        { id: 2, name: 'bollinger', displayName: 'Bollinger Bands' }
+      ],
+      isLoading: false,
+      isError: false,
+    });
+    
     (useBacktest as vi.Mock).mockReturnValue({
       runBacktest: vi.fn(),
       isLoading: false,
       error: null,
+    });
+    
+    (useUserStrategies as vi.Mock).mockReturnValue({
+      saveFromBacktest: vi.fn(),
+      isCreating: false,
     });
   });
 

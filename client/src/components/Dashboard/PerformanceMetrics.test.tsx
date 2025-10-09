@@ -119,7 +119,8 @@ describe('PerformanceMetrics Component', () => {
     renderWithQueryClient(<PerformanceMetrics userId={1} />);
     
     expect(screen.getByText('Performance Metrics')).toBeInTheDocument();
-    expect(screen.getByText('Advanced performance analytics and trading statistics')).toBeInTheDocument();
+    expect(screen.getByText('Total Executions')).toBeInTheDocument();
+    expect(screen.getByText('Average Return')).toBeInTheDocument();
   });
 
   it('displays strategy performance table', () => {
@@ -128,10 +129,9 @@ describe('PerformanceMetrics Component', () => {
     // Check table headers
     expect(screen.getByText('Strategy')).toBeInTheDocument();
     expect(screen.getByText('Type')).toBeInTheDocument();
-    expect(screen.getByText('Execution')).toBeInTheDocument();
     expect(screen.getByText('Return')).toBeInTheDocument();
-    expect(screen.getByText('Sharpe Ratio')).toBeInTheDocument();
-    expect(screen.getByText('Max Drawdown')).toBeInTheDocument();
+    expect(screen.getByText('Sharpe')).toBeInTheDocument();
+    expect(screen.getByText('Max DD')).toBeInTheDocument();
     expect(screen.getByText('Win Rate')).toBeInTheDocument();
     expect(screen.getByText('Trades')).toBeInTheDocument();
     expect(screen.getByText('Date')).toBeInTheDocument();

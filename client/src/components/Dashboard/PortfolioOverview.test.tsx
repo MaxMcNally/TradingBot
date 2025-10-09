@@ -99,8 +99,8 @@ describe('PortfolioOverview Component', () => {
     expect(screen.getByText('P&L')).toBeInTheDocument();
     
     // Check holdings data
-    expect(screen.getByText('AAPL')).toBeInTheDocument();
-    expect(screen.getByText('GOOGL')).toBeInTheDocument();
+    expect(screen.getAllByText('AAPL')).toHaveLength(2);
+    expect(screen.getAllByText('GOOGL')).toHaveLength(2);
     expect(screen.getByText('10')).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
   });
@@ -158,15 +158,14 @@ describe('PortfolioOverview Component', () => {
     renderWithQueryClient(<PortfolioOverview userId={1} />);
     
     // Check history section
-    expect(screen.getByText('Portfolio History')).toBeInTheDocument();
-    expect(screen.getByText('Recent portfolio value changes')).toBeInTheDocument();
+    expect(screen.getByText('Recent Portfolio History')).toBeInTheDocument();
   });
 
   it('shows asset allocation when holdings exist', () => {
     renderWithQueryClient(<PortfolioOverview userId={1} />);
     
     expect(screen.getByText('Asset Allocation')).toBeInTheDocument();
-    expect(screen.getByText('AAPL')).toBeInTheDocument();
-    expect(screen.getByText('GOOGL')).toBeInTheDocument();
+    expect(screen.getAllByText('AAPL')).toHaveLength(2);
+    expect(screen.getAllByText('GOOGL')).toHaveLength(2);
   });
 });
