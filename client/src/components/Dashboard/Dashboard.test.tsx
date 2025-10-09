@@ -5,10 +5,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi } from 'vitest';
 import Dashboard from './Dashboard';
 import { useUser } from '../../hooks';
+import { useTradingStats } from '../../hooks/useTrading/useTrading';
 
 // Mock the hooks
 vi.mock('../../hooks', () => ({
   useUser: vi.fn(),
+}));
+
+vi.mock('../../hooks/useTrading/useTrading', () => ({
+  useTradingStats: vi.fn(),
 }));
 
 // Mock the child components
@@ -27,6 +32,18 @@ vi.mock('./TradingSessionControls', () => ({
 vi.mock('./TestDataManager', () => ({
   default: function MockTestDataManager() {
     return <div data-testid="test-data-manager">Test Data Manager</div>;
+  },
+}));
+
+vi.mock('./PortfolioOverview', () => ({
+  default: function MockPortfolioOverview({ userId }: { userId: number }) {
+    return <div data-testid="portfolio-overview">Portfolio Overview for User {userId}</div>;
+  },
+}));
+
+vi.mock('./PerformanceMetrics', () => ({
+  default: function MockPerformanceMetrics({ userId }: { userId: number }) {
+    return <div data-testid="performance-metrics">Performance Metrics for User {userId}</div>;
   },
 }));
 
@@ -56,17 +73,31 @@ describe('Dashboard Component', () => {
     name: 'Test User',
   };
 
+  const mockStats = {
+    totalTrades: 25,
+    totalPnL: 1250.75,
+    winRate: 0.68,
+    activeSessions: 2,
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it('renders dashboard with tabs correctly', () => {
+    
+    // Default mock implementations
     (useUser as vi.Mock).mockReturnValue({
       user: mockUser,
       isLoading: false,
       error: null,
     });
+    
+    (useTradingStats as vi.Mock).mockReturnValue({
+      stats: mockStats,
+      isLoading: false,
+      isError: false,
+    });
+  });
 
+  it('renders dashboard with tabs correctly', () => {
     renderWithQueryClient(<Dashboard />);
     
     expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
@@ -90,6 +121,18 @@ describe('Dashboard Component', () => {
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
+  it('shows loading state when stats are loading', () => {
+    (useTradingStats as vi.Mock).mockReturnValue({
+      stats: null,
+      isLoading: true,
+      isError: false,
+    });
+
+    renderWithQueryClient(<Dashboard />);
+    
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
   it('shows error state when user loading fails', () => {
     (useUser as vi.Mock).mockReturnValue({
       user: null,
@@ -102,13 +145,19 @@ describe('Dashboard Component', () => {
     expect(screen.getByText('Failed to load user')).toBeInTheDocument();
   });
 
-  it('switches between tabs correctly', () => {
-    (useUser as vi.Mock).mockReturnValue({
-      user: mockUser,
+  it('shows error state when stats loading fails', () => {
+    (useTradingStats as vi.Mock).mockReturnValue({
+      stats: null,
       isLoading: false,
-      error: null,
+      isError: true,
     });
 
+    renderWithQueryClient(<Dashboard />);
+    
+    expect(screen.getByText('Failed to load trading statistics')).toBeInTheDocument();
+  });
+
+  it('switches between tabs correctly', () => {
     renderWithQueryClient(<Dashboard />);
     
     // Initially on Trading Results tab
@@ -118,23 +167,17 @@ describe('Dashboard Component', () => {
     const portfolioOverviewTab = screen.getByRole('tab', { name: /portfolio overview/i });
     fireEvent.click(portfolioOverviewTab);
 
-    // Assert Portfolio Overview content (unique text in panel)
-    expect(
-      screen.getByText('Your current portfolio holdings and performance metrics will be displayed here.')
-    ).toBeInTheDocument();
+    // Assert Portfolio Overview content
+    expect(screen.getByTestId('portfolio-overview')).toBeInTheDocument();
     expect(screen.queryByTestId('trading-results')).not.toBeInTheDocument();
 
     // Click on Performance Metrics tab
     const performanceMetricsTab = screen.getByRole('tab', { name: /performance metrics/i });
     fireEvent.click(performanceMetricsTab);
 
-    // Assert Performance Metrics content (unique text in panel)
-    expect(
-      screen.getByText('Detailed performance analytics and trading statistics will be displayed here.')
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText('Your current portfolio holdings and performance metrics will be displayed here.')
-    ).not.toBeInTheDocument();
+    // Assert Performance Metrics content
+    expect(screen.getByTestId('performance-metrics')).toBeInTheDocument();
+    expect(screen.queryByTestId('portfolio-overview')).not.toBeInTheDocument();
   });
 
   it('handles user without name gracefully', () => {
@@ -156,51 +199,29 @@ describe('Dashboard Component', () => {
   });
 
   it('passes correct userId to TradingResults component', () => {
-    (useUser as vi.Mock).mockReturnValue({
-      user: mockUser,
-      isLoading: false,
-      error: null,
-    });
-
     renderWithQueryClient(<Dashboard />);
     
     expect(screen.getByText('Trading Results for User 1')).toBeInTheDocument();
   });
 
   it('maintains tab state when switching between tabs', () => {
-    (useUser as vi.Mock).mockReturnValue({
-      user: mockUser,
-      isLoading: false,
-      error: null,
-    });
-
     renderWithQueryClient(<Dashboard />);
     
     // Switch to Portfolio Overview tab
     const portfolioOverviewTab = screen.getByRole('tab', { name: /portfolio overview/i });
     fireEvent.click(portfolioOverviewTab);
 
-    expect(
-      screen.getByText('Your current portfolio holdings and performance metrics will be displayed here.')
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('portfolio-overview')).toBeInTheDocument();
 
     // Switch back to Trading Results
     const tradingResultsTab = screen.getByRole('tab', { name: /trading results/i });
     fireEvent.click(tradingResultsTab);
     
     expect(screen.getByTestId('trading-results')).toBeInTheDocument();
-    expect(
-      screen.queryByText('Your current portfolio holdings and performance metrics will be displayed here.')
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('portfolio-overview')).not.toBeInTheDocument();
   });
 
   it('has proper accessibility attributes for tabs', () => {
-    (useUser as vi.Mock).mockReturnValue({
-      user: mockUser,
-      isLoading: false,
-      error: null,
-    });
-
     renderWithQueryClient(<Dashboard />);
     
     const tradingResultsTab = screen.getByRole('tab', { name: /trading results/i });
@@ -210,5 +231,45 @@ describe('Dashboard Component', () => {
     const portfolioOverviewTab = screen.getByRole('tab', { name: /portfolio overview/i });
     expect(portfolioOverviewTab).toHaveAttribute('id', 'dashboard-tab-1');
     expect(portfolioOverviewTab).toHaveAttribute('aria-controls', 'dashboard-tabpanel-1');
+  });
+
+  it('displays live trading statistics in quick stats cards', () => {
+    renderWithQueryClient(<Dashboard />);
+    
+    // Check that live data is displayed in the quick stats cards
+    expect(screen.getByText('Total Sessions')).toBeInTheDocument();
+    expect(screen.getByText('Total P&L')).toBeInTheDocument();
+    expect(screen.getByText('Win Rate')).toBeInTheDocument();
+    expect(screen.getByText('Active Sessions')).toBeInTheDocument();
+    
+    // Check that the values are displayed (using getAllByText since there are multiple instances)
+    const totalPnLValues = screen.getAllByText('$1,250.75');
+    expect(totalPnLValues.length).toBeGreaterThan(0);
+    
+    const winRateValues = screen.getAllByText('0.68%');
+    expect(winRateValues.length).toBeGreaterThan(0);
+  });
+
+  it('displays live trading statistics in persistent sidebar', () => {
+    renderWithQueryClient(<Dashboard />);
+    
+    // Check that live data is displayed in the persistent sidebar
+    expect(screen.getByText('Total Sessions:')).toBeInTheDocument();
+    expect(screen.getByText('Total P&L:')).toBeInTheDocument();
+    expect(screen.getByText('Win Rate:')).toBeInTheDocument();
+    expect(screen.getByText('Active Sessions:')).toBeInTheDocument();
+    
+    // Check that the values are displayed (using getAllByText since there are multiple instances)
+    const totalSessionsValues = screen.getAllByText('25');
+    expect(totalSessionsValues.length).toBeGreaterThan(0);
+    
+    const totalPnLValues = screen.getAllByText('$1,250.75');
+    expect(totalPnLValues.length).toBeGreaterThan(0);
+    
+    const winRateValues = screen.getAllByText('0.68%');
+    expect(winRateValues.length).toBeGreaterThan(0);
+    
+    const activeSessionsValues = screen.getAllByText('2');
+    expect(activeSessionsValues.length).toBeGreaterThan(0);
   });
 });

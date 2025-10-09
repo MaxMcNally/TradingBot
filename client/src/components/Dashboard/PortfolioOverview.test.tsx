@@ -1,0 +1,172 @@
+import React from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { vi } from 'vitest';
+import PortfolioOverview from './PortfolioOverview';
+
+// Mock the hooks
+vi.mock('../../hooks/useTrading/useTrading', () => ({
+  usePortfolioSummary: vi.fn(),
+  usePortfolioHistory: vi.fn(),
+}));
+
+import { usePortfolioSummary, usePortfolioHistory } from '../../hooks/useTrading/useTrading';
+
+const createTestQueryClient = () => new QueryClient({
+  defaultOptions: {
+    queries: { retry: false },
+    mutations: { retry: false },
+  },
+});
+
+const renderWithQueryClient = (component: React.ReactElement) => {
+  const queryClient = createTestQueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>
+      {component}
+    </QueryClientProvider>
+  );
+};
+
+describe('PortfolioOverview Component', () => {
+  const mockPortfolio = {
+    currentValue: 10000.50,
+    cash: 2500.25,
+    totalPnL: 1250.75,
+    totalPnLPercentage: 0.1425,
+  };
+
+  const mockPortfolioHistory = [
+    {
+      id: 1,
+      user_id: 1,
+      timestamp: '2024-01-01T10:00:00Z',
+      total_value: 10000.50,
+      cash: 2500.25,
+      positions: JSON.stringify({
+        'AAPL': { shares: 10, avgPrice: 150.25 },
+        'GOOGL': { shares: 5, avgPrice: 2800.00 }
+      }),
+      mode: 'PAPER' as const,
+      created_at: '2024-01-01T10:00:00Z'
+    }
+  ];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    
+    // Default mock implementations
+    (usePortfolioSummary as vi.Mock).mockReturnValue({
+      portfolio: mockPortfolio,
+      isLoading: false,
+      isError: false,
+    });
+    
+    (usePortfolioHistory as vi.Mock).mockReturnValue({
+      history: mockPortfolioHistory,
+      isLoading: false,
+      isError: false,
+    });
+  });
+
+  it('renders portfolio overview correctly', () => {
+    renderWithQueryClient(<PortfolioOverview userId={1} />);
+    
+    expect(screen.getByText('Portfolio Overview')).toBeInTheDocument();
+    expect(screen.getByText('Current Portfolio Value')).toBeInTheDocument();
+    expect(screen.getByText('$10,000.50')).toBeInTheDocument();
+  });
+
+  it('displays portfolio summary data', () => {
+    renderWithQueryClient(<PortfolioOverview userId={1} />);
+    
+    // Check portfolio summary values
+    expect(screen.getByText('$10,000.50')).toBeInTheDocument(); // totalValue
+    expect(screen.getByText('$2,500.25')).toBeInTheDocument(); // cash
+    expect(screen.getByText('$1,250.75')).toBeInTheDocument(); // totalPnL
+    expect(screen.getByText('14.25%')).toBeInTheDocument(); // totalPnLPercentage
+  });
+
+  it('displays holdings table', () => {
+    renderWithQueryClient(<PortfolioOverview userId={1} />);
+    
+    // Check table headers
+    expect(screen.getByText('Symbol')).toBeInTheDocument();
+    expect(screen.getByText('Shares')).toBeInTheDocument();
+    expect(screen.getByText('Current Price')).toBeInTheDocument();
+    expect(screen.getByText('Total Value')).toBeInTheDocument();
+    expect(screen.getByText('P&L')).toBeInTheDocument();
+    
+    // Check holdings data
+    expect(screen.getByText('AAPL')).toBeInTheDocument();
+    expect(screen.getByText('GOOGL')).toBeInTheDocument();
+    expect(screen.getByText('10')).toBeInTheDocument();
+    expect(screen.getByText('5')).toBeInTheDocument();
+  });
+
+  it('shows loading state', () => {
+    (usePortfolioSummary as vi.Mock).mockReturnValue({
+      portfolio: null,
+      isLoading: true,
+      isError: false,
+    });
+
+    renderWithQueryClient(<PortfolioOverview userId={1} />);
+    
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('shows error state', () => {
+    (usePortfolioSummary as vi.Mock).mockReturnValue({
+      portfolio: null,
+      isLoading: false,
+      isError: true,
+    });
+
+    renderWithQueryClient(<PortfolioOverview userId={1} />);
+    
+    expect(screen.getByText('Failed to load portfolio data. Please try again later.')).toBeInTheDocument();
+  });
+
+  it('handles empty holdings', () => {
+    const emptyPortfolioHistory = [
+      {
+        id: 1,
+        user_id: 1,
+        timestamp: '2024-01-01T10:00:00Z',
+        total_value: 10000.50,
+        cash: 2500.25,
+        positions: JSON.stringify({}),
+        mode: 'PAPER' as const,
+        created_at: '2024-01-01T10:00:00Z'
+      }
+    ];
+
+    (usePortfolioHistory as vi.Mock).mockReturnValue({
+      history: emptyPortfolioHistory,
+      isLoading: false,
+      isError: false,
+    });
+
+    renderWithQueryClient(<PortfolioOverview userId={1} />);
+    
+    expect(screen.getByText('No holdings found')).toBeInTheDocument();
+  });
+
+  it('displays portfolio history', () => {
+    renderWithQueryClient(<PortfolioOverview userId={1} />);
+    
+    // Check history section
+    expect(screen.getByText('Portfolio History')).toBeInTheDocument();
+    expect(screen.getByText('Recent portfolio value changes')).toBeInTheDocument();
+  });
+
+  it('shows asset allocation when holdings exist', () => {
+    renderWithQueryClient(<PortfolioOverview userId={1} />);
+    
+    expect(screen.getByText('Asset Allocation')).toBeInTheDocument();
+    expect(screen.getByText('AAPL')).toBeInTheDocument();
+    expect(screen.getByText('GOOGL')).toBeInTheDocument();
+  });
+});
