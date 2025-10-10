@@ -31,7 +31,7 @@ describe('Backtest micro-benchmarks', () => {
       const elapsed = Date.now() - start;
       expect(result.trades).toBeDefined();
       // Budgets: scale roughly linearly; generous to avoid flakes in CI
-      const budgetMs = n <= 1_000 ? 100 : n <= 10_000 ? 300 : 1200;
+      const budgetMs = n <= 1_000 ? 75 : n <= 10_000 ? 300 : 1200;
       expect(elapsed).toBeLessThan(budgetMs);
     });
 
