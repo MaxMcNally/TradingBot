@@ -344,20 +344,30 @@ const StrategyParameters: React.FC<StrategyParametersProps> = ({
     const config = strategyConfig[key];
     if (!config) return null;
 
-    if (config.required && (value === null || value === undefined || value === '')) {
-      return `${config.label} is required`;
-    }
-
-    if (config.type === 'number' && value !== null && value !== undefined) {
-      const numValue = Number(value);
-      if (isNaN(numValue)) {
-        return `${config.label} must be a valid number`;
+    // Handle number type validation first to properly treat empty strings as invalid numbers
+    if (config.type === 'number') {
+      // For number types, check if required and value is null/undefined (but not empty string)
+      if (config.required && (value === null || value === undefined)) {
+        return `${config.label} is required`;
       }
-      if (config.min !== undefined && numValue < config.min) {
-        return `${config.label} must be at least ${config.min}`;
+      
+      // If we have a value (including empty string), validate it as a number
+      if (value !== null && value !== undefined) {
+        const numValue = Number(value);
+        if (isNaN(numValue)) {
+          return `${config.label} must be a valid number`;
+        }
+        if (config.min !== undefined && numValue < config.min) {
+          return `${config.label} must be at least ${config.min}`;
+        }
+        if (config.max !== undefined && numValue > config.max) {
+          return `${config.label} must be at most ${config.max}`;
+        }
       }
-      if (config.max !== undefined && numValue > config.max) {
-        return `${config.label} must be at most ${config.max}`;
+    } else {
+      // For non-number types, use the original required validation logic
+      if (config.required && (value === null || value === undefined || value === '')) {
+        return `${config.label} is required`;
       }
     }
 
