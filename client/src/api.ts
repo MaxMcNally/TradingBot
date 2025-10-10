@@ -9,6 +9,13 @@ export const api = axios.create({
   withCredentials: true
 });
 
+// Flag to prevent multiple simultaneous refresh attempts
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value?: any) => void;
+  reject: (reason?: any) => void;
+}> = [];
+
 // Add request interceptor to include auth token
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('authToken');
@@ -24,10 +31,28 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     
+    // Don't retry refresh token requests to avoid infinite loops
+    if (originalRequest.url?.includes('/auth/refresh')) {
+      return Promise.reject(error);
+    }
+    
     if (error.response?.status === 401 || error.response?.status === 403) {
       // If this is not a retry and we have a token, try to refresh it
       if (!originalRequest._retry && localStorage.getItem('authToken')) {
+        if (isRefreshing) {
+          // If already refreshing, queue this request
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          }).then(token => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          }).catch(err => {
+            return Promise.reject(err);
+          });
+        }
+
         originalRequest._retry = true;
+        isRefreshing = true;
         
         try {
           const response = await refreshToken();
@@ -43,16 +68,25 @@ api.interceptors.response.use(
             localStorage.setItem('authToken', token);
           }
           
+          // Process the queue
+          failedQueue.forEach(({ resolve }) => resolve(token));
+          failedQueue = [];
+          
           // Retry the original request with the new token
           if (token) {
             originalRequest.headers.Authorization = `Bearer ${token}`;
           }
           return api(originalRequest);
         } catch (refreshError) {
-          // Refresh failed, clear local data but don't redirect
+          // Refresh failed, clear local data and reject queued requests
           console.log('Token refresh failed, clearing local data');
           localStorage.removeItem('authToken');
           localStorage.removeItem('user');
+          
+          failedQueue.forEach(({ reject }) => reject(refreshError));
+          failedQueue = [];
+        } finally {
+          isRefreshing = false;
         }
       } else {
         // No token or refresh failed, clear local data but don't redirect
@@ -265,7 +299,7 @@ export const runBacktest = (data: BacktestRequest): Promise<AxiosResponse<ApiRes
   api.post('/backtest/run', data);
 
 export const getStrategies = (): Promise<AxiosResponse<ApiResponse<{ strategies: Strategy[] }>>> => 
-  api.get('/backtest/strategies');
+  api.get('/trading/strategies');
 
 export const getBacktestHealth = (): Promise<AxiosResponse<ApiResponse>> => 
   api.get('/backtest/health');

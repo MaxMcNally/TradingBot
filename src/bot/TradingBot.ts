@@ -155,6 +155,13 @@ export class TradingBot extends EventEmitter {
       console.log(`💰 Initial cash: $${tradingConfig.initialCash.toFixed(2)}`);
       console.log(`🛡️ Risk management: Max position ${(tradingConfig.riskManagement.maxPositionSize * 100).toFixed(0)}%, Stop loss ${(tradingConfig.riskManagement.stopLoss * 100).toFixed(0)}%, Take profit ${(tradingConfig.riskManagement.takeProfit * 100).toFixed(0)}%`);
 
+      // Warmup strategies with historical data if enabled
+      const warmupConfig = this.config.getWarmupConfig();
+      if (warmupConfig.enabled) {
+        console.log('🔥 Warming up strategies with historical data...');
+        await this.warmupStrategies();
+      }
+
       // Fetch initial quotes
       await this.fetchInitialQuotes();
 
@@ -197,6 +204,103 @@ export class TradingBot extends EventEmitter {
       this.emit('error', error as Error);
       throw error;
     }
+  }
+
+  /**
+   * Warmup strategies with historical data to enable immediate trading
+   */
+  private async warmupStrategies(): Promise<void> {
+    const tradingConfig = this.config.getConfig();
+    const warmupConfig = this.config.getWarmupConfig();
+    const maxLookback = this.config.getMaxLookbackWindow();
+    
+    // Calculate the number of days to fetch (max lookback + buffer)
+    let daysToFetch = Math.min(maxLookback + warmupConfig.bufferDays, warmupConfig.maxLookbackDays);
+    
+    // Adjust for weekends if enabled
+    if (warmupConfig.skipWeekends) {
+      // Add extra days to account for weekends (roughly 2/7 of days are weekends)
+      daysToFetch = Math.ceil(daysToFetch * 1.3);
+    }
+    
+    console.log(`📊 Fetching ${daysToFetch} days of historical data for warmup (max lookback: ${maxLookback} days)`);
+    console.log(`📅 Data interval: ${warmupConfig.dataInterval}, Skip weekends: ${warmupConfig.skipWeekends}`);
+    
+    // Calculate start date (daysToFetch days ago)
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - daysToFetch);
+    
+    const startDateStr = startDate.toISOString().split('T')[0];
+    const endDateStr = endDate.toISOString().split('T')[0];
+    
+    // Get unique symbols from all enabled strategies
+    const symbolsToWarmup = new Set<string>();
+    tradingConfig.strategies
+      .filter(s => s.enabled)
+      .forEach(strategy => {
+        strategy.symbols.forEach(symbol => symbolsToWarmup.add(symbol));
+      });
+    
+    let warmupErrors: string[] = [];
+    
+    // Fetch historical data for each symbol
+    for (const symbol of symbolsToWarmup) {
+      try {
+        console.log(`📈 Fetching warmup data for ${symbol}...`);
+        const historicalData = await this.provider.getHistorical(symbol, warmupConfig.dataInterval, startDateStr, endDateStr);
+        
+        if (historicalData && historicalData.length > 0) {
+          // Pre-populate strategies with historical data
+          const strategiesForSymbol = Array.from(this.strategies.entries())
+            .filter(([sym, _]) => sym === symbol)
+            .map(([_, strategy]) => strategy);
+          
+          for (const strategy of strategiesForSymbol) {
+            // Add historical prices to strategy (excluding the last one to avoid double-processing)
+            for (let i = 0; i < historicalData.length - 1; i++) {
+              const dataPoint = historicalData[i];
+              const price = (dataPoint as any).close || (dataPoint as any).c;
+              if (price) {
+                strategy.addPrice(price);
+              }
+            }
+          }
+          
+          // Set the latest price from the most recent historical data
+          const latestDataPoint = historicalData[historicalData.length - 1];
+          const latestPrice = (latestDataPoint as any).close || (latestDataPoint as any).c;
+          if (latestPrice) {
+            this.latestPrices[symbol] = latestPrice;
+          }
+          
+          console.log(`✅ Warmed up ${symbol} with ${historicalData.length} data points`);
+        } else {
+          const errorMsg = `No historical data found for ${symbol}`;
+          console.warn(`⚠️ ${errorMsg}`);
+          warmupErrors.push(errorMsg);
+        }
+      } catch (error) {
+        const errorMsg = `Failed to warmup ${symbol}: ${error instanceof Error ? error.message : String(error)}`;
+        console.error(`❌ ${errorMsg}`);
+        warmupErrors.push(errorMsg);
+        
+        // Continue with other symbols even if one fails
+      }
+    }
+    
+    // Handle warmup errors
+    if (warmupErrors.length > 0) {
+      const errorMessage = `Warmup completed with ${warmupErrors.length} errors: ${warmupErrors.join(', ')}`;
+      
+      if (warmupConfig.failOnWarmupError) {
+        throw new Error(errorMessage);
+      } else {
+        console.warn(`⚠️ ${errorMessage}`);
+      }
+    }
+    
+    console.log('🎯 Strategy warmup completed - ready for immediate trading!');
   }
 
   private async fetchInitialQuotes(): Promise<void> {
@@ -504,5 +608,51 @@ export class TradingBot extends EventEmitter {
    */
   private updateDailyPnL(tradePnL: number): void {
     this.dailyPnL += tradePnL;
+  }
+
+  /**
+   * Check if all strategies are ready for immediate trading (have enough historical data)
+   */
+  areStrategiesReady(): boolean {
+    const tradingConfig = this.config.getConfig();
+    const warmupConfig = this.config.getWarmupConfig();
+    
+    if (!warmupConfig.enabled) {
+      return false; // Strategies need warmup to be ready
+    }
+    
+    const maxLookback = this.config.getMaxLookbackWindow();
+    
+    // Check if we have strategies for all symbols
+    for (const symbol of tradingConfig.symbols) {
+      const strategy = this.strategies.get(symbol);
+      if (!strategy) {
+        return false; // No strategy for this symbol
+      }
+    }
+    
+    return true; // All strategies should be warmed up
+  }
+
+  /**
+   * Get warmup status information
+   */
+  getWarmupStatus(): {
+    enabled: boolean;
+    maxLookbackDays: number;
+    bufferDays: number;
+    strategiesReady: boolean;
+    symbolsWarmedUp: string[];
+  } {
+    const warmupConfig = this.config.getWarmupConfig();
+    const tradingConfig = this.config.getConfig();
+    
+    return {
+      enabled: warmupConfig.enabled,
+      maxLookbackDays: warmupConfig.maxLookbackDays,
+      bufferDays: warmupConfig.bufferDays,
+      strategiesReady: this.areStrategiesReady(),
+      symbolsWarmedUp: tradingConfig.symbols.filter(symbol => this.strategies.has(symbol))
+    };
   }
 }

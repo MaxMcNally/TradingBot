@@ -142,24 +142,39 @@ authRouter.get("/me", authenticateToken, (req: AuthenticatedRequest, res: Respon
   );
 });
 
-// Refresh token endpoint
-authRouter.post("/refresh", authenticateToken, (req: AuthenticatedRequest, res: Response) => {
-  if (!req.user) {
-    return res.status(401).json({ error: "User not authenticated" });
+// Refresh token endpoint - should not require authentication since token might be expired
+authRouter.post("/refresh", (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+  if (!token) {
+    return res.status(401).json({ error: "Access token required" });
   }
 
-  // Generate a new token with the same user data
-  const newToken = generateToken({
-    id: req.user.id,
-    username: req.user.username,
-    email: req.user.email
-  });
+  try {
+    // Verify the token even if it's expired to get user info
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', { ignoreExpiration: true });
+    
+    // Generate a new token with the same user data
+    const newToken = generateToken({
+      id: decoded.id,
+      username: decoded.username,
+      email: decoded.email
+    });
 
-  res.json({ 
-    success: true, 
-    token: newToken,
-    user: req.user
-  });
+    res.json({ 
+      success: true, 
+      token: newToken,
+      user: {
+        id: decoded.id,
+        username: decoded.username,
+        email: decoded.email
+      }
+    });
+  } catch (error) {
+    return res.status(401).json({ error: "Invalid token" });
+  }
 });
 
 // Update account settings

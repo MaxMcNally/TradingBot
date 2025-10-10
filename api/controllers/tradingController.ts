@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { UserManager } from "../../src/bot/UserManager";
 import { TradingDatabase } from "../../src/database/tradingSchema";
 import { PerformanceMetricsService } from "../services/performanceMetricsService";
+import { StrategiesService } from "../services/strategiesService";
 
 export const getUserTradingStats = async (req: Request, res: Response) => {
   try {
@@ -311,79 +312,19 @@ export const resumeTradingSession = async (req: Request, res: Response) => {
 
 export const getAvailableStrategies = async (req: Request, res: Response) => {
   try {
-    // Return available strategies
-    const strategies = [
-      {
-        name: 'MovingAverage',
-        description: 'Uses moving average crossover to generate buy/sell signals',
-        parameters: {
-          shortWindow: 5,
-          longWindow: 10,
-        },
-        enabled: true,
-        symbols: [],
-      },
-      {
-        name: 'SentimentAnalysis',
-        description: 'News sentiment-based strategy using recent articles to generate BUY/SELL signals',
-        parameters: {
-          lookbackDays: 3,
-          pollIntervalMinutes: 0,
-          minArticles: 2,
-          buyThreshold: 0.4,
-          sellThreshold: -0.4,
-          titleWeight: 2.0,
-          recencyHalfLifeHours: 12,
-          newsSource: 'yahoo'
-        },
-        enabled: true,
-        symbols: [],
-      },
-      {
-        name: 'BollingerBands',
-        description: 'Uses Bollinger Bands to identify overbought/oversold conditions',
-        parameters: {
-          window: 20,
-          numStdDev: 2,
-        },
-        enabled: true,
-        symbols: [],
-      },
-      {
-        name: 'MeanReversion',
-        description: 'Identifies when prices deviate significantly from their mean',
-        parameters: {
-          window: 20,
-          threshold: 2,
-        },
-        enabled: true,
-        symbols: [],
-      },
-      {
-        name: 'Momentum',
-        description: 'Follows the trend by buying when momentum is positive',
-        parameters: {
-          window: 10,
-          threshold: 0.02,
-        },
-        enabled: true,
-        symbols: [],
-      },
-      {
-        name: 'Breakout',
-        description: 'Identifies when prices break through resistance or support levels',
-        parameters: {
-          window: 20,
-          threshold: 0.05,
-        },
-        enabled: true,
-        symbols: [],
-      },
-    ];
-
-    res.json({ strategies });
+    const strategies = StrategiesService.getStrategiesForBacktest();
+    
+    res.json({
+      success: true,
+      data: {
+        strategies
+      }
+    });
   } catch (error) {
     console.error("Error getting available strategies:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
   }
 };
