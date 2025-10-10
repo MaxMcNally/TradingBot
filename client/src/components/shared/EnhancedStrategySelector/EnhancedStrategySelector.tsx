@@ -25,8 +25,9 @@ import {
   Settings as SettingsIcon
 } from '@mui/icons-material';
 import { getAvailableStrategies, TradingStrategy } from '../../../api/tradingApi';
-import { usePublicStrategies } from '../../../hooks';
+import { usePublicStrategies, useStrategies } from '../../../hooks';
 import { EnhancedStrategySelectorProps, TabPanelProps } from './types';
+
 
 function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
@@ -66,6 +67,11 @@ const EnhancedStrategySelector: React.FC<EnhancedStrategySelectorProps> = ({
     error: publicStrategiesErrorMsg,
     refetch: refetchPublicStrategies
   } = usePublicStrategies();
+
+  const {
+    strategies: apiStrategies,
+    isLoading: apiStrategiesLoading
+  } = useStrategies();
 
   // Default strategies with their parameters
   const defaultStrategies: TradingStrategy[] = [
@@ -144,14 +150,37 @@ const EnhancedStrategySelector: React.FC<EnhancedStrategySelectorProps> = ({
     } else {
       fetchStrategies();
     }
-  }, [propStrategies]);
+  }, [propStrategies, apiStrategies]);
+
+  // Update loading state based on API strategies loading
+  useEffect(() => {
+    if (!propStrategies) {
+      setLoading(apiStrategiesLoading);
+    }
+  }, [apiStrategiesLoading, propStrategies]);
 
   const fetchStrategies = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await getAvailableStrategies();
-      setStrategies(response.data.strategies || defaultStrategies);
+      
+      // Use the API strategies from the hook
+      if (apiStrategies && apiStrategies.length > 0) {
+        const convertedStrategies: TradingStrategy[] = apiStrategies.map(strategy => ({
+          name: strategy.name,
+          description: strategy.description || 'No description available',
+          parameters: strategy.parameters ? Object.fromEntries(
+            Object.entries(strategy.parameters).map(([key, param]) => [key, { default: param.default }])
+          ) : {},
+          enabled: true,
+          symbols: [],
+        }));
+        setStrategies(convertedStrategies);
+      } else {
+        // Fallback to trading API if strategies not available
+        const response = await getAvailableStrategies();
+        setStrategies(response.data.strategies || defaultStrategies);
+      }
     } catch (err) {
       console.error('Error fetching strategies:', err);
       setStrategies(defaultStrategies);
@@ -198,42 +227,48 @@ const EnhancedStrategySelector: React.FC<EnhancedStrategySelectorProps> = ({
     setActiveTab(newValue);
   };
 
-  const renderStrategyCard = (strategy: TradingStrategy, isPublic: boolean = false) => (
-    <Card 
-      key={strategy.name} 
-      sx={{ 
-        mb: 2, 
-        border: selectedStrategy === strategy.name ? 2 : 1, 
-        borderColor: selectedStrategy === strategy.name ? 'primary.main' : 'divider' 
-      }}
-    >
-      <CardContent>
-        <Box display="flex" alignItems="center" width="100%" mb={2}>
-          <FormControlLabel
-            value={strategy.name}
-            control={<Radio />}
-            label={
-              <Box display="flex" alignItems="center" gap={1}>
-                <Typography variant="subtitle1">{strategy.name}</Typography>
-                {isPublic && (
-                  <Tooltip title="Public Strategy">
-                    <PublicIcon color="primary" fontSize="small" />
-                  </Tooltip>
-                )}
-                {selectedStrategy === strategy.name && (
-                  <Chip label="Selected" size="small" color="primary" />
-                )}
-              </Box>
-            }
-          />
-        </Box>
-        
-        <Typography variant="body2" color="textSecondary">
-          {strategy.description}
-        </Typography>
-      </CardContent>
-    </Card>
-  );
+  const renderStrategyCard = (strategy: TradingStrategy, isPublic: boolean = false) => {
+    // Find the corresponding API strategy to get the display name
+    const apiStrategy = apiStrategies.find(api => api.name === strategy.name);
+    const displayName = apiStrategy?.displayName || strategy.name;
+    
+    return (
+      <Card 
+        key={strategy.name} 
+        sx={{ 
+          mb: 2, 
+          border: selectedStrategy === strategy.name ? 2 : 1, 
+          borderColor: selectedStrategy === strategy.name ? 'primary.main' : 'divider' 
+        }}
+      >
+        <CardContent>
+          <Box display="flex" alignItems="center" width="100%" mb={2}>
+            <FormControlLabel
+              value={strategy.name}
+              control={<Radio />}
+              label={
+                <Box display="flex" alignItems="center" gap={1}>
+                  <Typography variant="subtitle1">{displayName}</Typography>
+                  {isPublic && (
+                    <Tooltip title="Public Strategy">
+                      <PublicIcon color="primary" fontSize="small" />
+                    </Tooltip>
+                  )}
+                  {selectedStrategy === strategy.name && (
+                    <Chip label="Selected" size="small" color="primary" />
+                  )}
+                </Box>
+              }
+            />
+          </Box>
+          
+          <Typography variant="body2" color="textSecondary">
+            {strategy.description}
+          </Typography>
+        </CardContent>
+      </Card>
+    );
+  };
 
   if (loading) {
     return (
@@ -332,43 +367,49 @@ const EnhancedStrategySelector: React.FC<EnhancedStrategySelectorProps> = ({
               value={selectedStrategy}
               onChange={(e) => handlePublicStrategyChange(e.target.value)}
             >
-              {publicStrategies.map((strategy) => (
-                <Card 
-                  key={strategy.id}
-                  sx={{ 
-                    mb: 2, 
-                    border: selectedStrategy === strategy.strategy_type ? 2 : 1, 
-                    borderColor: selectedStrategy === strategy.strategy_type ? 'primary.main' : 'divider' 
-                  }}
-                >
-                  <CardContent>
-                    <Box display="flex" alignItems="center" width="100%" mb={2}>
-                      <FormControlLabel
-                        value={strategy.strategy_type} // Use strategy_type as the value for API compatibility
-                        control={<Radio />}
-                        label={
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <Typography variant="subtitle1">{strategy.name}</Typography>
-                            {selectedStrategy === strategy.strategy_type && (
-                              <Chip label="Selected" size="small" color="primary" />
-                            )}
-                          </Box>
-                        }
-                      />
-                      <Chip 
-                        label="Public" 
-                        size="small" 
-                        color="primary" 
-                        sx={{ ml: 1 }}
-                        icon={<PublicIcon />}
-                      />
-                    </Box>
-                    <Typography variant="body2" color="textSecondary">
-                      {strategy.description || 'No description available'}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              ))}
+              {publicStrategies.map((strategy) => {
+                // Find the corresponding API strategy to get the display name
+                const apiStrategy = apiStrategies.find(api => api.name === strategy.strategy_type);
+                const displayName = apiStrategy?.displayName || strategy.name;
+                
+                return (
+                  <Card 
+                    key={strategy.id}
+                    sx={{ 
+                      mb: 2, 
+                      border: selectedStrategy === strategy.strategy_type ? 2 : 1, 
+                      borderColor: selectedStrategy === strategy.strategy_type ? 'primary.main' : 'divider' 
+                    }}
+                  >
+                    <CardContent>
+                      <Box display="flex" alignItems="center" width="100%" mb={2}>
+                        <FormControlLabel
+                          value={strategy.strategy_type} // Use strategy_type as the value for API compatibility
+                          control={<Radio />}
+                          label={
+                            <Box display="flex" alignItems="center" gap={1}>
+                              <Typography variant="subtitle1">{displayName}</Typography>
+                              {selectedStrategy === strategy.strategy_type && (
+                                <Chip label="Selected" size="small" color="primary" />
+                              )}
+                            </Box>
+                          }
+                        />
+                        <Chip 
+                          label="Public" 
+                          size="small" 
+                          color="primary" 
+                          sx={{ ml: 1 }}
+                          icon={<PublicIcon />}
+                        />
+                      </Box>
+                      <Typography variant="body2" color="textSecondary">
+                        {strategy.description || 'No description available'}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </RadioGroup>
           </FormControl>
         )}
