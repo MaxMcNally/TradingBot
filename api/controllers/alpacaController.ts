@@ -413,17 +413,31 @@ export const submitAlpacaOrder = async (req: AuthenticatedRequest, res: Response
       });
     }
 
+    // Validate qty is a positive, finite number and not excessively large
+    const parsedQty = parseFloat(qty);
+    const MAX_QTY = 1000000; // reasonable upper bound, adjust as needed
+    if (
+      isNaN(parsedQty) ||
+      !isFinite(parsedQty) ||
+      parsedQty <= 0 ||
+      parsedQty > MAX_QTY
+    ) {
+      return res.status(400).json({
+        error: `Invalid qty: must be a positive number less than ${MAX_QTY}.`
+      });
+    }
+
     const service = await getAlpacaServiceForUser(userId);
     if (!service) {
       return res.status(400).json({ error: 'Alpaca account not connected' });
     }
 
     // Log the order for audit purposes
-    console.log(`📊 Alpaca order submitted by user ${userId}: ${side} ${qty} ${symbol} (${service.getTradingMode()} mode)`);
+    console.log(`📊 Alpaca order submitted by user ${userId}: ${side} ${parsedQty} ${symbol} (${service.getTradingMode()} mode)`);
 
     const order = await service.submitOrder({
       symbol,
-      qty: parseFloat(qty),
+      qty: parsedQty,
       side,
       type,
       time_in_force,
