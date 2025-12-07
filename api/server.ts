@@ -11,6 +11,7 @@ import {cacheRouter} from "./routes/cache";
 import tradingRouter from "./routes/trading";
 import {strategyRouter} from "./routes/strategies";
 import adminRouter from "./routes/adminRoutes";
+import {alpacaRouter} from "./routes/alpaca";
 import { initDatabase } from "./initDb";
 import { sessionMonitor } from "./services/sessionMonitor";
 import testRouter from "./routes/test";
@@ -106,6 +107,8 @@ try {
   app.use("/api/admin", adminRouter);
   console.log("Mounting test router...");
   app.use("/api/test", testRouter);
+  console.log("Mounting alpaca router...");
+  app.use("/api/alpaca", alpacaRouter);
   console.log("API routes mounted successfully");
 } catch (error) {
   console.error("Error mounting routes:", error);

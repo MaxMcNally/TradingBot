@@ -1,5 +1,6 @@
 import {Request, Response } from "express";
-
+import { clearUserConnection } from './alpacaController';
+import { AuthenticatedRequest } from '../middleware/auth';
 import User from "../models/User";
 
 export const login = async (req: Request, res: Response) => {
@@ -28,5 +29,15 @@ export const login = async (req: Request, res: Response) => {
 };
 
 export const logout = async (req: Request, res: Response) => {
-  return res.json({ message: "Logged out successfully" });
+  try {
+    // Clear any cached Alpaca connections for this user
+    const authenticatedReq = req as AuthenticatedRequest;
+    if (authenticatedReq.user?.id) {
+      clearUserConnection(authenticatedReq.user.id);
+    }
+    return res.json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.error("Logout error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 };

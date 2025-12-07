@@ -19,6 +19,7 @@ import {
   CircularProgress
 } from "@mui/material";
 import { SettingsProps, Setting, AccountSettings } from "./Settings.types";
+import AlpacaSettings from "./AlpacaSettings";
 
 const Settings: React.FC<SettingsProps> = ({ user }) => {
   const [settings, setSettings] = useState<Setting[]>([]);
@@ -136,6 +137,9 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3, maxWidth: 600 }}>
+      {/* Alpaca Integration Section */}
+      <AlpacaSettings userId={user?.id || ""} />
+
       {/* Account Settings Section */}
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6" gutterBottom>
