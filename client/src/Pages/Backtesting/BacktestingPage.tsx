@@ -119,8 +119,7 @@ const BacktestingPage: React.FC = () => {
   };
   
 
-  const [results, setResults] = useState<BacktestResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [results] = useState<BacktestResponse | null>(null);
   
   // Local state for selected stocks (similar to Trading component)
   const [selectedStocks, setSelectedStocks] = useState<string[]>([]);
@@ -141,7 +140,7 @@ const BacktestingPage: React.FC = () => {
 
   // Use hooks for strategies and backtesting
   const { strategies: availableStrategies, isLoading: strategiesLoading, isError: strategiesError } = useStrategies();
-  const { runBacktest: runBacktestMutation, isLoading: backtestLoading } = useBacktest();
+  const { isLoading: backtestLoading } = useBacktest();
   const { saveFromBacktest, isCreating: isSavingStrategy } = useUserStrategies();
 
   // Reset strategy parameters when strategy changes

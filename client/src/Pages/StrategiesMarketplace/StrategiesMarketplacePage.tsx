@@ -36,8 +36,8 @@ import {
   Person as PersonIcon,
   Visibility as ViewIcon
 } from '@mui/icons-material';
-import { usePublicStrategies, useUser } from '../hooks';
-import { UserStrategy, copyPublicStrategy } from '../api';
+import { usePublicStrategies, useUser } from '../../hooks';
+import { UserStrategy, copyPublicStrategy } from '../../api';
 
 interface StrategyDetailsDialogProps {
   open: boolean;

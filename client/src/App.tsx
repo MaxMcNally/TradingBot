@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
 import { MainLayout } from "./Layouts";
 import {
@@ -27,7 +27,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const { user } = useUser();
   const navigate = useNavigate();
   
-  React.useEffect(() => {
+  useEffect(() => {
     if (!user) {
       navigate("/");
     }

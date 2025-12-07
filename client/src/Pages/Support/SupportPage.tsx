@@ -20,7 +20,6 @@ import {
   Help,
   BugReport,
   Feedback,
-  Article,
   Chat,
 } from "@mui/icons-material";
 

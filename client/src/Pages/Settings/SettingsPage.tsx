@@ -7,7 +7,7 @@ import {
   setup2FA,
   enable2FA,
   disable2FA
-} from "../api";
+} from "../../api";
 import { 
   TextField, 
   Button, 
@@ -23,7 +23,6 @@ import {
   ListItem,
   ListItemText,
   Skeleton,
-  Drawer,
   ListItemButton,
   ListItemIcon
 } from "@mui/material";
@@ -34,9 +33,9 @@ import {
   AccountBalance
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
-import { useSubscription } from "../hooks";
-import { SettingsProps, Setting, AccountSettings } from "./Settings/Settings.types";
-import AlpacaSettings from "./Settings/AlpacaSettings";
+import { useSubscription } from "../../hooks";
+import { SettingsProps, Setting, AccountSettings } from "./Settings.types";
+import AlpacaSettings from "./AlpacaSettings";
 
 type SettingsSection = "account" | "subscription" | "alpaca" | "security";
 
