@@ -245,33 +245,42 @@ export const getPerformance = async (req: ApiKeyAuthenticatedRequest, res: Respo
     const performance = await StrategyPerformance.findByUserId(userId, limit);
     
     // Remove PII and format response
-    const metrics = performance.map(perf => ({
-      id: perf.id,
-      strategy_name: perf.strategy_name,
-      strategy_type: perf.strategy_type,
-      execution_type: perf.execution_type,
-      session_id: perf.session_id,
-      symbols: JSON.parse(perf.symbols),
-      start_date: perf.start_date,
-      end_date: perf.end_date,
-      initial_capital: perf.initial_capital,
-      final_capital: perf.final_capital,
-      total_return: perf.total_return,
-      total_return_dollar: perf.total_return_dollar,
-      max_drawdown: perf.max_drawdown,
-      sharpe_ratio: perf.sharpe_ratio,
-      sortino_ratio: perf.sortino_ratio,
-      win_rate: perf.win_rate,
-      total_trades: perf.total_trades,
-      winning_trades: perf.winning_trades,
-      losing_trades: perf.losing_trades,
-      avg_win: perf.avg_win,
-      avg_loss: perf.avg_loss,
-      profit_factor: perf.profit_factor,
-      largest_win: perf.largest_win,
-      largest_loss: perf.largest_loss,
-      created_at: perf.created_at
-    }));
+    const metrics = performance.map(perf => {
+      let symbolsParsed;
+      try {
+        symbolsParsed = JSON.parse(perf.symbols);
+      } catch (e) {
+        console.error(`Failed to parse symbols for performance id ${perf.id}:`, e);
+        symbolsParsed = null;
+      }
+      return {
+        id: perf.id,
+        strategy_name: perf.strategy_name,
+        strategy_type: perf.strategy_type,
+        execution_type: perf.execution_type,
+        session_id: perf.session_id,
+        symbols: symbolsParsed,
+        start_date: perf.start_date,
+        end_date: perf.end_date,
+        initial_capital: perf.initial_capital,
+        final_capital: perf.final_capital,
+        total_return: perf.total_return,
+        total_return_dollar: perf.total_return_dollar,
+        max_drawdown: perf.max_drawdown,
+        sharpe_ratio: perf.sharpe_ratio,
+        sortino_ratio: perf.sortino_ratio,
+        win_rate: perf.win_rate,
+        total_trades: perf.total_trades,
+        winning_trades: perf.winning_trades,
+        losing_trades: perf.losing_trades,
+        avg_win: perf.avg_win,
+        avg_loss: perf.avg_loss,
+        profit_factor: perf.profit_factor,
+        largest_win: perf.largest_win,
+        largest_loss: perf.largest_loss,
+        created_at: perf.created_at
+      };
+    });
 
     res.json({
       success: true,
