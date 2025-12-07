@@ -1,5 +1,62 @@
 import { Request, Response } from "express";
 import Strategy, { CreateStrategyData, UpdateStrategyData } from "../models/Strategy";
+import { AuthenticatedRequest } from "../middleware/auth";
+import { db } from "../initDb";
+import { getBotLimitForTier } from "../constants/tierLimits";
+
+/**
+ * Get user's plan tier from database
+ */
+const getUserTier = (userId: number): Promise<string | null> => {
+  return new Promise((resolve, reject) => {
+    db.get(
+      'SELECT plan_tier FROM users WHERE id = $1',
+      [userId],
+      (err: any, row: any) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(row?.plan_tier || null);
+        }
+      }
+    );
+  });
+};
+
+/**
+ * Get count of active strategies for a user
+ */
+const getActiveStrategyCount = (userId: number): Promise<number> => {
+  return new Promise((resolve, reject) => {
+    db.get(
+      'SELECT COUNT(*) as count FROM user_strategies WHERE user_id = $1 AND is_active = TRUE',
+      [userId],
+      (err: any, row: any) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(row?.count || 0);
+        }
+      }
+    );
+  });
+};
+
+/**
+ * Check if user can create/activate more bots based on tier limits
+ */
+const checkBotLimit = async (userId: number): Promise<{ allowed: boolean; currentCount: number; limit: number; tier: string }> => {
+  const tier = await getUserTier(userId);
+  const limit = getBotLimitForTier(tier);
+  const currentCount = await getActiveStrategyCount(userId);
+  
+  return {
+    allowed: currentCount < limit,
+    currentCount,
+    limit,
+    tier: tier || 'FREE'
+  };
+};
 
 export const createStrategy = async (req: Request, res: Response) => {
   try {
@@ -183,6 +240,25 @@ export const activateStrategy = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid strategy ID" });
     }
 
+    // Get the strategy to find the user_id
+    const strategy = await Strategy.findById(strategyId);
+    if (!strategy) {
+      return res.status(404).json({ message: "Strategy not found" });
+    }
+
+    // Check bot limit before activating
+    const limitCheck = await checkBotLimit(strategy.user_id);
+    if (!limitCheck.allowed) {
+      return res.status(403).json({
+        message: `You have reached the maximum number of active bots (${limitCheck.limit}) for your ${limitCheck.tier} tier plan. Please upgrade your plan to activate more bots.`,
+        error: 'BOT_LIMIT_EXCEEDED',
+        currentCount: limitCheck.currentCount,
+        limit: limitCheck.limit,
+        tier: limitCheck.tier,
+        upgradeRequired: true
+      });
+    }
+
     const activated = await Strategy.activate(strategyId);
     
     if (!activated) {
@@ -228,6 +304,19 @@ export const saveStrategyFromBacktest = async (req: Request, res: Response) => {
       });
     }
 
+    // Check bot limit before creating
+    const limitCheck = await checkBotLimit(userId);
+    if (!limitCheck.allowed) {
+      return res.status(403).json({
+        message: `You have reached the maximum number of active bots (${limitCheck.limit}) for your ${limitCheck.tier} tier plan. Please upgrade your plan to create more bots.`,
+        error: 'BOT_LIMIT_EXCEEDED',
+        currentCount: limitCheck.currentCount,
+        limit: limitCheck.limit,
+        tier: limitCheck.tier,
+        upgradeRequired: true
+      });
+    }
+
     const strategyData: CreateStrategyData = {
       user_id: userId,
       name,
@@ -247,6 +336,29 @@ export const saveStrategyFromBacktest = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error saving strategy from backtest:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getBotLimitInfo = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+
+    const limitCheck = await checkBotLimit(userId);
+    
+    res.json({
+      currentCount: limitCheck.currentCount,
+      limit: limitCheck.limit,
+      tier: limitCheck.tier,
+      remaining: Math.max(0, limitCheck.limit - limitCheck.currentCount),
+      canCreateMore: limitCheck.allowed
+    });
+  } catch (error) {
+    console.error("Error getting bot limit info:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -321,6 +433,19 @@ export const copyPublicStrategy = async (req: Request, res: Response) => {
     if (existingStrategy) {
       return res.status(409).json({ 
         message: "You already have a strategy with this name. Please choose a different name." 
+      });
+    }
+
+    // Check bot limit before copying
+    const limitCheck = await checkBotLimit(userId);
+    if (!limitCheck.allowed) {
+      return res.status(403).json({
+        message: `You have reached the maximum number of active bots (${limitCheck.limit}) for your ${limitCheck.tier} tier plan. Please upgrade your plan to create more bots.`,
+        error: 'BOT_LIMIT_EXCEEDED',
+        currentCount: limitCheck.currentCount,
+        limit: limitCheck.limit,
+        tier: limitCheck.tier,
+        upgradeRequired: true
       });
     }
 

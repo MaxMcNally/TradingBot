@@ -164,8 +164,18 @@ const SaveStrategyDialog: React.FC<SaveStrategyDialogProps> = ({
 
       await onSave(strategyData);
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving strategy:', error);
+      if (error?.response?.data?.error === 'BOT_LIMIT_EXCEEDED') {
+        const errorData = error.response.data;
+        setErrors({ 
+          general: `${errorData.message}\n\nPlease upgrade your plan to create more bots.` 
+        });
+      } else {
+        setErrors({ 
+          general: 'Failed to save strategy. Please try again.' 
+        });
+      }
     }
   };
 
@@ -193,6 +203,13 @@ const SaveStrategyDialog: React.FC<SaveStrategyDialogProps> = ({
       </DialogTitle>
       <DialogContent>
         <Stack spacing={3} sx={{ pt: 1 }}>
+          {/* Error Alert */}
+          {errors.general && (
+            <Alert severity="error" onClose={() => setErrors(prev => ({ ...prev, general: '' }))}>
+              {errors.general}
+            </Alert>
+          )}
+          
           {/* Strategy Performance Summary */}
           <Box>
             <Typography variant="h6" gutterBottom>

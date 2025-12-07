@@ -21,7 +21,8 @@ import {
   FormControlLabel,
   Tooltip,
   Tabs,
-  Tab
+  Tab,
+  LinearProgress
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -36,10 +37,13 @@ import {
   Assessment as AssessmentIcon,
   Public as PublicIcon,
   Person as PersonIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Upgrade as UpgradeIcon
 } from '@mui/icons-material';
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { useUserStrategies, usePublicStrategies } from '../../hooks';
-import { UserStrategy } from '../../api';
+import { UserStrategy, getBotLimitInfo, BotLimitInfo } from '../../api';
 import StrategyDialog from './StrategyDialog';
 import { StrategyFormData } from './Strategies.types';
 
@@ -66,6 +70,7 @@ function TabPanel(props: TabPanelProps) {
 }
 
 const Strategies: React.FC = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
   const [includeInactive, setIncludeInactive] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -74,6 +79,8 @@ const Strategies: React.FC = () => {
   const [selectedStrategy, setSelectedStrategy] = useState<UserStrategy | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [strategyToDelete, setStrategyToDelete] = useState<UserStrategy | null>(null);
+  const [upsellDialogOpen, setUpsellDialogOpen] = useState(false);
+  const [limitError, setLimitError] = useState<string | null>(null);
 
   const {
     strategies: userStrategies,
@@ -99,13 +106,34 @@ const Strategies: React.FC = () => {
     refetch: refetchPublicStrategies
   } = usePublicStrategies();
 
+  // Get bot limit info
+  const { data: botLimitInfo, refetch: refetchBotLimits } = useQuery<BotLimitInfo>({
+    queryKey: ['botLimitInfo'],
+    queryFn: async () => {
+      const response = await getBotLimitInfo();
+      return response.data;
+    },
+    staleTime: 30 * 1000, // 30 seconds
+  });
+
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
   };
 
   const handleCreateStrategy = () => {
+    // Check limit before opening dialog
+    if (botLimitInfo && !botLimitInfo.canCreateMore) {
+      setLimitError(`You have reached the maximum number of active bots (${botLimitInfo.limit}) for your ${botLimitInfo.tier} tier plan.`);
+      setUpsellDialogOpen(true);
+      return;
+    }
     setEditingStrategy(null);
     setDialogOpen(true);
+  };
+
+  const handleUpgrade = () => {
+    setUpsellDialogOpen(false);
+    navigate('/pricing');
   };
 
   const handleEditStrategy = (strategy: UserStrategy) => {
@@ -146,12 +174,26 @@ const Strategies: React.FC = () => {
     try {
       if (strategy.is_active) {
         await deactivateStrategy(strategy.id);
+        await refetchBotLimits();
       } else {
+        // Check limit before activating
+        if (botLimitInfo && !botLimitInfo.canCreateMore) {
+          setLimitError(`You have reached the maximum number of active bots (${botLimitInfo.limit}) for your ${botLimitInfo.tier} tier plan.`);
+          setUpsellDialogOpen(true);
+          handleMenuClose();
+          return;
+        }
         await activateStrategy(strategy.id);
+        await refetchBotLimits();
       }
       handleMenuClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error toggling strategy status:', error);
+      if (error?.response?.data?.error === 'BOT_LIMIT_EXCEEDED') {
+        const errorData = error.response.data;
+        setLimitError(errorData.message);
+        setUpsellDialogOpen(true);
+      }
     }
   };
 
@@ -160,12 +202,26 @@ const Strategies: React.FC = () => {
       if (editingStrategy) {
         await updateStrategy(editingStrategy.id, data);
       } else {
+        // Check limit before creating
+        if (botLimitInfo && !botLimitInfo.canCreateMore) {
+          setLimitError(`You have reached the maximum number of active bots (${botLimitInfo.limit}) for your ${botLimitInfo.tier} tier plan.`);
+          setDialogOpen(false);
+          setUpsellDialogOpen(true);
+          return;
+        }
         await createStrategy(data);
+        await refetchBotLimits();
       }
       setDialogOpen(false);
       setEditingStrategy(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving strategy:', error);
+      if (error?.response?.data?.error === 'BOT_LIMIT_EXCEEDED') {
+        const errorData = error.response.data;
+        setLimitError(errorData.message);
+        setDialogOpen(false);
+        setUpsellDialogOpen(true);
+      }
     }
   };
 
@@ -422,6 +478,46 @@ const Strategies: React.FC = () => {
 
   return (
     <Box>
+      {/* Bot Limit Info Banner */}
+      {botLimitInfo && (
+        <Alert 
+          severity={botLimitInfo.canCreateMore ? "info" : "warning"} 
+          sx={{ mb: 3 }}
+          action={
+            !botLimitInfo.canCreateMore && (
+              <Button color="inherit" size="small" onClick={handleUpgrade}>
+                Upgrade
+              </Button>
+            )
+          }
+        >
+          <Box display="flex" alignItems="center" gap={2}>
+            <Typography variant="body2">
+              <strong>Bot Limit:</strong> {botLimitInfo.currentCount} / {botLimitInfo.limit} active bots ({botLimitInfo.tier} tier)
+            </Typography>
+            {botLimitInfo.canCreateMore && (
+              <Typography variant="body2" color="text.secondary">
+                {botLimitInfo.remaining} remaining
+              </Typography>
+            )}
+            {!botLimitInfo.canCreateMore && (
+              <Typography variant="body2" color="error">
+                Limit reached - Upgrade to create more bots
+              </Typography>
+            )}
+          </Box>
+          {botLimitInfo.canCreateMore && (
+            <Box sx={{ mt: 1, width: '100%' }}>
+              <LinearProgress 
+                variant="determinate" 
+                value={(botLimitInfo.currentCount / botLimitInfo.limit) * 100} 
+                sx={{ height: 6, borderRadius: 3 }}
+              />
+            </Box>
+          )}
+        </Alert>
+      )}
+
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4" component="h1">
           Strategy Management
@@ -440,7 +536,7 @@ const Strategies: React.FC = () => {
             variant="contained"
             startIcon={<AddIcon />}
             onClick={handleCreateStrategy}
-            disabled={isCreating}
+            disabled={isCreating || (botLimitInfo && !botLimitInfo.canCreateMore)}
           >
             Create Strategy
           </Button>
@@ -596,6 +692,48 @@ const Strategies: React.FC = () => {
             startIcon={isDeleting ? <CircularProgress size={20} /> : null}
           >
             Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Upsell Dialog */}
+      <Dialog open={upsellDialogOpen} onClose={() => setUpsellDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={1}>
+            <UpgradeIcon color="primary" />
+            <Typography variant="h6">Upgrade Required</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            {limitError || 'You have reached your bot limit for your current plan.'}
+          </Alert>
+          <Typography variant="body1" gutterBottom>
+            To create more bots, please upgrade your plan:
+          </Typography>
+          <Box sx={{ mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
+            <Typography variant="body2" gutterBottom>
+              <strong>Current Plan:</strong> {botLimitInfo?.tier || 'FREE'} ({botLimitInfo?.limit || 1} bot limit)
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              <strong>Available Plans:</strong>
+            </Typography>
+            <Box component="ul" sx={{ mt: 1, pl: 2 }}>
+              <li><Typography variant="body2">Basic: 5 active bots</Typography></li>
+              <li><Typography variant="body2">Premium: 25 active bots</Typography></li>
+              <li><Typography variant="body2">Enterprise: 50 active bots</Typography></li>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setUpsellDialogOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={handleUpgrade} 
+            variant="contained" 
+            color="primary"
+            startIcon={<UpgradeIcon />}
+          >
+            View Plans & Upgrade
           </Button>
         </DialogActions>
       </Dialog>

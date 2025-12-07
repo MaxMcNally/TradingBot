@@ -25,7 +25,7 @@ export const BILLING_PLANS: Array<{
     currency: 'USD',
     headline: 'Essential tools to get started',
     features: [
-      '1 active strategy',
+      '1 active bot',
       'Community indicators',
       'Backtest once per day'
     ]
@@ -38,7 +38,7 @@ export const BILLING_PLANS: Array<{
     currency: 'USD',
     headline: 'Unlock automation essentials',
     features: [
-      '5 active strategies',
+      '5 active bots',
       'Intraday backtests',
       'Email alerts'
     ],
@@ -52,7 +52,7 @@ export const BILLING_PLANS: Array<{
     currency: 'USD',
     headline: 'Advanced analytics & execution',
     features: [
-      'Unlimited strategies',
+      '25 active bots',
       'Priority data refresh',
       'Advanced risk tooling'
     ]
@@ -65,6 +65,7 @@ export const BILLING_PLANS: Array<{
     currency: 'USD',
     headline: 'Dedicated support & SLAs',
     features: [
+      '50 active bots',
       'Custom integrations',
       'Dedicated success manager',
       'Audit controls'

@@ -387,6 +387,17 @@ export const getPublicStrategiesByType = (strategyType: string): Promise<AxiosRe
 export const copyPublicStrategy = (userId: number, strategyId: number, customName?: string): Promise<AxiosResponse<{ message: string; strategy: UserStrategy }>> => 
   api.post(`/strategies/users/${userId}/strategies/copy-public`, { strategyId, customName });
 
+export interface BotLimitInfo {
+  currentCount: number;
+  limit: number;
+  tier: string;
+  remaining: number;
+  canCreateMore: boolean;
+}
+
+export const getBotLimitInfo = (): Promise<AxiosResponse<BotLimitInfo>> => 
+  api.get('/strategies/bot-limits');
+
 // Alpaca Integration API
 
 export interface AlpacaConnectRequest {

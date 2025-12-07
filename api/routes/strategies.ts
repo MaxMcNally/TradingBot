@@ -10,7 +10,8 @@ import {
   saveStrategyFromBacktest,
   getPublicStrategies,
   getPublicStrategiesByType,
-  copyPublicStrategy
+  copyPublicStrategy,
+  getBotLimitInfo
 } from "../controllers/strategyController";
 import { authenticateToken } from "../middleware/auth";
 
@@ -26,6 +27,9 @@ router.post("/users/:userId/strategies", authenticateToken, createStrategy);
 
 // Get all strategies for a user
 router.get("/users/:userId/strategies", authenticateToken, getUserStrategies);
+
+// Get bot limit info for authenticated user
+router.get("/bot-limits", authenticateToken, getBotLimitInfo);
 
 // Get all public strategies (must come before /:strategyId)
 router.get("/public", getPublicStrategies);

@@ -346,9 +346,16 @@ const StrategiesMarketplace: React.FC = () => {
       setSelectedStrategy(null);
       
       // You could show a success message here
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error copying strategy:', error);
-      // You could show an error message here
+      if (error?.response?.data?.error === 'BOT_LIMIT_EXCEEDED') {
+        const errorData = error.response.data;
+        alert(`${errorData.message}\n\nPlease upgrade your plan to create more bots.`);
+        // Optionally navigate to pricing page
+        // navigate('/pricing');
+      } else {
+        alert('Failed to copy strategy. Please try again.');
+      }
     } finally {
       setIsCopying(false);
     }
