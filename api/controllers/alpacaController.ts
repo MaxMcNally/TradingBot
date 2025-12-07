@@ -105,21 +105,42 @@ const saveCredentials = (
       : `INSERT INTO settings (user_id, key, value) VALUES (?, ?, ?)
          ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP`;
 
-    let completed = 0;
-    const total = settings.length;
-    let hasError = false;
+    // Start transaction
+    db.run(isPostgres ? 'BEGIN' : 'BEGIN TRANSACTION', (beginErr: any) => {
+      if (beginErr) {
+        reject(beginErr);
+        return;
+      }
+      let completed = 0;
+      const total = settings.length;
+      let hasError = false;
 
-    settings.forEach((setting) => {
-      db.run(upsertQuery, [userId, setting.key, setting.value], (err: any) => {
-        if (err && !hasError) {
-          hasError = true;
-          reject(err);
-          return;
-        }
-        completed++;
-        if (completed === total && !hasError) {
-          resolve();
-        }
+      settings.forEach((setting) => {
+        db.run(upsertQuery, [userId, setting.key, setting.value], (err: any) => {
+          if (err && !hasError) {
+            hasError = true;
+            // Rollback transaction on error
+            db.run(isPostgres ? 'ROLLBACK' : 'ROLLBACK', (rollbackErr: any) => {
+              // Prefer original error, but log rollback error if present
+              if (rollbackErr) {
+                console.error('Rollback error:', rollbackErr);
+              }
+              reject(err);
+            });
+            return;
+          }
+          completed++;
+          if (completed === total && !hasError) {
+            // Commit transaction
+            db.run(isPostgres ? 'COMMIT' : 'COMMIT', (commitErr: any) => {
+              if (commitErr) {
+                reject(commitErr);
+                return;
+              }
+              resolve();
+            });
+          }
+        });
       });
     });
   });
