@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
+import path from "path";
 
 import {authRouter} from "./routes/auth";
 import {settingsRouter} from "./routes/settings";
@@ -17,7 +18,14 @@ import { sessionMonitor } from "./services/sessionMonitor";
 import testRouter from "./routes/test";
 import { authenticateToken } from "./middleware/auth";
 
-dotenv.config();
+// Load .env files - .env.local takes precedence
+// Load .env from project root (one level up from api directory)
+const projectRoot = path.resolve(__dirname, '..');
+dotenv.config({ path: path.join(projectRoot, '.env') });
+// Load .env.local from project root (overrides .env)
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config({ path: path.join(projectRoot, '.env.local'), override: true });
+}
 
 const app = express();
 const PORT = process.env.PORT || 8001;
