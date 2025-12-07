@@ -357,32 +357,32 @@ export const getUserStrategies = (userId: number, includeInactive: boolean = fal
   api.get(`/strategies/users/${userId}/strategies?includeInactive=${includeInactive}`);
 
 export const getStrategyById = (strategyId: number): Promise<AxiosResponse<{ strategy: UserStrategy }>> => 
-  api.get(`/strategies/strategies/${strategyId}`);
+  api.get(`/strategies/${strategyId}`);
 
 export const createStrategy = (userId: number, data: CreateStrategyData): Promise<AxiosResponse<{ message: string; strategy: UserStrategy }>> => 
   api.post(`/strategies/users/${userId}/strategies`, data);
 
 export const updateStrategy = (strategyId: number, data: UpdateStrategyData): Promise<AxiosResponse<{ message: string; strategy: UserStrategy }>> => 
-  api.put(`/strategies/strategies/${strategyId}`, data);
+  api.put(`/strategies/${strategyId}`, data);
 
 export const deleteStrategy = (strategyId: number): Promise<AxiosResponse<{ message: string }>> => 
-  api.delete(`/strategies/strategies/${strategyId}`);
+  api.delete(`/strategies/${strategyId}`);
 
 export const deactivateStrategy = (strategyId: number): Promise<AxiosResponse<{ message: string }>> => 
-  api.patch(`/strategies/strategies/${strategyId}/deactivate`);
+  api.patch(`/strategies/${strategyId}/deactivate`);
 
 export const activateStrategy = (strategyId: number): Promise<AxiosResponse<{ message: string }>> => 
-  api.patch(`/strategies/strategies/${strategyId}/activate`);
+  api.patch(`/strategies/${strategyId}/activate`);
 
 export const saveStrategyFromBacktest = (userId: number, data: CreateStrategyData): Promise<AxiosResponse<{ message: string; strategy: UserStrategy }>> => 
   api.post(`/strategies/users/${userId}/strategies/from-backtest`, data);
 
 // Public Strategies API
 export const getPublicStrategies = (): Promise<AxiosResponse<{ strategies: UserStrategy[]; count: number }>> => 
-  api.get('/strategies/strategies/public');
+  api.get('/strategies/public');
 
 export const getPublicStrategiesByType = (strategyType: string): Promise<AxiosResponse<{ strategies: UserStrategy[]; count: number }>> => 
-  api.get(`/strategies/strategies/public/${strategyType}`);
+  api.get(`/strategies/public/${strategyType}`);
 
 export const copyPublicStrategy = (userId: number, strategyId: number, customName?: string): Promise<AxiosResponse<{ message: string; strategy: UserStrategy }>> => 
   api.post(`/strategies/users/${userId}/strategies/copy-public`, { strategyId, customName });
