@@ -7,6 +7,11 @@ import { AuthenticatedRequest } from '../middleware/auth';
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const IS_PRODUCTION = NODE_ENV === 'production';
 
+// Valid values for order parameters (must match OrderRequest interface)
+const VALID_ORDER_SIDES = ['buy', 'sell'] as const;
+const VALID_ORDER_TYPES = ['market', 'limit', 'stop', 'stop_limit', 'trailing_stop'] as const;
+const VALID_TIME_IN_FORCE = ['day', 'gtc', 'opg', 'cls', 'ioc', 'fok'] as const;
+
 // Store active Alpaca connections in memory (per user)
 const activeConnections: Map<number, AlpacaService> = new Map();
 
@@ -413,17 +418,24 @@ export const submitAlpacaOrder = async (req: AuthenticatedRequest, res: Response
       });
     }
 
-    // Validate qty is a positive, finite number and not excessively large
-    const parsedQty = parseFloat(qty);
-    const MAX_QTY = 1000000; // reasonable upper bound, adjust as needed
-    if (
-      isNaN(parsedQty) ||
-      !isFinite(parsedQty) ||
-      parsedQty <= 0 ||
-      parsedQty > MAX_QTY
-    ) {
+    // Validate side parameter
+    if (!VALID_ORDER_SIDES.includes(side)) {
       return res.status(400).json({
-        error: `Invalid qty: must be a positive number less than ${MAX_QTY}.`
+        error: `Invalid side parameter. Must be one of: ${VALID_ORDER_SIDES.join(', ')}`
+      });
+    }
+
+    // Validate type parameter
+    if (!VALID_ORDER_TYPES.includes(type)) {
+      return res.status(400).json({
+        error: `Invalid type parameter. Must be one of: ${VALID_ORDER_TYPES.join(', ')}`
+      });
+    }
+
+    // Validate time_in_force parameter
+    if (!VALID_TIME_IN_FORCE.includes(time_in_force)) {
+      return res.status(400).json({
+        error: `Invalid time_in_force parameter. Must be one of: ${VALID_TIME_IN_FORCE.join(', ')}`
       });
     }
 
