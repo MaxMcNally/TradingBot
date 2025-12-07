@@ -11,7 +11,7 @@
     "start:core": "node dist/bot.js",
     "dev:server": "node scripts/dev-server.js",
     "dev:client": "cd client && yarn dev",
-    "dev": "yarn dev:server & yarn dev:client",
+    "dev": "yarn dev:server && yarn dev:client",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix && prettier --write .",
     "lint:api": "cd api && eslint .",

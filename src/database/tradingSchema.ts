@@ -43,103 +43,90 @@ export interface TradingSession {
 export class TradingDatabase {
   static async initializeTables(): Promise<void> {
     return new Promise((resolve, reject) => {
-      db.serialize(() => {
-        // Create trades table
-      const createTrades = `
-        CREATE TABLE IF NOT EXISTS trades (
-          id SERIAL PRIMARY KEY,
-          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          symbol TEXT NOT NULL,
-          action TEXT NOT NULL CHECK (action IN ('BUY', 'SELL')),
-          quantity DOUBLE PRECISION NOT NULL,
-          price DOUBLE PRECISION NOT NULL,
-          timestamp TEXT NOT NULL,
-          strategy TEXT NOT NULL,
-          mode TEXT NOT NULL CHECK (mode IN ('PAPER', 'LIVE')),
-          pnl DOUBLE PRECISION,
-          created_at TIMESTAMP DEFAULT NOW()
-        )
-      `;
-      db.run(createTrades, [], (err: any) => {
-          if (err) {
-            console.error("Error creating trades table:", err);
-            reject(err);
-          } else {
-            console.log("Trades table created/verified");
-          }
+      // Helper function to run a query and wait for completion
+      const runQuery = (sql: string, params: any[] = []): Promise<void> => {
+        return new Promise((resolveQuery, rejectQuery) => {
+          db.run(sql, params, (err: any) => {
+            if (err) {
+              rejectQuery(err);
+            } else {
+              resolveQuery();
+            }
+          });
         });
+      };
 
-        // Create portfolio_snapshots table
-        const createSnapshots = `
-          CREATE TABLE IF NOT EXISTS portfolio_snapshots (
-            id SERIAL PRIMARY KEY,
-            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            timestamp TEXT NOT NULL,
-            total_value DOUBLE PRECISION NOT NULL,
-            cash DOUBLE PRECISION NOT NULL,
-            positions TEXT NOT NULL,
-            mode TEXT NOT NULL CHECK (mode IN ('PAPER', 'LIVE')),
-            created_at TIMESTAMP DEFAULT NOW()
-          )
-        `;
-        db.run(createSnapshots, [], (err: any) => {
-          if (err) {
-            console.error("Error creating portfolio_snapshots table:", err);
-            reject(err);
-          } else {
-            console.log("Portfolio snapshots table created/verified");
-          }
-        });
+      // Create tables sequentially, then indexes
+      (async () => {
+        try {
+          // Create trades table
+          const createTrades = `
+            CREATE TABLE IF NOT EXISTS trades (
+              id SERIAL PRIMARY KEY,
+              user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+              symbol TEXT NOT NULL,
+              action TEXT NOT NULL CHECK (action IN ('BUY', 'SELL')),
+              quantity DOUBLE PRECISION NOT NULL,
+              price DOUBLE PRECISION NOT NULL,
+              timestamp TEXT NOT NULL,
+              strategy TEXT NOT NULL,
+              mode TEXT NOT NULL CHECK (mode IN ('PAPER', 'LIVE')),
+              pnl DOUBLE PRECISION,
+              created_at TIMESTAMP DEFAULT NOW()
+            )
+          `;
+          await runQuery(createTrades);
+          console.log("Trades table created/verified");
 
-        // Create trading_sessions table
-        const createSessions = `
-          CREATE TABLE IF NOT EXISTS trading_sessions (
-            id SERIAL PRIMARY KEY,
-            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            start_time TEXT NOT NULL,
-            end_time TEXT,
-            mode TEXT NOT NULL CHECK (mode IN ('PAPER', 'LIVE')),
-            initial_cash DOUBLE PRECISION NOT NULL,
-            final_cash DOUBLE PRECISION,
-            total_trades INTEGER DEFAULT 0,
-            winning_trades INTEGER DEFAULT 0,
-            total_pnl DOUBLE PRECISION,
-            status TEXT NOT NULL CHECK (status IN ('ACTIVE', 'COMPLETED', 'STOPPED')),
-            created_at TIMESTAMP DEFAULT NOW()
-          )
-        `;
-        db.run(createSessions, [], (err: any) => {
-          if (err) {
-            console.error("Error creating trading_sessions table:", err);
-            reject(err);
-          } else {
-            console.log("Trading sessions table created/verified");
-          }
-        });
+          // Create portfolio_snapshots table
+          const createSnapshots = `
+            CREATE TABLE IF NOT EXISTS portfolio_snapshots (
+              id SERIAL PRIMARY KEY,
+              user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+              timestamp TEXT NOT NULL,
+              total_value DOUBLE PRECISION NOT NULL,
+              cash DOUBLE PRECISION NOT NULL,
+              positions TEXT NOT NULL,
+              mode TEXT NOT NULL CHECK (mode IN ('PAPER', 'LIVE')),
+              created_at TIMESTAMP DEFAULT NOW()
+            )
+          `;
+          await runQuery(createSnapshots);
+          console.log("Portfolio snapshots table created/verified");
 
-        // Create indexes for better performance
-        db.run(`CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trades(symbol)`, [], (err: any) => {
-          if (err) console.error("Error creating trades symbol index:", err);
-        });
+          // Create trading_sessions table
+          const createSessions = `
+            CREATE TABLE IF NOT EXISTS trading_sessions (
+              id SERIAL PRIMARY KEY,
+              user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+              start_time TEXT NOT NULL,
+              end_time TEXT,
+              mode TEXT NOT NULL CHECK (mode IN ('PAPER', 'LIVE')),
+              initial_cash DOUBLE PRECISION NOT NULL,
+              final_cash DOUBLE PRECISION,
+              total_trades INTEGER DEFAULT 0,
+              winning_trades INTEGER DEFAULT 0,
+              total_pnl DOUBLE PRECISION,
+              status TEXT NOT NULL CHECK (status IN ('ACTIVE', 'COMPLETED', 'STOPPED')),
+              created_at TIMESTAMP DEFAULT NOW()
+            )
+          `;
+          await runQuery(createSessions);
+          console.log("Trading sessions table created/verified");
 
-        db.run(`CREATE INDEX IF NOT EXISTS idx_trades_timestamp ON trades(timestamp)`, [], (err: any) => {
-          if (err) console.error("Error creating trades timestamp index:", err);
-        });
+          // Create indexes for better performance (after tables are created)
+          await runQuery(`CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trades(symbol)`);
+          await runQuery(`CREATE INDEX IF NOT EXISTS idx_trades_timestamp ON trades(timestamp)`);
+          await runQuery(`CREATE INDEX IF NOT EXISTS idx_trades_strategy ON trades(strategy)`);
+          await runQuery(`CREATE INDEX IF NOT EXISTS idx_portfolio_snapshots_timestamp ON portfolio_snapshots(timestamp)`);
+          await runQuery(`CREATE INDEX IF NOT EXISTS idx_trading_sessions_status ON trading_sessions(status)`);
 
-        db.run(`CREATE INDEX IF NOT EXISTS idx_trades_strategy ON trades(strategy)`, [], (err: any) => {
-          if (err) console.error("Error creating trades strategy index:", err);
-        });
-
-        db.run(`CREATE INDEX IF NOT EXISTS idx_portfolio_snapshots_timestamp ON portfolio_snapshots(timestamp)`, [], (err: any) => {
-          if (err) console.error("Error creating portfolio snapshots timestamp index:", err);
-        });
-
-        db.run(`CREATE INDEX IF NOT EXISTS idx_trading_sessions_status ON trading_sessions(status)`, [], (err: any) => {
-          if (err) console.error("Error creating trading sessions status index:", err);
-        });
-
-        resolve();
-      });
+          resolve();
+        } catch (error) {
+          console.error("Error initializing trading tables:", error);
+          reject(error);
+        }
+      })();
     });
   }
 
