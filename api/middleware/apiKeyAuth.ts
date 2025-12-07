@@ -47,7 +47,11 @@ export const authenticateApiKey: RequestHandler = async (req, res, next) => {
     }
 
     // Update last used timestamp
-    await ApiKey.updateLastUsed(keyData.id!);
+    try {
+      await ApiKey.updateLastUsed(keyData.id!);
+    } catch (err) {
+      console.error('Failed to update last_used:', err);
+    }
 
     // Attach API key info to request
     (req as ApiKeyAuthenticatedRequest).apiKey = {
