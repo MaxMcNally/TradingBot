@@ -314,3 +314,42 @@ export const getPublicStrategiesByType = (strategyType: string): Promise<AxiosRe
 
 export const copyPublicStrategy = (userId: number, strategyId: number, customName?: string): Promise<AxiosResponse<{ message: string; strategy: UserStrategy }>> => 
   api.post(`/strategies/users/${userId}/strategies/copy-public`, { strategyId, customName });
+
+// Alpaca API
+export interface AlpacaCredentials {
+  apiKey: string;
+  apiSecret: string;
+}
+
+export interface AlpacaCredentialsResponse {
+  hasCredentials: boolean;
+  apiKeyMasked?: string;
+}
+
+export const saveAlpacaCredentials = (data: AlpacaCredentials): Promise<AxiosResponse<ApiResponse<{ message: string }>>> => 
+  api.post('/settings/alpaca/credentials', data);
+
+export const getAlpacaCredentials = (): Promise<AxiosResponse<AlpacaCredentialsResponse>> => 
+  api.get('/settings/alpaca/credentials');
+
+export const deleteAlpacaCredentials = (): Promise<AxiosResponse<ApiResponse<{ message: string }>>> => 
+  api.delete('/settings/alpaca/credentials');
+
+export const verifyAlpacaCredentials = (): Promise<AxiosResponse<{ valid: boolean; message?: string }>> => 
+  api.post('/alpaca/verify');
+
+export const getAlpacaAccount = (): Promise<AxiosResponse<{ success: boolean; account?: any; error?: string }>> => 
+  api.get('/alpaca/account');
+
+export interface PlaceOrderData {
+  symbol: string;
+  quantity: number;
+  orderType?: 'market' | 'limit';
+  limitPrice?: number;
+}
+
+export const placeAlpacaBuyOrder = (data: PlaceOrderData): Promise<AxiosResponse<{ success: boolean; order?: any; error?: string }>> => 
+  api.post('/alpaca/orders/buy', data);
+
+export const placeAlpacaSellOrder = (data: PlaceOrderData): Promise<AxiosResponse<{ success: boolean; order?: any; error?: string }>> => 
+  api.post('/alpaca/orders/sell', data);
