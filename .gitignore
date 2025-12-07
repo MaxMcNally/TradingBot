@@ -4,6 +4,7 @@ node_modules/
 dist/*
 .env.backup
 .env.*
+package-lock.json
 
 # Database files
 *.db
