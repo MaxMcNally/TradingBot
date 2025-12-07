@@ -28,7 +28,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  TextField,
   TablePagination,
   Accordion,
   AccordionSummary,
@@ -42,11 +41,9 @@ import {
   Timeline,
   Delete,
   Refresh,
-  FilterList,
-  Download,
   ExpandMore
 } from '@mui/icons-material';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 interface StrategyPerformanceSummary {
   strategy_name: string;
@@ -116,7 +113,6 @@ interface AnalyticsData {
   }>;
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 const AdminDashboardPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -198,7 +194,7 @@ const AdminDashboardPage: React.FC = () => {
     }
   };
 
-  const handleChangePage = (event: unknown, newPage: number) => {
+  const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
 
@@ -727,7 +723,7 @@ const AdminDashboardPage: React.FC = () => {
       <Box sx={{ borderBottom: 1, borderColor: 'divider', display: 'flex', justifyContent: 'center' }}>
         <Tabs 
           value={activeTab} 
-          onChange={(e, newValue) => setActiveTab(newValue)}
+          onChange={(_e, newValue) => setActiveTab(newValue)}
           centered
           sx={{
             '& .MuiTab-root': {
