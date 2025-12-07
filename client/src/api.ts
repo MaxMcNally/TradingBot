@@ -1,4 +1,5 @@
 import axios, { AxiosResponse } from "axios";
+import { AppUser, PlanTier, PlanStatus, SubscriptionProvider, CheckoutProvider } from "./types/user";
 
 // Use environment-based API URL for production, localhost for development
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8001/api";
@@ -105,21 +106,45 @@ export interface ApiResponse<T = any> {
   error?: string;
 }
 
-export interface User {
-  id: string;
-  email: string;
-  name?: string;
-  username?: string;
-  email_verified?: number;
-  two_factor_enabled?: number;
-  role?: 'USER' | 'ADMIN';
-  createdAt?: string;
-  updatedAt?: string;
-}
+export type User = AppUser;
 
 export interface AuthResponse {
   token: string;
   user: User;
+}
+
+export interface BillingPlan {
+  tier: PlanTier;
+  name: string;
+  monthlyPrice: number;
+  priceCents: number;
+  currency: string;
+  headline: string;
+  features: string[];
+  badge?: string;
+}
+
+export interface SubscriptionDetails {
+  planTier: PlanTier;
+  planStatus: PlanStatus;
+  provider: SubscriptionProvider;
+  paymentReference?: string | null;
+  startedAt?: string | null;
+  renewsAt?: string | null;
+  cancelAt?: string | null;
+}
+
+export interface SubscriptionHistoryEntry {
+  id: number;
+  plan_tier: PlanTier;
+  plan_price_cents: number;
+  currency: string;
+  provider: SubscriptionProvider;
+  status: string;
+  started_at?: string;
+  renews_at?: string;
+  canceled_at?: string;
+  created_at?: string;
 }
 
 export interface Setting {
@@ -282,6 +307,19 @@ export const requestPasswordReset = (emailOrUsername: string): Promise<AxiosResp
 
 export const confirmPasswordReset = (token: string, newPassword: string): Promise<AxiosResponse<ApiResponse>> => 
   api.post('/auth/password/reset/confirm', { token, newPassword });
+
+// Billing API
+export const getBillingPlans = (): Promise<AxiosResponse<{ success: boolean; plans: BillingPlan[]; providers: CheckoutProvider[] }>> =>
+  api.get('/billing/plans');
+
+export const checkoutSubscription = (data: { planTier: PlanTier; provider?: CheckoutProvider; paymentMethod?: string; paymentReference?: string }): Promise<AxiosResponse<ApiResponse<{ subscription: SubscriptionDetails }>>> =>
+  api.post('/billing/checkout', data);
+
+export const getSubscriptionDetails = (): Promise<AxiosResponse<{ success: boolean; subscription: SubscriptionDetails; history: SubscriptionHistoryEntry[] }>> =>
+  api.get('/billing/subscription');
+
+export const updateSubscription = (data: { action: 'CANCEL' | 'SWITCH'; planTier?: PlanTier }): Promise<AxiosResponse<ApiResponse<{ subscription: SubscriptionDetails }>>> =>
+  api.put('/billing/subscription', data);
 
 // Settings API
 export const getSettings = (user_id: string): Promise<AxiosResponse<Setting[]>> => 

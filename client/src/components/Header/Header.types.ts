@@ -1,15 +1,6 @@
-// Header component types and interfaces
-
-export interface User {
-  id: string;
-  email: string;
-  name?: string;
-  username?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
+import { AppUser } from "../../types/user";
 
 export interface HeaderProps {
-  user: User | null;
+  user: AppUser | null;
   onLogout: () => void;
 }

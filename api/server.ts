@@ -11,7 +11,7 @@ import {cacheRouter} from "./routes/cache";
 import tradingRouter from "./routes/trading";
 import {strategyRouter} from "./routes/strategies";
 import adminRouter from "./routes/adminRoutes";
-import {alpacaRouter} from "./routes/alpaca";
+import billingRouter from "./routes/billing";
 import { initDatabase } from "./initDb";
 import { sessionMonitor } from "./services/sessionMonitor";
 import testRouter from "./routes/test";
@@ -67,6 +67,7 @@ app.use("/api", (req, res, next) => {
     { method: "GET", path: "/symbols/popular" },
     { method: "GET", path: "/strategies/strategies/public" },
     { method: "GET", path: "/strategies/strategies/public/:strategyType" },
+    { method: "GET", path: "/billing/plans" },
   ];
 
   const isPublicAuth = publicAuthRoutes.some(
@@ -107,8 +108,8 @@ try {
   app.use("/api/admin", adminRouter);
   console.log("Mounting test router...");
   app.use("/api/test", testRouter);
-  console.log("Mounting alpaca router...");
-  app.use("/api/alpaca", alpacaRouter);
+  console.log("Mounting billing router...");
+  app.use("/api/billing", billingRouter);
   console.log("API routes mounted successfully");
 } catch (error) {
   console.error("Error mounting routes:", error);

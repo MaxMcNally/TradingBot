@@ -13,25 +13,26 @@ import {
   resumeTradingSession,
   getAvailableStrategies
 } from '../controllers/tradingController';
+import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 
 // User-specific trading data routes
-router.get('/users/:userId/stats', getUserTradingStats);
-router.get('/users/:userId/portfolio', getUserPortfolioSummary);
-router.get('/users/:userId/trades', getUserRecentTrades);
-router.get('/users/:userId/sessions', getUserTradingSessions);
-router.get('/users/:userId/portfolio-history', getUserPortfolioHistory);
-router.get('/users/:userId/active-session', getActiveTradingSession);
+router.get('/users/:userId/stats', authenticateToken, getUserTradingStats);
+router.get('/users/:userId/portfolio', authenticateToken, getUserPortfolioSummary);
+router.get('/users/:userId/trades', authenticateToken, getUserRecentTrades);
+router.get('/users/:userId/sessions', authenticateToken, getUserTradingSessions);
+router.get('/users/:userId/portfolio-history', authenticateToken, getUserPortfolioHistory);
+router.get('/users/:userId/active-session', authenticateToken, getActiveTradingSession);
 
 // Session-specific routes
-router.get('/sessions/:sessionId/trades', getTradesBySession);
+router.get('/sessions/:sessionId/trades', authenticateToken, getTradesBySession);
 
 // Trading session management routes
-router.post('/sessions/start', startTradingSession);
-router.post('/sessions/:sessionId/stop', stopTradingSession);
-router.post('/sessions/:sessionId/pause', pauseTradingSession);
-router.post('/sessions/:sessionId/resume', resumeTradingSession);
+router.post('/sessions/start', authenticateToken, startTradingSession);
+router.post('/sessions/:sessionId/stop', authenticateToken, stopTradingSession);
+router.post('/sessions/:sessionId/pause', authenticateToken, pauseTradingSession);
+router.post('/sessions/:sessionId/resume', authenticateToken, resumeTradingSession);
 
 // Strategy management routes
 router.get('/strategies', getAvailableStrategies);

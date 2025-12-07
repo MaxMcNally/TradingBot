@@ -1,11 +1,12 @@
 import express, { Request,Response } from "express";
 import { db, isPostgres } from "../initDb";
+import { authenticateToken } from "../middleware/auth";
 
 // routes/settings.js
 export const settingsRouter = express.Router();
 
 // SAVE settings endpoint
-settingsRouter.post("/save", (req: Request, res: Response) => {
+settingsRouter.post("/save", authenticateToken, (req: Request, res: Response) => {
   const { user_id, key, value } = req.body;
   db.run(
     isPostgres

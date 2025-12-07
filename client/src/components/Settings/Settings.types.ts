@@ -1,15 +1,4 @@
-// Settings component types and interfaces
-
-export interface User {
-  id: string;
-  email: string;
-  name?: string;
-  username?: string;
-  email_verified?: number;
-  two_factor_enabled?: number;
-  createdAt?: string;
-  updatedAt?: string;
-}
+import { AppUser } from "../../types/user";
 
 export interface Setting {
   id?: string;
@@ -38,5 +27,5 @@ export interface SettingsResponse {
 }
 
 export interface SettingsProps {
-  user: User;
+  user: AppUser;
 }

@@ -176,6 +176,13 @@ export const initDatabase = () => {
             password_reset_token TEXT,
             password_reset_expires_at TIMESTAMP,
             role TEXT DEFAULT 'USER' CHECK (role IN ('USER', 'ADMIN')),
+            plan_tier TEXT DEFAULT 'FREE' CHECK (plan_tier IN ('FREE', 'BASIC', 'PREMIUM', 'ENTERPRISE')),
+            plan_status TEXT DEFAULT 'ACTIVE' CHECK (plan_status IN ('ACTIVE', 'CANCELED', 'PAST_DUE', 'TRIALING')),
+            subscription_provider TEXT DEFAULT 'NONE' CHECK (subscription_provider IN ('NONE', 'STRIPE', 'PAYPAL', 'SQUARE')),
+            subscription_payment_reference TEXT,
+            subscription_started_at TIMESTAMP DEFAULT NOW(),
+            subscription_renews_at TIMESTAMP,
+            subscription_cancel_at TIMESTAMP,
             created_at TIMESTAMP DEFAULT NOW(),
             updated_at TIMESTAMP DEFAULT NOW()
           )
@@ -189,6 +196,13 @@ export const initDatabase = () => {
         await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token TEXT`);
         await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_expires_at TIMESTAMP`);
         await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'USER' CHECK (role IN ('USER', 'ADMIN'))`);
+        await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_tier TEXT DEFAULT 'FREE'`);
+        await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_status TEXT DEFAULT 'ACTIVE'`);
+        await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_provider TEXT DEFAULT 'NONE'`);
+        await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_payment_reference TEXT`);
+        await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_started_at TIMESTAMP DEFAULT NOW()`);
+        await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_renews_at TIMESTAMP`);
+        await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_cancel_at TIMESTAMP`);
 
         await pgPool!.query(`
           CREATE TABLE IF NOT EXISTS settings (
@@ -272,6 +286,26 @@ export const initDatabase = () => {
           )
         `);
 
+        await pgPool!.query(`
+          CREATE TABLE IF NOT EXISTS subscriptions (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            plan_tier TEXT NOT NULL,
+            plan_price_cents INTEGER NOT NULL,
+            currency TEXT NOT NULL DEFAULT 'USD',
+            provider TEXT NOT NULL,
+            status TEXT NOT NULL,
+            external_subscription_id TEXT,
+            payment_method TEXT,
+            notes TEXT,
+            started_at TIMESTAMP DEFAULT NOW(),
+            renews_at TIMESTAMP,
+            canceled_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+          )
+        `);
+
         // Indexes
         await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`);
         await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_settings_user_id ON settings(user_id)`);
@@ -282,6 +316,8 @@ export const initDatabase = () => {
         await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_strategy_type ON strategy_performance(strategy_type)`);
         await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_execution_type ON strategy_performance(execution_type)`);
         await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_created_at ON strategy_performance(created_at)`);
+        await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id)`);
+        await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_subscriptions_created_at ON subscriptions(created_at)`);
 
         // Ensure is_public column exists (idempotent)
         await pgPool!.query(`ALTER TABLE user_strategies ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE`);
@@ -327,7 +363,14 @@ export const initDatabase = () => {
           two_factor_secret TEXT,
           password_reset_token TEXT,
           password_reset_expires_at DATETIME,
-          role TEXT DEFAULT 'USER' CHECK (role IN ('USER', 'ADMIN')),
+          role TEXT DEFAULT 'USER',
+          plan_tier TEXT DEFAULT 'FREE',
+          plan_status TEXT DEFAULT 'ACTIVE',
+          subscription_provider TEXT DEFAULT 'NONE',
+          subscription_payment_reference TEXT,
+          subscription_started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          subscription_renews_at DATETIME,
+          subscription_cancel_at DATETIME,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -472,7 +515,14 @@ export const initDatabase = () => {
         { name: 'two_factor_secret', ddl: 'TEXT' },
         { name: 'password_reset_token', ddl: 'TEXT' },
         { name: 'password_reset_expires_at', ddl: 'DATETIME' },
-        { name: 'role', ddl: "TEXT DEFAULT 'USER' CHECK (role IN ('USER', 'ADMIN'))" },
+        { name: 'role', ddl: "TEXT DEFAULT 'USER'" },
+        { name: 'plan_tier', ddl: "TEXT DEFAULT 'FREE'" },
+        { name: 'plan_status', ddl: "TEXT DEFAULT 'ACTIVE'" },
+        { name: 'subscription_provider', ddl: "TEXT DEFAULT 'NONE'" },
+        { name: 'subscription_payment_reference', ddl: 'TEXT' },
+        { name: 'subscription_started_at', ddl: 'DATETIME DEFAULT CURRENT_TIMESTAMP' },
+        { name: 'subscription_renews_at', ddl: 'DATETIME' },
+        { name: 'subscription_cancel_at', ddl: 'DATETIME' },
       ];
       userSecurityColumns.forEach((col) => {
         db.run(`ALTER TABLE users ADD COLUMN ${col.name} ${col.ddl}`,(err: any)=>{
@@ -512,6 +562,38 @@ export const initDatabase = () => {
 
       db.run(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_created_at ON strategy_performance(created_at)`, (err: any) => {
         if (err) console.error("Error creating strategy_performance created_at index:", err);
+      });
+
+      // Subscriptions table for billing history
+      db.run(`
+        CREATE TABLE IF NOT EXISTS subscriptions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          plan_tier TEXT NOT NULL,
+          plan_price_cents INTEGER NOT NULL,
+          currency TEXT NOT NULL DEFAULT 'USD',
+          provider TEXT NOT NULL,
+          status TEXT NOT NULL,
+          external_subscription_id TEXT,
+          payment_method TEXT,
+          notes TEXT,
+          started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          renews_at DATETIME,
+          canceled_at DATETIME,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+      `, (err: any) => {
+        if (err) console.error("Error creating subscriptions table:", err);
+      });
+
+      db.run(`CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id)`, (err: any) => {
+        if (err) console.error("Error creating subscriptions user_id index:", err);
+      });
+
+      db.run(`CREATE INDEX IF NOT EXISTS idx_subscriptions_created_at ON subscriptions(created_at)`, (err: any) => {
+        if (err) console.error("Error creating subscriptions created_at index:", err);
       });
 
       // Add is_public column if it doesn't exist (migration for existing databases)

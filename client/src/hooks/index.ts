@@ -18,6 +18,9 @@ export type { UseUserStrategiesReturn } from './useUserStrategies';
 export { usePublicStrategies } from './usePublicStrategies';
 export type { UsePublicStrategiesReturn } from './usePublicStrategies';
 
+// Subscription hooks
+export { useSubscription } from './useSubscription';
+
 // Trading hooks
 export { 
   useTradingStats, 

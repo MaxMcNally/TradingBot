@@ -8,6 +8,7 @@ import {
   updateCacheConfig,
   clearCache
 } from "../controllers/cacheController";
+import { authenticateToken } from "../middleware/auth";
 
 export const cacheRouter = Router();
 
@@ -51,7 +52,7 @@ export const cacheRouter = Router();
  *   }
  * }
  */
-cacheRouter.get("/stats", getCacheStats);
+cacheRouter.get("/stats", authenticateToken, getCacheStats);
 
 /**
  * POST /api/cache/cleanup
@@ -76,7 +77,7 @@ cacheRouter.get("/stats", getCacheStats);
  *   }
  * }
  */
-cacheRouter.post("/cleanup", cleanupCache);
+cacheRouter.post("/cleanup", authenticateToken, cleanupCache);
 
 /**
  * GET /api/cache/analyze/:symbol
@@ -107,7 +108,7 @@ cacheRouter.post("/cleanup", cleanupCache);
  *   }
  * }
  */
-cacheRouter.get("/analyze/:symbol", analyzeSymbolCache);
+cacheRouter.get("/analyze/:symbol", authenticateToken, analyzeSymbolCache);
 
 /**
  * POST /api/cache/prepopulate
@@ -144,7 +145,7 @@ cacheRouter.get("/analyze/:symbol", analyzeSymbolCache);
  *   }
  * }
  */
-cacheRouter.post("/prepopulate", prepopulateCache);
+cacheRouter.post("/prepopulate", authenticateToken, prepopulateCache);
 
 /**
  * GET /api/cache/config
@@ -166,7 +167,7 @@ cacheRouter.post("/prepopulate", prepopulateCache);
  *   }
  * }
  */
-cacheRouter.get("/config", getCacheConfig);
+cacheRouter.get("/config", authenticateToken, getCacheConfig);
 
 /**
  * PUT /api/cache/config
@@ -191,7 +192,7 @@ cacheRouter.get("/config", getCacheConfig);
  *   }
  * }
  */
-cacheRouter.put("/config", updateCacheConfig);
+cacheRouter.put("/config", authenticateToken, updateCacheConfig);
 
 /**
  * DELETE /api/cache/clear
@@ -218,14 +219,14 @@ cacheRouter.put("/config", updateCacheConfig);
  *   }
  * }
  */
-cacheRouter.delete("/clear", clearCache);
+cacheRouter.delete("/clear", authenticateToken, clearCache);
 
 /**
  * GET /api/cache/health
  * 
  * Health check for cache service
  */
-cacheRouter.get("/health", (req, res) => {
+cacheRouter.get("/health", authenticateToken, (req, res) => {
   res.json({
     success: true,
     message: "Cache service is healthy",

@@ -17,8 +17,8 @@ authRouter.post("/login", (req: Request, res: Response) => {
 
   db.get(
     isPostgres
-      ? "SELECT id, username, password_hash, email, email_verified, two_factor_enabled, role, created_at FROM users WHERE username = $1"
-      : "SELECT id, username, password_hash, email, email_verified, two_factor_enabled, role, created_at FROM users WHERE username = ?",
+      ? "SELECT id, username, password_hash, email, email_verified, two_factor_enabled, role, plan_tier, plan_status, subscription_provider, subscription_renews_at, created_at FROM users WHERE username = $1"
+      : "SELECT id, username, password_hash, email, email_verified, two_factor_enabled, role, plan_tier, plan_status, subscription_provider, subscription_renews_at, created_at FROM users WHERE username = ?",
     [username],
     (err: any, row: any) => {
       if (err) {
@@ -46,7 +46,17 @@ authRouter.post("/login", (req: Request, res: Response) => {
           return res.json({
             success: true,
             requires2fa: true,
-            user: { id: row.id, username: row.username, email: row.email, email_verified: row.email_verified, role: row.role },
+            user: {
+              id: row.id,
+              username: row.username,
+              email: row.email,
+              email_verified: row.email_verified,
+              role: row.role,
+              plan_tier: row.plan_tier,
+              plan_status: row.plan_status,
+              subscription_provider: row.subscription_provider,
+              subscription_renews_at: row.subscription_renews_at
+            },
           });
         }
 
@@ -57,6 +67,10 @@ authRouter.post("/login", (req: Request, res: Response) => {
           email_verified: row.email_verified,
           two_factor_enabled: row.two_factor_enabled,
           role: row.role,
+          plan_tier: row.plan_tier,
+          plan_status: row.plan_status,
+          subscription_provider: row.subscription_provider,
+          subscription_renews_at: row.subscription_renews_at,
           createdAt: row.created_at,
         };
         const token = generateToken(userData);
@@ -105,6 +119,9 @@ authRouter.post("/signup", (req: Request, res: Response) => {
           username,
           email: email || null,
           email_verified: 0,
+          plan_tier: 'FREE',
+          plan_status: 'ACTIVE',
+          subscription_provider: 'NONE',
         };
         const token = generateToken(userData);
         res.json({ success: true, user: userData, token, emailVerificationRequired: true });
@@ -123,7 +140,7 @@ authRouter.get("/me", authenticateToken, (req: AuthenticatedRequest, res: Respon
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ error: "User not authenticated" });
   db.get(
-    "SELECT id, username, email, email_verified, two_factor_enabled, role, created_at FROM users WHERE id = ?",
+    "SELECT id, username, email, email_verified, two_factor_enabled, role, plan_tier, plan_status, subscription_provider, subscription_renews_at, created_at FROM users WHERE id = ?",
     [userId],
     (err: any, row: any) => {
       if (err) return res.status(500).json({ error: "Internal server error" });
@@ -135,6 +152,10 @@ authRouter.get("/me", authenticateToken, (req: AuthenticatedRequest, res: Respon
         email_verified: row.email_verified,
         two_factor_enabled: row.two_factor_enabled,
         role: row.role,
+        plan_tier: row.plan_tier,
+        plan_status: row.plan_status,
+        subscription_provider: row.subscription_provider,
+        subscription_renews_at: row.subscription_renews_at,
         createdAt: row.created_at,
       };
       res.json({ success: true, user: userData });
@@ -332,12 +353,23 @@ authRouter.post("/2fa/disable", authenticateToken, (req: AuthenticatedRequest, r
 authRouter.post("/2fa/verify", (req: Request, res: Response) => {
   const { username, token } = req.body;
   if (!username || !token) return res.status(400).json({ error: "Username and token are required" });
-  db.get("SELECT id, username, email, email_verified, created_at, two_factor_secret FROM users WHERE username = ?", [username], (err: any, row: any) => {
+  db.get("SELECT id, username, email, email_verified, created_at, two_factor_secret, plan_tier, plan_status, subscription_provider, subscription_renews_at FROM users WHERE username = ?", [username], (err: any, row: any) => {
     if (err) return res.status(500).json({ error: "Internal server error" });
     if (!row?.two_factor_secret) return res.status(400).json({ error: "2FA not enabled" });
     const verified = speakeasy.totp.verify({ secret: row.two_factor_secret, encoding: 'base32', token });
     if (!verified) return res.status(401).json({ error: "Invalid 2FA token" });
-    const userData = { id: row.id, username: row.username, email: row.email, email_verified: row.email_verified, two_factor_enabled: 1, createdAt: row.created_at };
+    const userData = {
+      id: row.id,
+      username: row.username,
+      email: row.email,
+      email_verified: row.email_verified,
+      two_factor_enabled: 1,
+      plan_tier: row.plan_tier,
+      plan_status: row.plan_status,
+      subscription_provider: row.subscription_provider,
+      subscription_renews_at: row.subscription_renews_at,
+      createdAt: row.created_at
+    };
     const jwtToken = generateToken(userData);
     res.json({ success: true, user: userData, token: jwtToken });
   });

@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import { runBacktest } from "../controllers/backtestController";
+import { authenticateToken } from "../middleware/auth";
 
 export const backtestRouter = Router();
 
@@ -50,14 +51,14 @@ export const backtestRouter = Router();
  *   }
  * }
  */
-backtestRouter.post("/run", runBacktest);
+backtestRouter.post("/run", authenticateToken, runBacktest);
 
 /**
  * GET /api/backtest/providers
  * 
  * Get list of available data providers
  */
-backtestRouter.get("/providers", (req: Request, res: Response) => {
+backtestRouter.get("/providers", authenticateToken, (req: Request, res: Response) => {
   res.json({
     success: true,
     data: {
