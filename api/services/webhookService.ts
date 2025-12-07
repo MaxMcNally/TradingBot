@@ -74,7 +74,7 @@ export class WebhookService {
       }
 
       // Send webhook with timeout
-      const response = await axios.post(webhook.url, payload, {
+      const response = await axios.post(webhook.url, body, {
         headers,
         timeout: 10000, // 10 second timeout
         validateStatus: () => true // Don't throw on any status
