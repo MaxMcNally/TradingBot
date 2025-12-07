@@ -8,6 +8,16 @@ export interface TradingConfig {
   dataProvider: DataProviderConfig;
   riskManagement: RiskManagementConfig;
   logging: LoggingConfig;
+  warmup?: WarmupConfig;
+}
+
+export interface WarmupConfig {
+  enabled: boolean;
+  maxLookbackDays: number; // Maximum days to fetch for warmup (default: 200)
+  bufferDays: number; // Extra days beyond max lookback (default: 10)
+  skipWeekends: boolean; // Skip weekend days when calculating lookback (default: true)
+  dataInterval: 'day' | 'hour' | 'minute'; // Data interval for warmup (default: 'day')
+  failOnWarmupError: boolean; // Whether to fail bot startup if warmup fails (default: false)
 }
 
 export interface StrategyConfig {
@@ -82,6 +92,14 @@ export const defaultTradingConfig: TradingConfig = {
     consoleOutput: true,
     logTrades: true,
     logPortfolioSnapshots: true
+  },
+  warmup: {
+    enabled: true,
+    maxLookbackDays: 200, // Maximum days to fetch for warmup
+    bufferDays: 10, // Extra days beyond max lookback
+    skipWeekends: true, // Skip weekend days when calculating lookback
+    dataInterval: 'day' as const, // Data interval for warmup
+    failOnWarmupError: false // Don't fail bot startup if warmup fails
   }
 };
 
@@ -114,6 +132,72 @@ export class ConfigManager {
     return strategy?.symbols || [];
   }
 
+  /**
+   * Calculate the maximum lookback window needed across all enabled strategies
+   * @returns Maximum lookback window in days
+   */
+  getMaxLookbackWindow(): number {
+    const enabledStrategies = this.config.strategies.filter(s => s.enabled);
+    let maxLookback = 0;
+
+    for (const strategy of enabledStrategies) {
+      const params = strategy.parameters;
+      let strategyLookback = 0;
+
+      switch (strategy.name) {
+        case 'MovingAverage':
+          // Use the longer of shortWindow and longWindow
+          strategyLookback = Math.max(params.shortWindow || 10, params.longWindow || 30);
+          break;
+        
+        case 'MeanReversion':
+          strategyLookback = params.window || 20;
+          break;
+        
+        case 'Momentum':
+          // Use the longer of rsiWindow and momentumWindow
+          strategyLookback = Math.max(params.rsiWindow || 14, params.momentumWindow || 10);
+          break;
+        
+        case 'BollingerBands':
+          strategyLookback = params.window || 20;
+          break;
+        
+        case 'Breakout':
+          strategyLookback = params.lookbackWindow || 20;
+          break;
+        
+        case 'SentimentAnalysis':
+          strategyLookback = params.lookbackDays || 3;
+          break;
+        
+        default:
+          // For unknown strategies, use a conservative default
+          strategyLookback = 30;
+          break;
+      }
+
+      maxLookback = Math.max(maxLookback, strategyLookback);
+    }
+
+    return maxLookback;
+  }
+
+  /**
+   * Get the warmup configuration with defaults
+   */
+  getWarmupConfig(): WarmupConfig {
+    return {
+      enabled: true,
+      maxLookbackDays: 200,
+      bufferDays: 10,
+      skipWeekends: true,
+      dataInterval: 'day',
+      failOnWarmupError: false,
+      ...this.config.warmup
+    };
+  }
+
   validateConfig(): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
@@ -144,6 +228,15 @@ export class ConfigManager {
 
     if (this.config.riskManagement.takeProfit <= 0 || this.config.riskManagement.takeProfit > 1) {
       errors.push('Take profit must be between 0 and 1');
+    }
+
+    // Validate warmup configuration
+    const warmupConfig = this.getWarmupConfig();
+    if (warmupConfig.enabled) {
+      const maxLookback = this.getMaxLookbackWindow();
+      if (maxLookback > warmupConfig.maxLookbackDays) {
+        errors.push(`Strategy lookback window (${maxLookback} days) exceeds maximum allowed (${warmupConfig.maxLookbackDays} days)`);
+      }
     }
 
     return {

@@ -4,7 +4,6 @@ import {
   Box,
   Typography,
   Paper,
-  TextField,
   Button,
   Card,
   CardContent,
@@ -20,16 +19,11 @@ import {
   LinearProgress,
   Tabs,
   Tab,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Chip,
   IconButton,
   Tooltip,
 } from "@mui/material";
 import {
-  PlayArrow,
   Assessment,
   Timeline,
   TrendingUp,
@@ -37,7 +31,6 @@ import {
   Refresh,
   Tune,
   Save as SaveIcon,
-  InfoOutlined,
 } from "@mui/icons-material";
 import { 
   BacktestFormData, 
@@ -47,7 +40,8 @@ import {
   TabPanel,
   StockSelectionSection,
   StrategySelectionSection,
-  SessionSummary
+  SessionSummary,
+  StrategyParameters
 } from "../shared";
 import { useStrategies, useBacktest, useUserStrategies } from "../../hooks";
 import SaveStrategyDialog from "./SaveStrategyDialog";
@@ -152,111 +146,26 @@ const BacktestingSimple: React.FC = () => {
 
   // Reset strategy parameters when strategy changes
   useEffect(() => {
-    if (formData.strategy) {
-      // Clear existing parameters and set defaults for the selected strategy
+    if (availableStrategies && formData.strategy) {
+      const strategy = availableStrategies.find(s => s.name === formData.strategy);
+      if (strategy && strategy.parameters) {
       const defaultParams: Record<string, any> = {};
-      
-      switch (formData.strategy) {
-        case 'meanReversion':
-        case 'MeanReversion':
-          defaultParams.window = 20;
-          defaultParams.threshold = 0.05;
-          break;
-        case 'sentimentAnalysis':
-        case 'SentimentAnalysis':
-          defaultParams.lookbackDays = 3;
-          defaultParams.pollIntervalMinutes = 0;
-          defaultParams.minArticles = 2;
-          defaultParams.buyThreshold = 0.4;
-          defaultParams.sellThreshold = -0.4;
-          defaultParams.titleWeight = 2.0;
-          defaultParams.recencyHalfLifeHours = 12;
-          // newsSource is backend-controlled; do not expose toggle
-          break;
-        case 'movingAverage':
-        case 'MovingAverage':
-          defaultParams.shortWindow = 5;
-          defaultParams.longWindow = 10;
-          break;
-        case 'movingAverageCrossover':
-        case 'MovingAverageCrossover':
-          defaultParams.fastWindow = 10;
-          defaultParams.slowWindow = 30;
-          defaultParams.maType = 'SMA';
-          break;
-        case 'momentum':
-        case 'Momentum':
-          defaultParams.rsiWindow = 14;
-          defaultParams.rsiOverbought = 70;
-          defaultParams.rsiOversold = 30;
-          break;
-        case 'bollingerBands':
-        case 'BollingerBands':
-          defaultParams.window = 20;
-          defaultParams.multiplier = 2.0;
-          break;
-        case 'breakout':
-        case 'Breakout':
-          defaultParams.lookbackWindow = 20;
-          defaultParams.breakoutThreshold = 0.01;
-          break;
-        default:
-          break;
+        Object.entries(strategy.parameters).forEach(([key, param]) => {
+          if (typeof param === 'object' && param !== null && 'default' in param) {
+            defaultParams[key] = param.default;
+          }
+        });
+        setStrategyParameters(defaultParams);
       }
-      
-      setStrategyParameters(defaultParams);
     }
-  }, [formData.strategy]);
+  }, [formData.strategy, availableStrategies]);
 
-  const handleInputChange = (field: keyof BacktestFormData, value: string | number): void => {
-    setValue(field, value as any);
-  };
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
   };
 
-  // Map frontend strategy names to backend expected names
-  const mapStrategyName = (frontendStrategy: string): string => {
-    const strategyMap: Record<string, string> = {
-      'SentimentAnalysis': 'sentimentAnalysis',
-      'MeanReversion': 'meanReversion',
-      'MovingAverage': 'movingAverageCrossover',
-      'MovingAverageCrossover': 'movingAverageCrossover',
-      'Momentum': 'momentum',
-      'BollingerBands': 'bollingerBands',
-      'Breakout': 'breakout',
-    };
-    return strategyMap[frontendStrategy] || frontendStrategy;
-  };
 
-  const handleRunBacktest = async (): Promise<void> => {
-    const current = getValues();
-    if ((current.symbols || []).length === 0) {
-      setError("Please select at least one symbol");
-      return;
-    }
-
-    try {
-      setError(null);
-      const response = await runBacktestMutation({
-        strategy: mapStrategyName(current.strategy),
-        symbols: current.symbols,
-        startDate: current.startDate,
-        endDate: current.endDate,
-        initialCapital: current.initialCapital,
-        sharesPerTrade: current.sharesPerTrade,
-        ...strategyParameters  // Spread the parameters at the top level
-      });
-
-      if (response) {
-        setResults(response);
-        setActiveTab(3); // Switch to results tab
-      }
-    } catch (err: any) {
-      setError(err.message || "Failed to run backtest");
-    }
-  };
 
   const handleSaveStrategy = async (strategyData: any) => {
     try {
@@ -370,448 +279,17 @@ const BacktestingSimple: React.FC = () => {
 
             {/* Strategy Parameters Tab */}
             <TabPanel value={activeTab} index={2}>
-              <Paper sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  <Tune sx={{ mr: 1, verticalAlign: 'middle' }} />
-                  Strategy Parameters
-                </Typography>
-                <Typography variant="body2" color="textSecondary" paragraph>
-                  Configure the parameters for your selected strategy. These settings will determine how the strategy behaves during backtesting.
-                </Typography>
-
-                <Stack spacing={3}>
-                  {/* Strategy-Specific Parameters */}
-                  {(formData.strategy === 'sentimentAnalysis' || formData.strategy === 'SentimentAnalysis') && (
-                    <Box>
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <Typography variant="subtitle2" gutterBottom>
-                      Sentiment Analysis Parameters
-                    </Typography>
-                    <Tooltip title="Use a 2–5 day lookback with 2+ articles. Increase thresholds (e.g., 0.5/-0.5) to reduce noise; higher title weight emphasizes headlines.">
-                      <InfoOutlined fontSize="small" color="action" />
-                    </Tooltip>
-                  </Box>
-                      <Stack spacing={2}>
-                        <TextField
-                          label="Lookback Days"
-                          type="number"
-                          value={strategyParameters.lookbackDays ?? 3}
-                          onChange={(e) => setStrategyParameters(prev => ({ ...prev, lookbackDays: parseInt(e.target.value) }))}
-                          size="small"
-                          fullWidth
-                        />
-                        <TextField
-                          label="Min Articles"
-                          type="number"
-                          value={strategyParameters.minArticles ?? 2}
-                          onChange={(e) => setStrategyParameters(prev => ({ ...prev, minArticles: parseInt(e.target.value) }))}
-                          size="small"
-                          fullWidth
-                        />
-                        <TextField
-                          label="Buy Threshold"
-                          type="number"
-                          inputProps={{ step: "0.05" }}
-                          value={strategyParameters.buyThreshold ?? 0.4}
-                          onChange={(e) => setStrategyParameters(prev => ({ ...prev, buyThreshold: parseFloat(e.target.value) }))}
-                          size="small"
-                          fullWidth
-                        />
-                        <TextField
-                          label="Sell Threshold"
-                          type="number"
-                          inputProps={{ step: "0.05" }}
-                          value={strategyParameters.sellThreshold ?? -0.4}
-                          onChange={(e) => setStrategyParameters(prev => ({ ...prev, sellThreshold: parseFloat(e.target.value) }))}
-                          size="small"
-                          fullWidth
-                        />
-                        <TextField
-                          label="Title Weight"
-                          type="number"
-                          inputProps={{ step: "0.1" }}
-                          value={strategyParameters.titleWeight ?? 2.0}
-                          onChange={(e) => setStrategyParameters(prev => ({ ...prev, titleWeight: parseFloat(e.target.value) }))}
-                          size="small"
-                          fullWidth
-                        />
-                        <TextField
-                          label="Recency Half-Life (hours)"
-                          type="number"
-                          value={strategyParameters.recencyHalfLifeHours ?? 12}
-                          onChange={(e) => setStrategyParameters(prev => ({ ...prev, recencyHalfLifeHours: parseInt(e.target.value) }))}
-                          size="small"
-                          fullWidth
-                        />
-                        {/* newsSource is backend-controlled; no UI toggle here */}
-                      </Stack>
-                    </Box>
-                  )}
-                  {(formData.strategy === 'meanReversion' || formData.strategy === 'MeanReversion') && (
-                    <Box>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Typography variant="subtitle2" gutterBottom>
-                          Mean Reversion Parameters
-                        </Typography>
-                        <Tooltip title="Larger windows smooth signals. Higher threshold (3–5%) = fewer but stronger trades.">
-                          <InfoOutlined fontSize="small" color="action" />
-                        </Tooltip>
-                      </Box>
-                      <Stack spacing={2}>
-                        <TextField
-                          label="Window"
-                          type="number"
-                          value={strategyParameters.window || 20}
-                          onChange={(e) => setStrategyParameters(prev => ({ ...prev, window: parseInt(e.target.value) }))}
-                          size="small"
-                          fullWidth
-                          helperText="Number of periods for mean calculation"
-                        />
-                        <TextField
-                          label="Threshold"
-                          type="number"
-                          inputProps={{ step: "0.01" }}
-                          value={strategyParameters.threshold || 0.05}
-                          onChange={(e) => setStrategyParameters(prev => ({ ...prev, threshold: parseFloat(e.target.value) }))}
-                          size="small"
-                          fullWidth
-                          helperText="Number of standard deviations for signal generation"
-                        />
-                      </Stack>
-                    </Box>
-                  )}
-
-                  {(formData.strategy === 'movingAverage' || formData.strategy === 'MovingAverage') && (
-                    <Box>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Typography variant="subtitle2" gutterBottom>
-                          Moving Average Parameters
-                        </Typography>
-                        <Tooltip title="Short window reacts faster; long window defines trend. EMA is more responsive than SMA.">
-                          <InfoOutlined fontSize="small" color="action" />
-                        </Tooltip>
-                      </Box>
-                      <Stack spacing={2}>
-                        <TextField
-                          label="Short Window"
-                          type="number"
-                          value={strategyParameters.shortWindow || 5}
-                          onChange={(e) => setStrategyParameters(prev => ({ ...prev, shortWindow: parseInt(e.target.value) }))}
-                          size="small"
-                          fullWidth
-                          helperText="Short-term moving average periods"
-                        />
-                        <TextField
-                          label="Long Window"
-                          type="number"
-                          value={strategyParameters.longWindow || 10}
-                          onChange={(e) => setStrategyParameters(prev => ({ ...prev, longWindow: parseInt(e.target.value) }))}
-                          size="small"
-                          fullWidth
-                          helperText="Long-term moving average periods"
-                        />
-                        <FormControl size="small" fullWidth>
-                          <InputLabel>MA Type</InputLabel>
-                          <Select
-                            value={strategyParameters.maType || 'SMA'}
-                            onChange={(e) => setStrategyParameters(prev => ({ ...prev, maType: e.target.value }))}
-                            label="MA Type"
-                          >
-                            <MenuItem value="SMA">Simple Moving Average</MenuItem>
-                            <MenuItem value="EMA">Exponential Moving Average</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </Stack>
-                    </Box>
-                  )}
-
-                  {(formData.strategy === 'movingAverageCrossover' || formData.strategy === 'MovingAverageCrossover') && (
-                    <Box>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Typography variant="subtitle2" gutterBottom>
-                          Moving Average Crossover Parameters
-                        </Typography>
-                        <Tooltip title="Wider fast/slow gap reduces whipsaws. EMA crossovers trigger earlier but can be noisier.">
-                          <InfoOutlined fontSize="small" color="action" />
-                        </Tooltip>
-                      </Box>
-                      <Stack spacing={2}>
-                        <TextField
-                          label="Fast Window"
-                          type="number"
-                          value={strategyParameters.fastWindow || 10}
-                          onChange={(e) => setStrategyParameters(prev => ({ ...prev, fastWindow: parseInt(e.target.value) }))}
-                          size="small"
-                          fullWidth
-                          helperText="Fast moving average window in days"
-                          inputProps={{ min: 5, max: 50 }}
-                        />
-                        <TextField
-                          label="Slow Window"
-                          type="number"
-                          value={strategyParameters.slowWindow || 30}
-                          onChange={(e) => setStrategyParameters(prev => ({ ...prev, slowWindow: parseInt(e.target.value) }))}
-                          size="small"
-                          fullWidth
-                          helperText="Slow moving average window in days"
-                          inputProps={{ min: 10, max: 200 }}
-                        />
-                        <FormControl size="small" fullWidth>
-                          <InputLabel>Moving Average Type</InputLabel>
-                          <Select
-                            value={strategyParameters.maType || 'SMA'}
-                            onChange={(e) => setStrategyParameters(prev => ({ ...prev, maType: e.target.value }))}
-                            label="Moving Average Type"
-                          >
-                            <MenuItem value="SMA">Simple Moving Average (SMA)</MenuItem>
-                            <MenuItem value="EMA">Exponential Moving Average (EMA)</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </Stack>
-                    </Box>
-                  )}
-
-                  {(formData.strategy === 'momentum' || formData.strategy === 'Momentum') && (
-                    <Box>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Typography variant="subtitle2" gutterBottom>
-                          Momentum Parameters
-                        </Typography>
-                        <Tooltip title="RSI(14) is common; raise overbought/lower oversold to reduce trades. Momentum window/threshold filters weak trends.">
-                          <InfoOutlined fontSize="small" color="action" />
-                        </Tooltip>
-                      </Box>
-                      <Stack spacing={2}>
-                        <TextField
-                          label="RSI Window"
-                          type="number"
-                          value={getValues('rsiWindow')}
-                          onChange={(e) => handleInputChange('rsiWindow', parseInt(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Periods for RSI calculation"
-                        />
-                        <TextField
-                          label="Momentum Window"
-                          type="number"
-                          value={getValues('momentumWindow')}
-                          onChange={(e) => handleInputChange('momentumWindow', parseInt(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Periods for momentum calculation"
-                        />
-                        <TextField
-                          label="RSI Overbought"
-                          type="number"
-                          value={getValues('rsiOverbought')}
-                          onChange={(e) => handleInputChange('rsiOverbought', parseInt(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="RSI level considered overbought"
-                        />
-                        <TextField
-                          label="RSI Oversold"
-                          type="number"
-                          value={getValues('rsiOversold')}
-                          onChange={(e) => handleInputChange('rsiOversold', parseInt(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="RSI level considered oversold"
-                        />
-                        <TextField
-                          label="Momentum Threshold"
-                          type="number"
-                          inputProps={{ step: "0.01" }}
-                          value={getValues('momentumThreshold')}
-                          onChange={(e) => handleInputChange('momentumThreshold', parseFloat(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Minimum momentum change for signals"
-                        />
-                      </Stack>
-                    </Box>
-                  )}
-
-                  {(formData.strategy === 'bollingerBands' || formData.strategy === 'BollingerBands') && (
-                    <Box>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Typography variant="subtitle2" gutterBottom>
-                          Bollinger Bands Parameters
-                        </Typography>
-                        <Tooltip title="Window sets baseline; higher multiplier (2.0–2.5) reduces signals and favors stronger reversions.">
-                          <InfoOutlined fontSize="small" color="action" />
-                        </Tooltip>
-                      </Box>
-                      <Stack spacing={2}>
-                        <TextField
-                          label="Window"
-                          type="number"
-                          value={getValues('window')}
-                          onChange={(e) => handleInputChange('window', parseInt(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Periods for moving average calculation"
-                        />
-                        <TextField
-                          label="Multiplier"
-                          type="number"
-                          inputProps={{ step: "0.1" }}
-                          value={getValues('multiplier')}
-                          onChange={(e) => handleInputChange('multiplier', parseFloat(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Standard deviation multiplier for bands"
-                        />
-                      </Stack>
-                    </Box>
-                  )}
-
-                  {(formData.strategy === 'breakout' || formData.strategy === 'Breakout') && (
-                    <Box>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Typography variant="subtitle2" gutterBottom>
-                          Breakout Parameters
-                        </Typography>
-                        <Tooltip title="Longer lookback finds stronger levels. Require volume >1.5× average and a higher threshold to avoid false breakouts.">
-                          <InfoOutlined fontSize="small" color="action" />
-                        </Tooltip>
-                      </Box>
-                      <Stack spacing={2}>
-                        <TextField
-                          label="Lookback Window"
-                          type="number"
-                          value={getValues('lookbackWindow')}
-                          onChange={(e) => handleInputChange('lookbackWindow', parseInt(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Periods for support/resistance calculation"
-                        />
-                        <TextField
-                          label="Breakout Threshold"
-                          type="number"
-                          inputProps={{ step: "0.01" }}
-                          value={getValues('breakoutThreshold')}
-                          onChange={(e) => handleInputChange('breakoutThreshold', parseFloat(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Minimum breakout percentage for signals"
-                        />
-                        <TextField
-                          label="Min Volume Ratio"
-                          type="number"
-                          inputProps={{ step: "0.1" }}
-                          value={getValues('minVolumeRatio')}
-                          onChange={(e) => handleInputChange('minVolumeRatio', parseFloat(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Minimum volume increase for breakout confirmation"
-                        />
-                        <TextField
-                          label="Confirmation Period"
-                          type="number"
-                          value={getValues('confirmationPeriod')}
-                          onChange={(e) => handleInputChange('confirmationPeriod', parseInt(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Periods to wait for breakout confirmation"
-                        />
-                      </Stack>
-                    </Box>
-                  )}
-                </Stack>
-
-                {/* Backtest Controls */}
-                <Box sx={{ mt: 4, pt: 3, borderTop: 1, borderColor: 'divider' }}>
-                  <Typography variant="h6" gutterBottom>
-                    Backtest Configuration
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary" paragraph>
-                    Configure the date range and trading parameters for your backtest.
-                  </Typography>
-
-                  <Stack spacing={3}>
-                    {/* Date Range */}
-                    <Box>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Date Range
-                      </Typography>
-                      <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }}>
-                        <TextField
-                          label="Start Date"
-                          type="date"
-                          value={formData.startDate}
-                          onChange={(e) => handleInputChange('startDate', e.target.value)}
-                          InputLabelProps={{ shrink: true }}
-                          size="small"
-                          fullWidth
-                        />
-                        <TextField
-                          label="End Date"
-                          type="date"
-                          value={formData.endDate}
-                          onChange={(e) => handleInputChange('endDate', e.target.value)}
-                          InputLabelProps={{ shrink: true }}
-                          size="small"
-                          fullWidth
-                        />
-                      </Stack>
-                    </Box>
-
-                    {/* Trading Parameters */}
-                    <Box>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Trading Parameters
-                      </Typography>
-                      <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }}>
-                        <TextField
-                          label="Initial Capital"
-                          type="number"
-                          value={formData.initialCapital}
-                          onChange={(e) => handleInputChange('initialCapital', parseFloat(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Starting capital for backtest"
-                        />
-                        <TextField
-                          label="Shares Per Trade"
-                          type="number"
-                          value={formData.sharesPerTrade}
-                          onChange={(e) => handleInputChange('sharesPerTrade', parseInt(e.target.value))}
-                          size="small"
-                          fullWidth
-                          helperText="Number of shares to trade per signal"
-                        />
-                      </Stack>
-                    </Box>
-
-                    {/* Run Backtest Button */}
-                    <Box>
-                      <Button
-                        variant="contained"
-                        startIcon={<PlayArrow />}
-                        onClick={handleRunBacktest}
-                        disabled={
-                          backtestLoading ||
-                          !Array.isArray(formData.symbols) ||
-                          formData.symbols.length === 0 ||
-                          !formData.strategy
-                        }
-                        fullWidth
-                        size="large"
-                      >
-                        {backtestLoading ? 'Running Backtest...' : 'Run Backtest'}
-                      </Button>
-                    </Box>
-
-                    {/* Error Display */}
-                    {error && (
-                      <Alert severity="error" onClose={() => setError(null)}>
-                        {error}
-                      </Alert>
-                    )}
-                  </Stack>
-                </Box>
-              </Paper>
+              <StrategyParameters
+                selectedStrategy={formData.strategy}
+                strategyParameters={strategyParameters}
+                onParametersChange={setStrategyParameters}
+                showSaveButton={false}
+                showResetButton={false}
+                compact={false}
+                showCurrentValues={false}
+                title="Strategy Parameters"
+                description="Configure the parameters for your selected strategy. These settings will determine how the strategy behaves during backtesting."
+              />
             </TabPanel>
 
 

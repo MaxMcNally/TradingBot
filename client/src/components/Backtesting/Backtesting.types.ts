@@ -70,6 +70,7 @@ export interface BacktestResponse {
 
 export interface Strategy {
   name: string;
+  displayName?: string;
   description?: string;
   category?: string;
   parameters?: Record<string, StrategyParameter>;

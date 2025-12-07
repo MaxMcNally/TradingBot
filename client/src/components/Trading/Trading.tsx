@@ -18,15 +18,16 @@ import {
   TabPanel,
   StockSelectionSection,
   StrategySelectionSection,
-  SessionSummary
+  SessionSummary,
+  StrategyParameters
 } from "../shared";
 import TradingSessionControls from "../Dashboard/TradingSessionControls";
-import StrategyParameters from "../Dashboard/StrategyParameters";
-import { useUser } from "../../hooks";
+import { useUser, useStrategies } from "../../hooks";
 
 const Trading: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
   const { user, isLoading: userLoading, error: userError } = useUser();
+  const { strategies: availableStrategies } = useStrategies();
 
   // Trading session state
   const [selectedStocks, setSelectedStocks] = useState<string[]>([]);
@@ -36,57 +37,19 @@ const Trading: React.FC = () => {
 
   // Reset strategy parameters when strategy changes
   useEffect(() => {
-    const defaultParams: Record<string, any> = {};
-    
-    switch (selectedStrategy) {
-      case 'sentimentAnalysis':
-      case 'SentimentAnalysis':
-        defaultParams.lookbackDays = 3;
-        defaultParams.pollIntervalMinutes = 0;
-        defaultParams.minArticles = 2;
-        defaultParams.buyThreshold = 0.4;
-        defaultParams.sellThreshold = -0.4;
-        defaultParams.titleWeight = 2.0;
-        defaultParams.recencyHalfLifeHours = 12;
-        // newsSource is backend-controlled; do not expose toggle in client
-        break;
-      case 'meanReversion':
-      case 'MeanReversion':
-        defaultParams.window = 20;
-        defaultParams.threshold = 0.05;
-        break;
-      case 'movingAverage':
-      case 'MovingAverage':
-        defaultParams.shortWindow = 5;
-        defaultParams.longWindow = 10;
-        break;
-      case 'movingAverageCrossover':
-        defaultParams.fastWindow = 10;
-        defaultParams.slowWindow = 30;
-        defaultParams.maType = 'SMA';
-        break;
-      case 'momentum':
-      case 'Momentum':
-        defaultParams.rsiWindow = 14;
-        defaultParams.rsiOverbought = 70;
-        defaultParams.rsiOversold = 30;
-        break;
-      case 'bollingerBands':
-      case 'BollingerBands':
-        defaultParams.window = 20;
-        defaultParams.multiplier = 2.0;
-        break;
-      case 'breakout':
-      case 'Breakout':
-        defaultParams.lookbackWindow = 20;
-        defaultParams.breakoutThreshold = 0.01;
-        break;
-      default:
-        break;
+    if (availableStrategies && selectedStrategy) {
+      const strategy = availableStrategies.find(s => s.name === selectedStrategy);
+      if (strategy && strategy.parameters) {
+        const defaultParams: Record<string, any> = {};
+        Object.entries(strategy.parameters).forEach(([key, param]) => {
+          if (typeof param === 'object' && param !== null && 'default' in param) {
+            defaultParams[key] = param.default;
+          }
+        });
+        setStrategyParameters(defaultParams);
+      }
     }
-    
-    setStrategyParameters(defaultParams);
-  }, [selectedStrategy]);
+  }, [selectedStrategy, availableStrategies]);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);

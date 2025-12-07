@@ -50,6 +50,7 @@ app.use("/api", (req, res, next) => {
   const publicAuthRoutes = [
     { method: "POST", path: "/auth/login" },
     { method: "POST", path: "/auth/signup" },
+    { method: "POST", path: "/auth/refresh" }, // Allow refresh with expired token
     { method: "POST", path: "/auth/2fa/verify" },
     { method: "POST", path: "/auth/password/reset/request" },
     { method: "POST", path: "/auth/password/reset/confirm" },
@@ -57,11 +58,26 @@ app.use("/api", (req, res, next) => {
     { method: "POST", path: "/auth/logout" },
   ];
 
-  const isPublic = publicAuthRoutes.some(
+  // Public API endpoints (no token required)
+  const publicApiRoutes = [
+    { method: "GET", path: "/backtest/health" },
+    { method: "GET", path: "/trading/strategies" },
+    { method: "GET", path: "/symbols/search" },
+    { method: "GET", path: "/symbols/yahoo-search" },
+    { method: "GET", path: "/symbols/popular" },
+    { method: "GET", path: "/strategies/strategies/public" },
+    { method: "GET", path: "/strategies/strategies/public/:strategyType" },
+  ];
+
+  const isPublicAuth = publicAuthRoutes.some(
     (r) => r.method === req.method && req.path === r.path
   );
 
-  if (isPublic) {
+  const isPublicApi = publicApiRoutes.some(
+    (r) => r.method === req.method && req.path === r.path
+  );
+
+  if (isPublicAuth || isPublicApi) {
     return next();
   }
 
