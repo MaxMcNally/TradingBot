@@ -1,4 +1,4 @@
-import { Request, Response, RequestHandler } from "express";
+import { Request, RequestHandler } from "express";
 import { ApiKey } from "../models/ApiKey";
 import { User } from "../models/User";
 import { ApiUsageLog } from "../models/ApiUsageLog";
@@ -76,7 +76,7 @@ export const authenticateApiKey: RequestHandler = async (req, res, next) => {
       const endpoint = req.path;
       const method = req.method;
       const statusCode = res.statusCode;
-      const ipAddress = req.ip || (req.headers['x-forwarded-for'] as string) || (req.connection?.remoteAddress as string);
+      const ipAddress = req.ip || (req.headers['x-forwarded-for'] as string) || (req.socket?.remoteAddress as string);
       const userAgent = req.headers['user-agent'] || null;
       const requestSize = req.headers['content-length'] ? parseInt(req.headers['content-length'] as string, 10) : null;
       
