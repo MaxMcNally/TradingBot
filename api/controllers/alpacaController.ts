@@ -1,3 +1,4 @@
+import { Response } from 'express';
 import { db, isPostgres } from '../initDb';
 import { encrypt, decrypt, maskSensitiveData } from '../utils/encryption';
 import { AlpacaService, createAlpacaService, validateCredentials, AlpacaCredentials } from '../services/alpacaService';
@@ -7,21 +8,89 @@ import { AuthenticatedRequest } from '../middleware/auth';
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const IS_PRODUCTION = NODE_ENV === 'production';
 
+// Store active Alpaca connections in memory (per user) with TTL tracking
+interface ConnectionEntry {
+  service: AlpacaService;
+  lastAccessed: number;
+}
+
+const activeConnections: Map<number, ConnectionEntry> = new Map();
+
+// TTL for inactive connections (30 minutes)
+const CONNECTION_TTL_MS = 30 * 60 * 1000;
+
+// Cleanup interval (5 minutes)
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+
+// Store cleanup interval ID for testing/shutdown
+let cleanupIntervalId: NodeJS.Timeout | null = null;
+
+/**
+ * Cleanup stale connections (called periodically)
+ */
+const cleanupStaleConnections = () => {
+  const now = Date.now();
+  const staleUserIds: number[] = [];
+
+  for (const [userId, entry] of activeConnections.entries()) {
+    if (now - entry.lastAccessed > CONNECTION_TTL_MS) {
+      staleUserIds.push(userId);
+    }
+  }
+
+  if (staleUserIds.length > 0) {
+    console.log(`🧹 Cleaning up ${staleUserIds.length} stale Alpaca connection(s)`);
+    staleUserIds.forEach(userId => activeConnections.delete(userId));
+  }
+};
+
+/**
+ * Start periodic cleanup of stale connections
+ */
+const startCleanupInterval = () => {
+  cleanupIntervalId = setInterval(cleanupStaleConnections, CLEANUP_INTERVAL_MS);
+  console.log(`🔄 Alpaca connection cleanup interval started (every ${CLEANUP_INTERVAL_MS / 60000} minutes)`);
+};
+
+/**
+ * Stop periodic cleanup (useful for testing or graceful shutdown)
+ */
+export const stopCleanupInterval = () => {
+  if (cleanupIntervalId) {
+    clearInterval(cleanupIntervalId);
+    cleanupIntervalId = null;
+    console.log('🛑 Alpaca connection cleanup interval stopped');
+  }
+};
+
+/**
+ * Initialize cleanup interval if not already started
+ * This is called lazily on first connection to avoid starting background processes during testing
+ */
+const ensureCleanupStarted = () => {
+  if (!cleanupIntervalId) {
+    startCleanupInterval();
+  }
+};
+
 // Valid values for order parameters (must match OrderRequest interface)
 const VALID_ORDER_SIDES = ['buy', 'sell'] as const;
 const VALID_ORDER_TYPES = ['market', 'limit', 'stop', 'stop_limit', 'trailing_stop'] as const;
 const VALID_TIME_IN_FORCE = ['day', 'gtc', 'opg', 'cls', 'ioc', 'fok'] as const;
 
-// Store active Alpaca connections in memory (per user)
-const activeConnections: Map<number, AlpacaService> = new Map();
-
 /**
  * Get or create an Alpaca service for a user
  */
 const getAlpacaServiceForUser = async (userId: number): Promise<AlpacaService | null> => {
+  // Ensure cleanup interval is running
+  ensureCleanupStarted();
+
   // Check if there's already an active connection
-  if (activeConnections.has(userId)) {
-    return activeConnections.get(userId)!;
+  const entry = activeConnections.get(userId);
+  if (entry) {
+    // Update last accessed time
+    entry.lastAccessed = Date.now();
+    return entry.service;
   }
 
   // Try to load credentials from database
@@ -32,7 +101,10 @@ const getAlpacaServiceForUser = async (userId: number): Promise<AlpacaService | 
 
   // Create and cache the service
   const service = createAlpacaService(credentials);
-  activeConnections.set(userId, service);
+  activeConnections.set(userId, {
+    service,
+    lastAccessed: Date.now(),
+  });
   return service;
 };
 
@@ -221,7 +293,10 @@ export const connectAlpaca = async (req: AuthenticatedRequest, res: Response) =>
     await saveCredentials(userId, apiKey, apiSecret, actualIsPaper);
 
     // Cache the service
-    activeConnections.set(userId, service);
+    activeConnections.set(userId, {
+      service,
+      lastAccessed: Date.now(),
+    });
 
     res.json({
       success: true,
@@ -562,4 +637,13 @@ export const closeAlpacaPosition = async (req: AuthenticatedRequest, res: Respon
     console.error('Error closing position:', error);
     res.status(500).json({ error: 'Failed to close position' });
   }
+};
+
+/**
+ * Clear connection cache for a user (useful for logout)
+ * This can be called from auth controller on user logout
+ */
+export const clearUserConnection = (userId: number): void => {
+  activeConnections.delete(userId);
+  console.log(`🔌 Cleared Alpaca connection for user ${userId}`);
 };
