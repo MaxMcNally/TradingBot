@@ -4,23 +4,30 @@ import { TradingDatabase } from "../src/database/tradingSchema";
 
 // Database connection
 const databaseUrl = process.env.DATABASE_URL || "";
-if (!databaseUrl) {
+// Only require DATABASE_URL if not in test environment (tests mock the database)
+if (!databaseUrl && process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
   throw new Error("DATABASE_URL environment variable is required");
 }
 
 // Shared helper to normalize booleans for SQL strings
 export const toSqlBool = (value: boolean) => value;
 
-// Create Postgres connection pool
-const pgPool = new Pool({ connectionString: databaseUrl });
-pgPool.on('error', (err: any) => {
-  console.error('Unexpected Postgres pool error', err);
-});
+// Create Postgres connection pool (only if DATABASE_URL is provided)
+const pgPool = databaseUrl ? new Pool({ connectionString: databaseUrl }) : null;
+if (pgPool) {
+  pgPool.on('error', (err: any) => {
+    console.error('Unexpected Postgres pool error', err);
+  });
+}
 
 // Provide a minimal adapter to mimic sqlite3.Database API for compatibility with existing code
 const db = {
   // SELECT one row
   get(sql: string, params: any[], callback: (err: any, row?: any) => void) {
+    if (!pgPool) {
+      if (callback) callback(new Error('Database pool not initialized'));
+      return;
+    }
     const { text, values } = toPg(sql, params);
     pgPool
       .query(text, values)
@@ -34,6 +41,10 @@ const db = {
 
   // SELECT many rows
   all(sql: string, params: any[], callback: (err: any, rows?: any[]) => void) {
+    if (!pgPool) {
+      if (callback) callback(new Error('Database pool not initialized'));
+      return;
+    }
     const { text, values } = toPg(sql, params);
     pgPool
       .query(text, values)
@@ -97,28 +108,32 @@ const db = {
             fn();
             
             // Commit the transaction
-            return pgPool.query('COMMIT');
+            return pgPool!.query('COMMIT');
           } catch (error) {
             console.error('Error in transaction:', error);
-            return pgPool.query('ROLLBACK');
+            return pgPool!.query('ROLLBACK');
           }
         })
         .catch((err) => {
           console.error('Error starting transaction:', err);
-          pgPool.query('ROLLBACK').catch(() => {});
+          if (pgPool) pgPool.query('ROLLBACK').catch(() => {});
         });
     } else {
-      // Fallback to immediate execution
+      // Fallback to immediate execution (for tests)
       fn();
     }
   },
 
   // Close pool
-  close(cb: (err?: any) => void) {
-    pgPool
-      .end()
-      .then(() => cb())
-      .catch((err: any) => cb(err));
+  close(cb?: (err?: any) => void) {
+    if (pgPool) {
+      pgPool
+        .end()
+        .then(() => cb && cb())
+        .catch((err: any) => cb && cb(err));
+    } else {
+      if (cb) cb();
+    }
   },
 };
 
@@ -134,9 +149,13 @@ function toPg(sql: string, params: any[]): { text: string; values: any[] } {
 // Initialize database tables
 export const initDatabase = () => {
   return new Promise<void>(async (resolve, reject) => {
+    if (!pgPool) {
+      reject(new Error('Database pool not initialized'));
+      return;
+    }
     try {
       // Core tables
-      await pgPool.query(`
+      await pgPool!.query(`
         CREATE TABLE IF NOT EXISTS users (
           id SERIAL PRIMARY KEY,
           username TEXT UNIQUE NOT NULL,
@@ -162,23 +181,23 @@ export const initDatabase = () => {
         )
       `);
       // Idempotent ensure of new security columns for existing DBs
-      await pgPool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE`);
-      await pgPool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_token TEXT`);
-      await pgPool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_sent_at TIMESTAMP`);
-      await pgPool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT FALSE`);
-      await pgPool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_secret TEXT`);
-      await pgPool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token TEXT`);
-      await pgPool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_expires_at TIMESTAMP`);
-      await pgPool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'USER' CHECK (role IN ('USER', 'ADMIN'))`);
-      await pgPool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_tier TEXT DEFAULT 'FREE'`);
-      await pgPool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_status TEXT DEFAULT 'ACTIVE'`);
-      await pgPool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_provider TEXT DEFAULT 'NONE'`);
-      await pgPool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_payment_reference TEXT`);
-      await pgPool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_started_at TIMESTAMP DEFAULT NOW()`);
-      await pgPool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_renews_at TIMESTAMP`);
-      await pgPool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_cancel_at TIMESTAMP`);
+      await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE`);
+      await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_token TEXT`);
+      await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_sent_at TIMESTAMP`);
+      await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT FALSE`);
+      await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_secret TEXT`);
+      await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token TEXT`);
+      await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_expires_at TIMESTAMP`);
+      await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'USER' CHECK (role IN ('USER', 'ADMIN'))`);
+      await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_tier TEXT DEFAULT 'FREE'`);
+      await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_status TEXT DEFAULT 'ACTIVE'`);
+      await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_provider TEXT DEFAULT 'NONE'`);
+      await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_payment_reference TEXT`);
+      await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_started_at TIMESTAMP DEFAULT NOW()`);
+      await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_renews_at TIMESTAMP`);
+      await pgPool!.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_cancel_at TIMESTAMP`);
 
-      await pgPool.query(`
+      await pgPool!.query(`
         CREATE TABLE IF NOT EXISTS settings (
           id SERIAL PRIMARY KEY,
           user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -190,7 +209,7 @@ export const initDatabase = () => {
         )
       `);
 
-      await pgPool.query(`
+      await pgPool!.query(`
         CREATE TABLE IF NOT EXISTS backtest_results (
           id SERIAL PRIMARY KEY,
           user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -204,7 +223,7 @@ export const initDatabase = () => {
         )
       `);
 
-      await pgPool.query(`
+      await pgPool!.query(`
         CREATE TABLE IF NOT EXISTS user_strategies (
           id SERIAL PRIMARY KEY,
           user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -221,7 +240,7 @@ export const initDatabase = () => {
         )
       `);
 
-      await pgPool.query(`
+      await pgPool!.query(`
         CREATE TABLE IF NOT EXISTS strategy_performance (
           id SERIAL PRIMARY KEY,
           user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -260,7 +279,7 @@ export const initDatabase = () => {
         )
       `);
 
-      await pgPool.query(`
+      await pgPool!.query(`
         CREATE TABLE IF NOT EXISTS subscriptions (
           id SERIAL PRIMARY KEY,
           user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -281,30 +300,30 @@ export const initDatabase = () => {
       `);
 
       // Indexes
-      await pgPool.query(`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`);
-      await pgPool.query(`CREATE INDEX IF NOT EXISTS idx_settings_user_id ON settings(user_id)`);
-      await pgPool.query(`CREATE INDEX IF NOT EXISTS idx_backtest_results_user_id ON backtest_results(user_id)`);
-      await pgPool.query(`CREATE INDEX IF NOT EXISTS idx_user_strategies_user_id ON user_strategies(user_id)`);
-      await pgPool.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_user_id ON strategy_performance(user_id)`);
-      await pgPool.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_strategy_name ON strategy_performance(strategy_name)`);
-      await pgPool.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_strategy_type ON strategy_performance(strategy_type)`);
-      await pgPool.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_execution_type ON strategy_performance(execution_type)`);
-      await pgPool.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_created_at ON strategy_performance(created_at)`);
-      await pgPool.query(`CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id)`);
-      await pgPool.query(`CREATE INDEX IF NOT EXISTS idx_subscriptions_created_at ON subscriptions(created_at)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_settings_user_id ON settings(user_id)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_backtest_results_user_id ON backtest_results(user_id)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_user_strategies_user_id ON user_strategies(user_id)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_user_id ON strategy_performance(user_id)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_strategy_name ON strategy_performance(strategy_name)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_strategy_type ON strategy_performance(strategy_type)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_execution_type ON strategy_performance(execution_type)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_created_at ON strategy_performance(created_at)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_subscriptions_created_at ON subscriptions(created_at)`);
 
       // Ensure is_public column exists (idempotent)
-      await pgPool.query(`ALTER TABLE user_strategies ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE`);
+      await pgPool!.query(`ALTER TABLE user_strategies ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE`);
 
       // Initialize trading tables (will handle its own dialect)
       await TradingDatabase.initializeTables();
 
       // Seed default user if none exists
-      const { rows } = await pgPool.query(`SELECT COUNT(*)::int as count FROM users`);
+      const { rows } = await pgPool!.query(`SELECT COUNT(*)::int as count FROM users`);
       if (rows[0].count === 0) {
         const defaultPassword = "admin123";
         const hashedPassword = bcrypt.hashSync(defaultPassword, 10);
-        await pgPool.query(
+        await pgPool!.query(
           `INSERT INTO users (username, password_hash, email, role) VALUES ($1, $2, $3, $4)`,
           ["admin", hashedPassword, "admin@tradingbot.com", "ADMIN"]
         );
