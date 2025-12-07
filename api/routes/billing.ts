@@ -27,12 +27,14 @@ export const BILLING_PLANS: BillingPlanWithLimits[] = [
     monthlyPrice: 0,
     priceCents: 0,
     currency: 'USD',
-    headline: 'Essential tools to get started',
+    headline: 'Perfect for getting started with automated trading',
     features: [
-      `Create up to ${formatLimit(BOT_LIMITS.FREE.maxBots)} bots`,
-      `Run ${formatLimit(BOT_LIMITS.FREE.maxRunningBots)} bot at a time`,
-      'Community indicators',
-      'Backtest once per day'
+      `📊 Create up to ${formatLimit(BOT_LIMITS.FREE.maxBots)} trading bots`,
+      `🤖 Run ${formatLimit(BOT_LIMITS.FREE.maxRunningBots)} bot at a time`,
+      '📈 Access to basic trading strategies',
+      '🔄 Daily backtest capabilities',
+      '📱 Web dashboard access',
+      '🎓 Community support & tutorials'
     ],
     limits: BOT_LIMITS.FREE
   },
@@ -42,12 +44,15 @@ export const BILLING_PLANS: BillingPlanWithLimits[] = [
     monthlyPrice: 9.99,
     priceCents: 999,
     currency: 'USD',
-    headline: 'Unlock automation essentials',
+    headline: 'Ideal for active traders seeking automation',
     features: [
-      `Create up to ${formatLimit(BOT_LIMITS.BASIC.maxBots)} bots`,
-      `Run ${formatLimit(BOT_LIMITS.BASIC.maxRunningBots)} bots simultaneously`,
-      'Intraday backtests',
-      'Email alerts'
+      `📊 Create up to ${formatLimit(BOT_LIMITS.BASIC.maxBots)} trading bots`,
+      `🤖 Run ${formatLimit(BOT_LIMITS.BASIC.maxRunningBots)} bots simultaneously`,
+      '⚡ Unlimited intraday backtests',
+      '📧 Email alerts & notifications',
+      '📉 Advanced technical indicators',
+      '🔒 Paper trading mode',
+      '📞 Email support (24hr response)'
     ],
     badge: 'Popular',
     limits: BOT_LIMITS.BASIC
@@ -58,12 +63,16 @@ export const BILLING_PLANS: BillingPlanWithLimits[] = [
     monthlyPrice: 29.99,
     priceCents: 2999,
     currency: 'USD',
-    headline: 'Advanced analytics & execution',
+    headline: 'For serious traders who demand the best',
     features: [
-      `Create up to ${formatLimit(BOT_LIMITS.PREMIUM.maxBots)} bots`,
-      `Run ${formatLimit(BOT_LIMITS.PREMIUM.maxRunningBots)} bots simultaneously`,
-      'Priority data refresh',
-      'Advanced risk tooling'
+      `📊 Create up to ${formatLimit(BOT_LIMITS.PREMIUM.maxBots)} trading bots`,
+      `🤖 Run ${formatLimit(BOT_LIMITS.PREMIUM.maxRunningBots)} bots simultaneously`,
+      '🚀 Priority data refresh (real-time)',
+      '⚠️ Advanced risk management tools',
+      '📊 Portfolio analytics dashboard',
+      '🔗 API access for custom integrations',
+      '💬 Webhook notifications',
+      '📞 Priority support (4hr response)'
     ],
     limits: BOT_LIMITS.PREMIUM
   },
@@ -73,13 +82,17 @@ export const BILLING_PLANS: BillingPlanWithLimits[] = [
     monthlyPrice: 199.99,
     priceCents: 19999,
     currency: 'USD',
-    headline: 'Dedicated support & SLAs',
+    headline: 'Complete solution for professional trading operations',
     features: [
-      `${formatLimit(BOT_LIMITS.ENTERPRISE.maxBots)} bots`,
-      `${formatLimit(BOT_LIMITS.ENTERPRISE.maxRunningBots)} concurrent bots`,
-      'Custom integrations',
-      'Dedicated success manager',
-      'Audit controls'
+      `📊 ${formatLimit(BOT_LIMITS.ENTERPRISE.maxBots)} trading bots`,
+      `🤖 ${formatLimit(BOT_LIMITS.ENTERPRISE.maxRunningBots)} concurrent bot execution`,
+      '🏢 Custom integrations & white-labeling',
+      '👤 Dedicated success manager',
+      '📋 Compliance & audit controls',
+      '🔐 SSO & advanced security',
+      '📊 Custom reporting & analytics',
+      '📞 24/7 priority support with SLA',
+      '🎯 Custom strategy development assistance'
     ],
     badge: 'Best Value',
     limits: BOT_LIMITS.ENTERPRISE

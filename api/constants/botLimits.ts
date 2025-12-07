@@ -1,49 +1,102 @@
 /**
  * Bot Limits Constants
  * 
+ * @description
  * Default configurable limits for bot creation and execution per subscription tier.
  * These values serve as fallbacks when database configuration is not available.
  * Admin users can modify these limits through the admin dashboard.
+ * 
+ * @see /docs/SUBSCRIPTION_TIERS.md for full documentation
+ * 
+ * @example
+ * // Get limits for a user's tier
+ * const limits = getTierLimits(user.plan_tier);
+ * if (userBotCount >= limits.maxBots && limits.maxBots !== -1) {
+ *   throw new Error('Bot limit exceeded');
+ * }
  */
 
+/**
+ * Available subscription plan tiers
+ * - FREE: Entry-level, no payment required
+ * - BASIC: $9.99/month, ideal for active traders
+ * - PREMIUM: $29.99/month, for serious traders
+ * - ENTERPRISE: $199.99/month, unlimited for professionals
+ */
 export type PlanTier = 'FREE' | 'BASIC' | 'PREMIUM' | 'ENTERPRISE';
 
+/**
+ * Tier limits configuration interface
+ */
 export interface TierLimits {
-  /** Maximum number of bots/strategies the user can create */
+  /** 
+   * Maximum number of bots/strategies the user can create
+   * -1 represents unlimited
+   */
   maxBots: number;
-  /** Maximum number of bots/strategies that can run simultaneously */
+  
+  /** 
+   * Maximum number of bots/strategies that can run simultaneously
+   * -1 represents unlimited
+   */
   maxRunningBots: number;
-  /** Display name for the tier */
+  
+  /** Human-readable display name for the tier */
   displayName: string;
 }
 
 /**
  * Default bot limits configuration per subscription tier
  * 
- * These are the default values used when database config is not available:
- * - FREE: Basic access for new users (5 bots, 1 running)
- * - BASIC: Entry-level paid tier (15 bots, 5 running)
- * - PREMIUM: Advanced tier with higher limits (50 bots, 25 running)
- * - ENTERPRISE: Unlimited for business customers
+ * | Tier       | Max Bots | Max Running | Price    | Best For                    |
+ * |------------|----------|-------------|----------|-----------------------------|
+ * | FREE       | 5        | 1           | $0       | Learning, exploration       |
+ * | BASIC      | 15       | 5           | $9.99    | Active individual traders   |
+ * | PREMIUM    | 50       | 25          | $29.99   | Serious traders, teams      |
+ * | ENTERPRISE | ∞        | ∞           | $199.99  | Professional operations     |
  * 
  * Note: Admin users can override these values through the admin dashboard.
+ * The database `subscription_tiers` table takes precedence when available.
  */
 export const BOT_LIMITS: Record<PlanTier, TierLimits> = {
+  /**
+   * FREE Tier - Perfect for getting started
+   * - 5 bots max: Enough to test different strategies
+   * - 1 running: Focus on one strategy at a time
+   */
   FREE: {
     maxBots: 5,
     maxRunningBots: 1,
     displayName: 'Free'
   },
+  
+  /**
+   * BASIC Tier - For active traders ($9.99/month)
+   * - 15 bots: Room to diversify strategies
+   * - 5 running: Multi-asset or multi-strategy execution
+   */
   BASIC: {
     maxBots: 15,
     maxRunningBots: 5,
     displayName: 'Basic'
   },
+  
+  /**
+   * PREMIUM Tier - For serious traders ($29.99/month)
+   * - 50 bots: Comprehensive strategy library
+   * - 25 running: High-throughput trading operations
+   */
   PREMIUM: {
     maxBots: 50,
     maxRunningBots: 25,
     displayName: 'Premium'
   },
+  
+  /**
+   * ENTERPRISE Tier - For professionals ($199.99/month)
+   * - Unlimited bots: No restrictions
+   * - Unlimited running: Scale without limits
+   */
   ENTERPRISE: {
     maxBots: -1, // -1 means unlimited
     maxRunningBots: -1,
