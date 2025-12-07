@@ -1,54 +1,188 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import AppLayout from "./components/AppLayout";
-import Header from "./components/Header";
-import Footer from "./components/Footer";
-import Login from "./components/Login/Login";
-import Dashboard from "./components/Dashboard";
-import Trading from "./components/Trading/Trading";
-import Settings from "./components/Settings";
-import Backtesting from "./components/Backtesting/Backtesting";
-import { Strategies } from "./components/Strategies";
-import { StrategiesMarketplace } from "./components/StrategiesMarketplace";
-import Pricing from "./components/Pricing/Pricing";
-import Checkout from "./components/Checkout/Checkout";
-import { AdminDashboard, AdminRoute } from "./components/Admin";
-import ThemeProvider from "./components/ThemeProvider";
+import React, { useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
+import { MainLayout } from "./Layouts";
+import {
+  SplashPage,
+  LoginPage,
+  DashboardPage,
+  TradingPage,
+  SettingsPage,
+  BacktestingPage,
+  StrategiesPage,
+  StrategiesMarketplacePage,
+  PricingPage,
+  CheckoutPage,
+  AdminDashboardPage,
+  AboutPage,
+  PrivacyPolicyPage,
+  TermsOfServicePage,
+  SupportPage,
+} from "./Pages";
+import { AdminRoute } from "./Pages/Admin";
+import ThemeProvider from "./providers/ThemeProvider";
 import { QueryProvider } from "./providers/QueryProvider";
 import { useUser } from "./hooks";
+
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useUser();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    if (!user) {
+      navigate("/");
+    }
+  }, [user, navigate]);
+
+  if (!user) {
+    return <SplashPage />;
+  }
+
+  return <>{children}</>;
+};
 
 const AppContent: React.FC = () => {
   const { user, logout } = useUser();
 
-  if (!user) return <Login />;
-
   return (
     <Router>
-      <ThemeProvider>
-        <AppLayout
-          header={<Header user={user} onLogout={logout} />}
-          footer={<Footer user={user} />}
-        >
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/trading" element={<Trading />} />
-            <Route path="/settings" element={<Settings user={user} />} />
-            <Route path="/backtesting" element={<Backtesting />} />
-            <Route path="/strategies" element={<Strategies />} />
-            <Route path="/marketplace" element={<StrategiesMarketplace />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route 
-              path="/admin" 
-              element={
+      <Routes>
+        <Route 
+          path="/" 
+          element={
+            user ? (
+              <MainLayout user={user} onLogout={logout}>
+                <DashboardPage />
+              </MainLayout>
+            ) : (
+              <MainLayout user={null} onLogout={logout}>
+                <SplashPage />
+              </MainLayout>
+            )
+          } 
+        />
+        <Route 
+          path="/login" 
+          element={
+            <MainLayout user={null} onLogout={logout}>
+              <LoginPage />
+            </MainLayout>
+          } 
+        />
+        <Route
+          path="/trading"
+          element={
+            <ProtectedRoute>
+              <MainLayout user={user!} onLogout={logout}>
+                <TradingPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <MainLayout user={user!} onLogout={logout}>
+                <SettingsPage user={user!} />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/backtesting"
+          element={
+            <ProtectedRoute>
+              <MainLayout user={user!} onLogout={logout}>
+                <BacktestingPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/strategies"
+          element={
+            <ProtectedRoute>
+              <MainLayout user={user!} onLogout={logout}>
+                <StrategiesPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/marketplace"
+          element={
+            <ProtectedRoute>
+              <MainLayout user={user!} onLogout={logout}>
+                <StrategiesMarketplacePage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/pricing"
+          element={
+            <ProtectedRoute>
+              <MainLayout user={user!} onLogout={logout}>
+                <PricingPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/checkout"
+          element={
+            <ProtectedRoute>
+              <MainLayout user={user!} onLogout={logout}>
+                <CheckoutPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <MainLayout user={user!} onLogout={logout}>
                 <AdminRoute>
-                  <AdminDashboard />
+                  <AdminDashboardPage />
                 </AdminRoute>
-              } 
-            />
-          </Routes>
-        </AppLayout>
-      </ThemeProvider>
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/about"
+          element={
+            <MainLayout user={user} onLogout={logout}>
+              <AboutPage />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/privacy"
+          element={
+            <MainLayout user={user} onLogout={logout}>
+              <PrivacyPolicyPage />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/terms"
+          element={
+            <MainLayout user={user} onLogout={logout}>
+              <TermsOfServicePage />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/support"
+          element={
+            <MainLayout user={user} onLogout={logout}>
+              <SupportPage />
+            </MainLayout>
+          }
+        />
+      </Routes>
     </Router>
   );
 };
@@ -56,7 +190,10 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <QueryProvider>
-      <AppContent />
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
+
     </QueryProvider>
   );
 };

@@ -1,4 +1,4 @@
-import { User } from '../../components/Login/Login.types';
+import { User } from '../../Pages/Login/Login.types';
 
 export interface UseUserReturn {
   user: User | null;
