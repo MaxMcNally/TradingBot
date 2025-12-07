@@ -37,7 +37,7 @@ describe('Strategy Model', () => {
       const result = await Strategy.create(strategyData);
 
       expect(mockDb.run).toHaveBeenCalledWith(
-        'INSERT INTO user_strategies (user_id, name, description, strategy_type, config, backtest_results, is_public) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO user_strategies (user_id, name, description, strategy_type, config, backtest_results, is_public) VALUES ($1, $2, $3, $4, $5, $6, $7)',
         [1, 'Test Strategy', 'Test description', 'moving_average_crossover', '{"fastWindow":10,"slowWindow":30}', null, true],
         expect.any(Function)
       );
@@ -75,7 +75,7 @@ describe('Strategy Model', () => {
       const result = await Strategy.create(strategyData);
 
       expect(mockDb.run).toHaveBeenCalledWith(
-        'INSERT INTO user_strategies (user_id, name, description, strategy_type, config, backtest_results, is_public) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO user_strategies (user_id, name, description, strategy_type, config, backtest_results, is_public) VALUES ($1, $2, $3, $4, $5, $6, $7)',
         [1, 'Test Strategy', 'Test description', 'moving_average_crossover', '{"fastWindow":10,"slowWindow":30}', null, false],
         expect.any(Function)
       );
@@ -115,7 +115,7 @@ describe('Strategy Model', () => {
       const result = await Strategy.findPublicStrategies();
 
       expect(mockDb.all).toHaveBeenCalledWith(
-        'SELECT * FROM user_strategies WHERE is_public = 1 AND is_active = 1 ORDER BY created_at DESC',
+        'SELECT * FROM user_strategies WHERE is_public = TRUE AND is_active = TRUE ORDER BY created_at DESC',
         [],
         expect.any(Function)
       );
@@ -156,7 +156,7 @@ describe('Strategy Model', () => {
       const result = await Strategy.findPublicStrategiesByType('moving_average_crossover');
 
       expect(mockDb.all).toHaveBeenCalledWith(
-        'SELECT * FROM user_strategies WHERE is_public = 1 AND is_active = 1 AND strategy_type = ? ORDER BY created_at DESC',
+        'SELECT * FROM user_strategies WHERE is_public = TRUE AND is_active = TRUE AND strategy_type = $1 ORDER BY created_at DESC',
         ['moving_average_crossover'],
         expect.any(Function)
       );
