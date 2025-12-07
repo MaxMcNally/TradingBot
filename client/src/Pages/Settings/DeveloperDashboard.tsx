@@ -33,7 +33,8 @@ import {
   Add as AddIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
-  CheckCircle as CheckCircleIcon
+  CheckCircle as CheckCircleIcon,
+  RadioButtonUnchecked as RadioButtonUncheckedIcon
 } from "@mui/icons-material";
 import {
   getApiKeys,
@@ -510,7 +511,7 @@ const DeveloperDashboard: React.FC = () => {
                       size="small"
                       onClick={() => handleToggleWebhook(webhook)}
                     >
-                      {webhook.is_active ? <CheckCircleIcon /> : <CheckCircleIcon />}
+                      {webhook.is_active ? <CheckCircleIcon /> : <RadioButtonUncheckedIcon />}
                     </IconButton>
                   </Tooltip>
                   <IconButton
