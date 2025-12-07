@@ -21,7 +21,8 @@ import {
   FormControlLabel,
   Tooltip,
   Tabs,
-  Tab
+  Tab,
+  LinearProgress
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -32,16 +33,17 @@ import {
   Pause as DeactivateIcon,
   Psychology as StrategyIcon,
   TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
   Assessment as AssessmentIcon,
   Public as PublicIcon,
   Person as PersonIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Rocket as RocketIcon
 } from '@mui/icons-material';
-import { useUserStrategies, usePublicStrategies } from '../../hooks';
+import { useUserStrategies, usePublicStrategies, useSubscription } from '../../hooks';
 import { UserStrategy } from '../../api';
 import StrategyDialog from './StrategyDialog';
 import { StrategyFormData } from './Strategies.types';
+import { UpsellDialog } from '../../components/shared';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -74,6 +76,7 @@ const Strategies: React.FC = () => {
   const [selectedStrategy, setSelectedStrategy] = useState<UserStrategy | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [strategyToDelete, setStrategyToDelete] = useState<UserStrategy | null>(null);
+  const [upsellDialogOpen, setUpsellDialogOpen] = useState(false);
 
   const {
     strategies: userStrategies,
@@ -99,11 +102,31 @@ const Strategies: React.FC = () => {
     refetch: refetchPublicStrategies
   } = usePublicStrategies();
 
+  const {
+    subscription,
+    limits,
+    usage,
+    plans,
+    refetchLimits
+  } = useSubscription({ enabled: true });
+
+  // Helper to check if user can create more bots
+  const canCreateBot = usage?.canCreateBot ?? true;
+  const botsRemaining = usage?.botsRemaining ?? -1;
+  const totalBots = usage?.totalBots ?? 0;
+  const maxBots = limits?.maxBots ?? -1;
+  const isUnlimited = maxBots === -1;
+
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
   };
 
   const handleCreateStrategy = () => {
+    // Check if user can create more bots
+    if (!canCreateBot) {
+      setUpsellDialogOpen(true);
+      return;
+    }
     setEditingStrategy(null);
     setDialogOpen(true);
   };
@@ -161,10 +184,17 @@ const Strategies: React.FC = () => {
         await updateStrategy(editingStrategy.id, data);
       } else {
         await createStrategy(data);
+        // Refresh limits after creating a new strategy
+        refetchLimits();
       }
       setDialogOpen(false);
       setEditingStrategy(null);
-    } catch (error) {
+    } catch (error: any) {
+      // Check if it's a limit exceeded error
+      if (error?.response?.data?.error === 'BOT_LIMIT_EXCEEDED') {
+        setDialogOpen(false);
+        setUpsellDialogOpen(true);
+      }
       console.error('Error saving strategy:', error);
     }
   };

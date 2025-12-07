@@ -4,6 +4,56 @@ import { TradingDatabase } from "../../src/database/tradingSchema";
 import { PerformanceMetricsService } from "../services/performanceMetricsService";
 import { StrategiesService } from "../services/strategiesService";
 import { WebhookService } from "../services/webhookService";
+import { db } from "../initDb";
+import { getTierLimits, PlanTier } from "../constants";
+
+// Helper to get user's plan tier
+const getUserPlanTier = async (userId: number): Promise<PlanTier> => {
+  return new Promise((resolve, reject) => {
+    db.get('SELECT plan_tier FROM users WHERE id = $1', [userId], (err: any, row: any) => {
+      if (err) reject(err);
+      else resolve((row?.plan_tier || 'FREE') as PlanTier);
+    });
+  });
+};
+
+// Helper to count active trading sessions for a user
+const countActiveSessionsForUser = async (userId: number): Promise<number> => {
+  return new Promise((resolve, reject) => {
+    db.get(
+      "SELECT COUNT(*) as count FROM trading_sessions WHERE user_id = $1 AND status = 'ACTIVE'",
+      [userId],
+      (err: any, row: any) => {
+        if (err) reject(err);
+        else resolve(row?.count || 0);
+      }
+    );
+  });
+};
+
+// Check if user can run another bot
+const canUserRunBot = async (userId: number): Promise<{ allowed: boolean; reason?: string; currentCount: number; maxAllowed: number; planTier: PlanTier }> => {
+  const planTier = await getUserPlanTier(userId);
+  const limits = getTierLimits(planTier);
+  const currentCount = await countActiveSessionsForUser(userId);
+  
+  if (limits.maxRunningBots !== -1 && currentCount >= limits.maxRunningBots) {
+    return {
+      allowed: false,
+      reason: `You have reached the maximum number of running bots (${limits.maxRunningBots}) for your ${limits.displayName} plan. Upgrade to run more bots simultaneously.`,
+      currentCount,
+      maxAllowed: limits.maxRunningBots,
+      planTier
+    };
+  }
+  
+  return {
+    allowed: true,
+    currentCount,
+    maxAllowed: limits.maxRunningBots,
+    planTier
+  };
+};
 
 export const getUserTradingStats = async (req: Request, res: Response) => {
   try {
@@ -158,12 +208,32 @@ export const startTradingSession = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Strategy is required" });
     }
 
-    // Check if user already has an active session
+    // Check if user can run more bots based on their plan limits
+    const limitCheck = await canUserRunBot(userId);
+    if (!limitCheck.allowed) {
+      return res.status(403).json({
+        message: limitCheck.reason,
+        error: 'RUNNING_BOT_LIMIT_EXCEEDED',
+        limitInfo: {
+          currentCount: limitCheck.currentCount,
+          maxAllowed: limitCheck.maxAllowed,
+          planTier: limitCheck.planTier
+        }
+      });
+    }
+
+    // Check if user already has an active session (redundant but kept for safety)
     const activeSession = await TradingDatabase.getActiveTradingSession(userId);
-    if (activeSession) {
+    if (activeSession && limitCheck.maxAllowed === 1) {
       return res.status(400).json({ 
         message: "User already has an active trading session",
-        activeSessionId: activeSession.id 
+        activeSessionId: activeSession.id,
+        error: 'RUNNING_BOT_LIMIT_EXCEEDED',
+        limitInfo: {
+          currentCount: limitCheck.currentCount,
+          maxAllowed: limitCheck.maxAllowed,
+          planTier: limitCheck.planTier
+        }
       });
     }
 
@@ -188,7 +258,12 @@ export const startTradingSession = async (req: Request, res: Response) => {
       success: true,
       sessionId: session.id,
       message: "Trading session started successfully",
-      session
+      session,
+      limitInfo: {
+        currentCount: limitCheck.currentCount + 1,
+        maxAllowed: limitCheck.maxAllowed,
+        planTier: limitCheck.planTier
+      }
     });
   } catch (error) {
     console.error("Error starting trading session:", error);

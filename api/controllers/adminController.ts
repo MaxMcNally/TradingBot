@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import { StrategyPerformance, StrategyPerformanceData, StrategyPerformanceSummary } from "../models/StrategyPerformance";
 import { User } from "../models/User";
 import { AuthenticatedRequest } from "../middleware/adminAuth";
+import { SubscriptionTier, UpdateSubscriptionTierData } from "../models/SubscriptionTier";
+import { db } from "../initDb";
 
 export const getStrategyPerformanceOverview = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -289,13 +291,49 @@ export const deletePerformanceRecord = async (req: AuthenticatedRequest, res: Re
 
 export const getAllUsers = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    // This would require a method to get all users from the User model
-    // For now, we'll return a placeholder response
+    // Get all users with their subscription info
+    const users = await new Promise<any[]>((resolve, reject) => {
+      db.all(
+        `SELECT id, username, email, role, plan_tier, plan_status, 
+                subscription_provider, subscription_renews_at, created_at 
+         FROM users ORDER BY created_at DESC`,
+        [],
+        (err: any, rows: any[]) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+
+    // Get bot counts for each user
+    const userIds = users.map(u => u.id);
+    const botCounts = await new Promise<any[]>((resolve, reject) => {
+      if (userIds.length === 0) {
+        resolve([]);
+        return;
+      }
+      db.all(
+        `SELECT user_id, COUNT(*) as bot_count FROM user_strategies GROUP BY user_id`,
+        [],
+        (err: any, rows: any[]) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+
+    const botCountMap = new Map(botCounts.map(b => [b.user_id, b.bot_count]));
+
+    const usersWithCounts = users.map(user => ({
+      ...user,
+      bot_count: botCountMap.get(user.id) || 0
+    }));
+
     res.json({
       success: true,
       data: {
-        message: "User listing functionality to be implemented",
-        note: "This endpoint will return all users with their performance summaries"
+        users: usersWithCounts,
+        total: users.length
       }
     });
   } catch (error) {
@@ -303,6 +341,315 @@ export const getAllUsers = async (req: AuthenticatedRequest, res: Response) => {
     res.status(500).json({
       success: false,
       error: "Internal server error"
+    });
+  }
+};
+
+// ========== Subscription Tier Management ==========
+
+export const getSubscriptionTiers = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const tiers = await SubscriptionTier.findAll();
+    
+    res.json({
+      success: true,
+      data: {
+        tiers
+      }
+    });
+  } catch (error) {
+    console.error("Error getting subscription tiers:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error"
+    });
+  }
+};
+
+export const getSubscriptionTierByName = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { tier } = req.params;
+    
+    if (!tier) {
+      return res.status(400).json({
+        success: false,
+        error: "Tier name is required"
+      });
+    }
+
+    const tierData = await SubscriptionTier.findByTier(tier);
+    
+    if (!tierData) {
+      return res.status(404).json({
+        success: false,
+        error: "Tier not found"
+      });
+    }
+
+    // Get count of users on this tier
+    const userCount = await new Promise<number>((resolve, reject) => {
+      db.get(
+        `SELECT COUNT(*) as count FROM users WHERE plan_tier = $1`,
+        [tier.toUpperCase()],
+        (err: any, row: any) => {
+          if (err) reject(err);
+          else resolve(row?.count || 0);
+        }
+      );
+    });
+
+    res.json({
+      success: true,
+      data: {
+        tier: tierData,
+        userCount
+      }
+    });
+  } catch (error) {
+    console.error("Error getting subscription tier:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error"
+    });
+  }
+};
+
+export const updateSubscriptionTier = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { tier } = req.params;
+    const updateData: UpdateSubscriptionTierData = req.body;
+    
+    if (!tier) {
+      return res.status(400).json({
+        success: false,
+        error: "Tier name is required"
+      });
+    }
+
+    // Validate the tier exists
+    const existingTier = await SubscriptionTier.findByTier(tier);
+    if (!existingTier) {
+      return res.status(404).json({
+        success: false,
+        error: "Tier not found"
+      });
+    }
+
+    // Validate limits if provided
+    if (updateData.max_bots !== undefined && updateData.max_bots < -1) {
+      return res.status(400).json({
+        success: false,
+        error: "max_bots must be -1 (unlimited) or a positive number"
+      });
+    }
+
+    if (updateData.max_running_bots !== undefined && updateData.max_running_bots < -1) {
+      return res.status(400).json({
+        success: false,
+        error: "max_running_bots must be -1 (unlimited) or a positive number"
+      });
+    }
+
+    // Validate price if provided
+    if (updateData.price_cents !== undefined && updateData.price_cents < 0) {
+      return res.status(400).json({
+        success: false,
+        error: "price_cents cannot be negative"
+      });
+    }
+
+    // Sync monthly_price with price_cents if only price_cents is provided
+    if (updateData.price_cents !== undefined && updateData.monthly_price === undefined) {
+      updateData.monthly_price = updateData.price_cents / 100;
+    }
+
+    // Sync price_cents with monthly_price if only monthly_price is provided
+    if (updateData.monthly_price !== undefined && updateData.price_cents === undefined) {
+      updateData.price_cents = Math.round(updateData.monthly_price * 100);
+    }
+
+    const updatedTier = await SubscriptionTier.update(tier, updateData);
+    
+    if (!updatedTier) {
+      return res.status(500).json({
+        success: false,
+        error: "Failed to update tier"
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Subscription tier '${tier}' updated successfully`,
+      data: {
+        tier: updatedTier
+      }
+    });
+  } catch (error) {
+    console.error("Error updating subscription tier:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error"
+    });
+  }
+};
+
+export const getSubscriptionStats = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // Get user counts by tier
+    const tierCounts = await new Promise<any[]>((resolve, reject) => {
+      db.all(
+        `SELECT plan_tier, COUNT(*) as count FROM users GROUP BY plan_tier`,
+        [],
+        (err: any, rows: any[]) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+
+    // Get all tiers with their limits
+    const tiers = await SubscriptionTier.findAll();
+
+    // Get total revenue (estimated from active paid subscriptions)
+    const revenueData = await new Promise<any>((resolve, reject) => {
+      db.get(
+        `SELECT 
+           SUM(CASE WHEN plan_tier = 'BASIC' THEN 999 
+                    WHEN plan_tier = 'PREMIUM' THEN 2999 
+                    WHEN plan_tier = 'ENTERPRISE' THEN 19999 
+                    ELSE 0 END) as monthly_revenue_cents
+         FROM users WHERE plan_status = 'ACTIVE' AND plan_tier != 'FREE'`,
+        [],
+        (err: any, row: any) => {
+          if (err) reject(err);
+          else resolve(row || { monthly_revenue_cents: 0 });
+        }
+      );
+    });
+
+    // Get total bots created
+    const botStats = await new Promise<any>((resolve, reject) => {
+      db.get(
+        `SELECT COUNT(*) as total_bots FROM user_strategies`,
+        [],
+        (err: any, row: any) => {
+          if (err) reject(err);
+          else resolve(row || { total_bots: 0 });
+        }
+      );
+    });
+
+    // Get active trading sessions
+    const sessionStats = await new Promise<any>((resolve, reject) => {
+      db.get(
+        `SELECT COUNT(*) as active_sessions FROM trading_sessions WHERE status = 'ACTIVE'`,
+        [],
+        (err: any, row: any) => {
+          if (err) reject(err);
+          else resolve(row || { active_sessions: 0 });
+        }
+      );
+    });
+
+    const tierCountMap = new Map(tierCounts.map(t => [t.plan_tier, t.count]));
+
+    res.json({
+      success: true,
+      data: {
+        tiers: tiers.map(tier => ({
+          ...tier,
+          userCount: tierCountMap.get(tier.tier) || 0
+        })),
+        summary: {
+          totalUsers: tierCounts.reduce((sum, t) => sum + t.count, 0),
+          paidUsers: tierCounts.filter(t => t.plan_tier !== 'FREE').reduce((sum, t) => sum + t.count, 0),
+          freeUsers: tierCountMap.get('FREE') || 0,
+          monthlyRevenueCents: revenueData.monthly_revenue_cents || 0,
+          monthlyRevenue: (revenueData.monthly_revenue_cents || 0) / 100,
+          totalBots: botStats.total_bots || 0,
+          activeSessions: sessionStats.active_sessions || 0
+        },
+        tierBreakdown: tierCounts
+      }
+    });
+  } catch (error) {
+    console.error("Error getting subscription stats:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error"
+    });
+  }
+};
+
+export const updateUserSubscription = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const { planTier, planStatus } = req.body;
+    
+    if (!userId || isNaN(parseInt(userId))) {
+      return res.status(400).json({
+        success: false,
+        error: "Valid user ID is required"
+      });
+    }
+
+    if (!planTier) {
+      return res.status(400).json({
+        success: false,
+        error: "Plan tier is required"
+      });
+    }
+
+    const validTiers = ['FREE', 'BASIC', 'PREMIUM', 'ENTERPRISE'];
+    if (!validTiers.includes(planTier.toUpperCase())) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid plan tier"
+      });
+    }
+
+    const validStatuses = ['ACTIVE', 'CANCELED', 'PAST_DUE', 'TRIALING'];
+    const status = planStatus ? planStatus.toUpperCase() : 'ACTIVE';
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid plan status"
+      });
+    }
+
+    // Update the user's subscription
+    await new Promise<void>((resolve, reject) => {
+      db.run(
+        `UPDATE users SET plan_tier = $1, plan_status = $2, updated_at = NOW() WHERE id = $3`,
+        [planTier.toUpperCase(), status, parseInt(userId)],
+        function(this: any, err: any) {
+          if (err) reject(err);
+          else if (this.changes === 0) reject(new Error('User not found'));
+          else resolve();
+        }
+      );
+    });
+
+    // Get updated user
+    const user = await User.findById(parseInt(userId));
+
+    res.json({
+      success: true,
+      message: `User subscription updated to ${planTier}`,
+      data: {
+        user: {
+          id: user?.id,
+          username: user?.username,
+          plan_tier: user?.plan_tier,
+          plan_status: user?.plan_status
+        }
+      }
+    });
+  } catch (error: any) {
+    console.error("Error updating user subscription:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message || "Internal server error"
     });
   }
 };

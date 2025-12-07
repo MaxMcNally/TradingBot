@@ -1,6 +1,8 @@
 export { 
   BOT_LIMITS, 
-  getTierLimits, 
+  getTierLimits,
+  getTierLimitsAsync,
+  refreshLimitsCache,
   isUnlimited, 
   formatLimit 
 } from './botLimits';
