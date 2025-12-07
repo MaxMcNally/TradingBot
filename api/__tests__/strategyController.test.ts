@@ -171,15 +171,24 @@ describe('Strategy Controller', () => {
   });
 
   describe('trading getAvailableStrategies integration shape', () => {
-    it('includes SentimentAnalysis in trading strategies list', async () => {
+    it('includes sentimentAnalysis in trading strategies list with correct format', async () => {
       const { getAvailableStrategies } = await import('../controllers/tradingController');
       const req = {} as any;
       const json = jest.fn();
       const res = { json } as any;
       await getAvailableStrategies(req, res);
       const payload = json.mock.calls[0][0];
-      const names = payload.strategies.map((s: any) => s.name);
-      expect(names).toContain('SentimentAnalysis');
+      
+      // Check new response format
+      expect(payload).toHaveProperty('success', true);
+      expect(payload).toHaveProperty('data');
+      expect(payload.data).toHaveProperty('strategies');
+      
+      const names = payload.data.strategies.map((s: any) => s.name);
+      expect(names).toContain('sentimentAnalysis');
+      
+      const sentiment = payload.data.strategies.find((s: any) => s.name === 'sentimentAnalysis');
+      expect(sentiment).toHaveProperty('displayName', 'Sentiment Analysis');
     });
   });
 
@@ -416,14 +425,24 @@ describe('Strategy Controller', () => {
 });
 
 describe('Trading Controller - Strategies', () => {
-  it('returns SentimentAnalysis in available strategies', async () => {
+  it('returns sentimentAnalysis in available strategies with unified format', async () => {
     const req = {} as any;
     const json = jest.fn();
     const res = { json } as any;
     await getAvailableStrategies(req, res);
     expect(json).toHaveBeenCalled();
     const payload = json.mock.calls[0][0];
-    const names = (payload.strategies || []).map((s: any) => s.name);
-    expect(names).toContain('SentimentAnalysis');
+    
+    // Check unified response format
+    expect(payload).toHaveProperty('success', true);
+    expect(payload).toHaveProperty('data');
+    expect(payload.data).toHaveProperty('strategies');
+    
+    const names = payload.data.strategies.map((s: any) => s.name);
+    expect(names).toContain('sentimentAnalysis');
+    
+    // Check that display names are present
+    const sentiment = payload.data.strategies.find((s: any) => s.name === 'sentimentAnalysis');
+    expect(sentiment).toHaveProperty('displayName', 'Sentiment Analysis');
   });
 });
