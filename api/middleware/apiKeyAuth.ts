@@ -66,27 +66,21 @@ export const authenticateApiKey: RequestHandler = async (req, res, next) => {
       plan_tier: user.plan_tier
     };
 
-    // Log API usage (async, don't block)
+    // Log API usage using finish event (async, don't block)
     const startTime = Date.now();
-    const originalSend = res.send.bind(res);
-    const originalJson = res.json.bind(res);
     
-    const logUsage = (statusCode: number, body: any) => {
+    res.on('finish', () => {
       const responseTime = Date.now() - startTime;
       const endpoint = req.path;
       const method = req.method;
+      const statusCode = res.statusCode;
       const ipAddress = req.ip || (req.headers['x-forwarded-for'] as string) || (req.connection?.remoteAddress as string);
       const userAgent = req.headers['user-agent'] || null;
       const requestSize = req.headers['content-length'] ? parseInt(req.headers['content-length'] as string) : null;
-      let responseSize: number | null = null;
       
-      if (body) {
-        try {
-          responseSize = typeof body === 'string' ? body.length : JSON.stringify(body).length;
-        } catch {
-          responseSize = null;
-        }
-      }
+      // Get response size from Content-Length header if available
+      const responseSizeHeader = res.getHeader('content-length');
+      const responseSize = responseSizeHeader ? parseInt(responseSizeHeader.toString()) : null;
 
       // Log asynchronously (don't block response)
       ApiUsageLog.create({
@@ -100,21 +94,11 @@ export const authenticateApiKey: RequestHandler = async (req, res, next) => {
         response_size: responseSize || undefined,
         ip_address: typeof ipAddress === 'string' ? ipAddress : null,
         user_agent: userAgent || undefined,
-        error_message: statusCode >= 400 ? (typeof body === 'string' ? body.substring(0, 500) : (body?.error || JSON.stringify(body).substring(0, 500))) : undefined
+        error_message: statusCode >= 400 ? res.statusMessage?.substring(0, 500) : undefined
       }).catch(err => {
         console.error('Error logging API usage:', err);
       });
-    };
-    
-    res.send = function(body: any) {
-      logUsage(res.statusCode, body);
-      return originalSend(body);
-    };
-
-    res.json = function(body: any) {
-      logUsage(res.statusCode, body);
-      return originalJson(body);
-    };
+    });
 
     next();
   } catch (error) {
