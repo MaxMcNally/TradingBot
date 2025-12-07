@@ -113,6 +113,11 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface PlanBotLimits {
+  maxActiveBots: number;
+  maxConfiguredBots: number;
+}
+
 export interface BillingPlan {
   tier: PlanTier;
   name: string;
@@ -122,6 +127,7 @@ export interface BillingPlan {
   headline: string;
   features: string[];
   badge?: string;
+  botLimits: PlanBotLimits;
 }
 
 export interface SubscriptionDetails {

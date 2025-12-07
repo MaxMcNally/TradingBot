@@ -1,5 +1,6 @@
 import { AxiosResponse } from "axios";
-import { api } from "../api";
+import { api, PlanBotLimits } from "../api";
+import { PlanTier } from "../types/user";
 
 // Trading-specific types
 export interface UserTradingStats {
@@ -111,6 +112,11 @@ export interface StartTradingSessionResponse {
   success: boolean;
   sessionId?: number;
   message: string;
+  session?: TradingSession;
+  limits?: PlanBotLimits;
+  activeBots?: number;
+  planTier?: PlanTier;
+  errorCode?: string;
 }
 
 // Trading API functions
@@ -131,6 +137,17 @@ export const getUserPortfolioHistory = (userId: number, limit: number = 100): Pr
 
 export const getActiveTradingSession = (userId: number): Promise<AxiosResponse<TradingSession>> =>
   api.get(`/trading/users/${userId}/active-session`);
+
+export interface ActiveSessionsResponse {
+  success: boolean;
+  data: {
+    sessions: TradingSession[];
+    count: number;
+  };
+}
+
+export const getActiveTradingSessionsList = (userId: number): Promise<AxiosResponse<ActiveSessionsResponse>> =>
+  api.get(`/trading/users/${userId}/active-sessions`);
 
 export const getTradesBySession = (sessionId: number): Promise<AxiosResponse<Trade[]>> =>
   api.get(`/trading/sessions/${sessionId}/trades`);

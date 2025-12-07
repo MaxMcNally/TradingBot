@@ -1,13 +1,13 @@
 import { Router, Response } from "express";
 import { db } from "../initDb";
 import { AuthenticatedRequest, authenticateToken } from "../middleware/auth";
+import { PlanTier } from "../types/plan";
+import { PLAN_BOT_LIMITS, PlanBotLimits } from "../config/planLimits";
 
 export const billingRouter = Router();
-
-export type PlanTier = 'FREE' | 'BASIC' | 'PREMIUM' | 'ENTERPRISE';
 export type PaymentProvider = 'STRIPE' | 'PAYPAL' | 'SQUARE';
 
-export const BILLING_PLANS: Array<{
+export interface BillingPlanMeta {
   tier: PlanTier;
   name: string;
   monthlyPrice: number;
@@ -16,7 +16,10 @@ export const BILLING_PLANS: Array<{
   headline: string;
   badge?: string;
   features: string[];
-}> = [
+  botLimits: PlanBotLimits;
+}
+
+export const BILLING_PLANS: BillingPlanMeta[] = [
   {
     tier: 'FREE',
     name: 'Free',
@@ -25,10 +28,11 @@ export const BILLING_PLANS: Array<{
     currency: 'USD',
     headline: 'Essential tools to get started',
     features: [
-      '1 active strategy',
+      `${PLAN_BOT_LIMITS.FREE.maxActiveBots} active bot`,
       'Community indicators',
       'Backtest once per day'
-    ]
+    ],
+    botLimits: PLAN_BOT_LIMITS.FREE
   },
   {
     tier: 'BASIC',
@@ -38,11 +42,12 @@ export const BILLING_PLANS: Array<{
     currency: 'USD',
     headline: 'Unlock automation essentials',
     features: [
-      '5 active strategies',
+      `${PLAN_BOT_LIMITS.BASIC.maxActiveBots} concurrent bots`,
       'Intraday backtests',
       'Email alerts'
     ],
-    badge: 'Popular'
+    badge: 'Popular',
+    botLimits: PLAN_BOT_LIMITS.BASIC
   },
   {
     tier: 'PREMIUM',
@@ -52,10 +57,11 @@ export const BILLING_PLANS: Array<{
     currency: 'USD',
     headline: 'Advanced analytics & execution',
     features: [
-      'Unlimited strategies',
+      `${PLAN_BOT_LIMITS.PREMIUM.maxActiveBots} concurrent bots`,
       'Priority data refresh',
       'Advanced risk tooling'
-    ]
+    ],
+    botLimits: PLAN_BOT_LIMITS.PREMIUM
   },
   {
     tier: 'ENTERPRISE',
@@ -65,11 +71,13 @@ export const BILLING_PLANS: Array<{
     currency: 'USD',
     headline: 'Dedicated support & SLAs',
     features: [
+      `${PLAN_BOT_LIMITS.ENTERPRISE.maxActiveBots} concurrent bots`,
       'Custom integrations',
       'Dedicated success manager',
       'Audit controls'
     ],
-    badge: 'Best Value'
+    badge: 'Best Value',
+    botLimits: PLAN_BOT_LIMITS.ENTERPRISE
   }
 ];
 

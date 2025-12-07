@@ -65,6 +65,24 @@ const PricingPage: React.FC = () => {
               Billed monthly, cancel anytime.
             </Typography>
 
+            <Box
+              sx={{
+                border: '1px solid',
+                borderColor: 'primary.light',
+                bgcolor: 'primary.50',
+                borderRadius: 1,
+                p: 1.5,
+                mb: 2
+              }}
+            >
+              <Typography variant="subtitle2">
+                Bot capacity
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Run up to {plan.botLimits.maxActiveBots} concurrent bots and keep {plan.botLimits.maxConfiguredBots} configured.
+              </Typography>
+            </Box>
+
             <List dense>
               {plan.features.map((feature) => (
                 <ListItem key={feature}>

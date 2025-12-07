@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Card,
@@ -34,22 +34,25 @@ import {
   Pause,
   Settings,
   Info,
-  Warning,
   CheckCircle,
   TrendingUp,
   AccountBalance,
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import {
   startTradingSession,
   stopTradingSession,
   pauseTradingSession,
   resumeTradingSession,
-  getActiveTradingSession,
+  getActiveTradingSessionsList,
   formatCurrency,
   StartTradingSessionRequest,
   TradingSession,
 } from '../../api/tradingApi';
+import { BillingPlan, PlanBotLimits } from '../../api';
+import { PlanTier } from '../../types/user';
 import { getMarketStatus, formatMarketTime } from '../../utils/marketHours';
+import { getNextPlanTier } from '../../constants/plans';
 
 interface TradingSessionControlsProps {
   userId: number;
@@ -58,6 +61,10 @@ interface TradingSessionControlsProps {
   strategyParameters: Record<string, any>;
   onSessionStarted: (session: TradingSession) => void;
   onSessionStopped: () => void;
+  planTier?: PlanTier;
+  planLimits?: PlanBotLimits;
+  availablePlans?: BillingPlan[];
+  isPlanDataLoading?: boolean;
 }
 
 const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
@@ -67,11 +74,17 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
   strategyParameters,
   onSessionStarted,
   onSessionStopped,
+  planTier = 'FREE',
+  planLimits,
+  availablePlans,
+  isPlanDataLoading
 }) => {
-  const [activeSession, setActiveSession] = useState<TradingSession | null>(null);
+  const navigate = useNavigate();
+  const [activeSessions, setActiveSessions] = useState<TradingSession[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [upgradeTierOverride, setUpgradeTierOverride] = useState<PlanTier | null>(null);
   
   // Session configuration
   const [mode, setMode] = useState<'PAPER' | 'LIVE'>('PAPER');
@@ -83,6 +96,22 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
   const [enableScheduledEnd, setEnableScheduledEnd] = useState(false);
   const [scheduledEndTime, setScheduledEndTime] = useState('');
   const [marketStatus, setMarketStatus] = useState(getMarketStatus());
+  const effectivePlanLimits: PlanBotLimits = planLimits || { maxActiveBots: 1, maxConfiguredBots: 1 };
+  const maxBotsAllowed = effectivePlanLimits.maxActiveBots;
+  const activeBotCount = activeSessions.length;
+  const hasReachedLimit = activeBotCount >= maxBotsAllowed;
+  const fallbackNextTier = getNextPlanTier(planTier);
+  const planLabel = planTier ? `${planTier.charAt(0)}${planTier.slice(1).toLowerCase()}` : 'Free';
+  const upgradePlan = useMemo(() => {
+    if (!availablePlans || !availablePlans.length) {
+      return null;
+    }
+    const targetTier = upgradeTierOverride || fallbackNextTier;
+    if (!targetTier) {
+      return null;
+    }
+    return availablePlans.find(plan => plan.tier === targetTier) || null;
+  }, [availablePlans, fallbackNextTier, upgradeTierOverride]);
 
   useEffect(() => {
     if (userId && !isNaN(userId)) {
@@ -99,6 +128,12 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (!hasReachedLimit) {
+      setUpgradeTierOverride(null);
+    }
+  }, [hasReachedLimit]);
+
   const checkActiveSession = async () => {
     if (!userId || isNaN(userId)) {
       console.warn('Invalid userId:', userId);
@@ -106,17 +141,16 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
     }
     
     try {
-      console.log('Checking active session for user:', userId);
-      const response = await getActiveTradingSession(userId);
-      console.log('Active session response:', response.data);
-      setActiveSession(response.data);
+      console.log('Checking active sessions for user:', userId);
+      const response = await getActiveTradingSessionsList(userId);
+      const sessions = response.data?.data?.sessions || [];
+      setActiveSessions(sessions);
     } catch (err: any) {
-      // Check if it's a 404 error (no active session found)
       if (err.response?.status === 404) {
-        console.log('No active session found');
-        setActiveSession(null);
+        console.log('No active sessions found');
+        setActiveSessions([]);
       } else {
-        console.error('Error checking active session:', err);
+        console.error('Error checking active sessions:', err);
         setError('Failed to check active session status');
       }
     }
@@ -125,6 +159,15 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
   const handleStartSession = async () => {
     if (!userId || isNaN(userId)) {
       setError('Invalid user ID');
+      return;
+    }
+
+    if (hasReachedLimit) {
+      const nextTier = fallbackNextTier;
+      setError(`You've reached the ${maxBotsAllowed} active bot limit for the ${planLabel} plan.`);
+      if (nextTier) {
+        setUpgradeTierOverride(nextTier);
+      }
       return;
     }
 
@@ -158,45 +201,47 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
         setSuccess('Trading session started successfully!');
         setShowStartDialog(false);
         setActiveStep(0);
+        setUpgradeTierOverride(null);
         
         // Refresh active session
         await checkActiveSession();
         
         // Notify parent component
-        if (response.data.sessionId) {
-          // We would need to fetch the full session object here
-          // For now, we'll just call the callback
-          onSessionStarted(response.data as any);
+        if (response.data.session) {
+          onSessionStarted(response.data.session);
         }
       } else {
         setError(response.data.message || 'Failed to start trading session');
       }
     } catch (err: any) {
       console.error('Error starting trading session:', err);
-      setError(err.response?.data?.message || 'Failed to start trading session');
+      const serverMessage = err.response?.data?.message || 'Failed to start trading session';
+      setError(serverMessage);
+      if (err.response?.data?.errorCode === 'BOT_LIMIT_EXCEEDED') {
+        const targetTier: PlanTier | undefined = err.response?.data?.upgrade?.tier;
+        if (targetTier) {
+          setUpgradeTierOverride(targetTier);
+        } else if (fallbackNextTier) {
+          setUpgradeTierOverride(fallbackNextTier);
+        }
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleStopSession = async () => {
-    if (!activeSession) {
-      console.warn('No active session to stop');
-      return;
-    }
-
-    console.log('Stopping session:', activeSession.id);
+  const handleStopSession = async (sessionId: number) => {
+    console.log('Stopping session:', sessionId);
 
     try {
       setLoading(true);
       setError(null);
 
-      const response = await stopTradingSession(activeSession.id);
+      const response = await stopTradingSession(sessionId);
       console.log('Stop session response:', response.data);
       
       setSuccess('Trading session stopped successfully!');
       
-      setActiveSession(null);
       onSessionStopped();
       
       // Refresh the active session status
@@ -209,14 +254,12 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
     }
   };
 
-  const handlePauseSession = async () => {
-    if (!activeSession) return;
-
+  const handlePauseSession = async (sessionId: number) => {
     try {
       setLoading(true);
       setError(null);
 
-      await pauseTradingSession(activeSession.id);
+      await pauseTradingSession(sessionId);
       setSuccess('Trading session paused successfully!');
       
       // Refresh session status
@@ -229,14 +272,12 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
     }
   };
 
-  const handleResumeSession = async () => {
-    if (!activeSession) return;
-
+  const handleResumeSession = async (sessionId: number) => {
     try {
       setLoading(true);
       setError(null);
 
-      await resumeTradingSession(activeSession.id);
+      await resumeTradingSession(sessionId);
       setSuccess('Trading session resumed successfully!');
       
       // Refresh session status
@@ -247,6 +288,11 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleUpgradeClick = () => {
+    if (!upgradePlan) return;
+    navigate('/checkout', { state: { planTier: upgradePlan.tier } });
   };
 
   const handleNextStep = () => {
@@ -489,36 +535,100 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
           </Alert>
         )}
 
-        {/* Active Session Status */}
-        {activeSession && (
-          <Alert severity="info" sx={{ mb: 2 }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center">
-              <Box>
-                <Typography variant="subtitle2">
-                  Active Session #{activeSession.id} - {activeSession.mode} Mode
+        <Alert severity={hasReachedLimit ? 'warning' : 'info'} sx={{ mb: 2 }}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems={{ xs: 'flex-start', md: 'center' }}
+            flexDirection={{ xs: 'column', md: 'row' }}
+            gap={1}
+          >
+            <Box>
+              <Typography variant="subtitle2">
+                {planLabel} plan • {activeBotCount}/{maxBotsAllowed} active bots
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                {hasReachedLimit
+                  ? 'You have reached the concurrent bot limit for your current plan.'
+                  : 'You are within your current bot allocation.'}
+              </Typography>
+              {upgradePlan && (
+                <Typography variant="body2" color="textSecondary">
+                  Need more capacity? Upgrade to {upgradePlan.name} for up to {upgradePlan.botLimits.maxActiveBots} active bots.
                 </Typography>
-                <Typography variant="body2">
-                  Started: {new Date(activeSession.start_time).toLocaleString()}
-                </Typography>
-                <Typography variant="body2">
-                  Trades: {activeSession.total_trades} | P&L: {formatCurrency(activeSession.total_pnl || 0)}
-                </Typography>
-              </Box>
-              <Box>
-                <Tooltip title="Pause Session">
-                  <IconButton onClick={handlePauseSession} disabled={loading}>
-                    <Pause />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Stop Session">
-                  <IconButton onClick={handleStopSession} disabled={loading} color="error">
-                    <Stop />
-                  </IconButton>
-                </Tooltip>
-              </Box>
+              )}
             </Box>
-          </Alert>
-        )}
+            {upgradePlan && (
+              <Button
+                variant={hasReachedLimit ? 'contained' : 'outlined'}
+                color="secondary"
+                onClick={handleUpgradeClick}
+                disabled={isPlanDataLoading}
+              >
+                {hasReachedLimit ? `Upgrade to ${upgradePlan.name}` : `Explore ${upgradePlan.name}`}
+              </Button>
+            )}
+          </Box>
+        </Alert>
+
+        <Box mt={2}>
+          <Typography variant="subtitle1" gutterBottom>
+            Active Bots ({activeBotCount}/{maxBotsAllowed})
+          </Typography>
+          {activeSessions.length === 0 ? (
+            <Alert severity="info">
+              No active bots yet. Configure a session and press start to launch your first bot.
+            </Alert>
+          ) : (
+            <Box display="flex" flexDirection="column" gap={2}>
+              {activeSessions.map((session) => (
+                <Card variant="outlined" key={session.id}>
+                  <CardContent
+                    sx={{
+                      display: 'flex',
+                      flexDirection: { xs: 'column', md: 'row' },
+                      justifyContent: 'space-between',
+                      alignItems: { xs: 'flex-start', md: 'center' },
+                      gap: 2
+                    }}
+                  >
+                    <Box>
+                      <Typography variant="subtitle2">
+                        Bot #{session.id} • {session.mode} mode
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        Started {new Date(session.start_time).toLocaleString()}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        Trades: {session.total_trades} | P&L: {formatCurrency(session.total_pnl || 0)}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      {session.status === 'ACTIVE' ? (
+                        <Tooltip title="Pause bot">
+                          <IconButton onClick={() => handlePauseSession(session.id)} disabled={loading}>
+                            <Pause />
+                          </IconButton>
+                        </Tooltip>
+                      ) : (
+                        <Tooltip title="Resume bot">
+                          <IconButton onClick={() => handleResumeSession(session.id)} disabled={loading}>
+                            <PlayArrow />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      <Tooltip title="Stop bot">
+                        <IconButton onClick={() => handleStopSession(session.id)} disabled={loading} color="error">
+                          <Stop />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
+          )}
+        </Box>
 
         {/* Session Controls */}
         <Grid container spacing={2}>
@@ -528,7 +638,7 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
               color="primary"
               startIcon={<PlayArrow />}
               onClick={() => setShowStartDialog(true)}
-              disabled={loading || !!activeSession || selectedStocks.length === 0 || !selectedStrategy}
+              disabled={loading || selectedStocks.length === 0 || !selectedStrategy || hasReachedLimit}
               fullWidth
               size="large"
             >
@@ -570,9 +680,9 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
               </Typography>
             </Box>
             <Box display="flex" alignItems="center" gap={1}>
-              <CheckCircle color={!activeSession ? 'success' : 'disabled'} fontSize="small" />
+              <CheckCircle color={!hasReachedLimit ? 'success' : 'error'} fontSize="small" />
               <Typography variant="body2">
-                No active session running
+                Bot slots available ({Math.max(maxBotsAllowed - activeBotCount, 0)} remaining)
               </Typography>
             </Box>
           </Box>
@@ -616,7 +726,7 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
               <Button
                 onClick={handleStartSession}
                 variant="contained"
-                disabled={loading}
+                disabled={loading || hasReachedLimit}
                 startIcon={loading ? <CircularProgress size={20} /> : <PlayArrow />}
               >
                 Start Session

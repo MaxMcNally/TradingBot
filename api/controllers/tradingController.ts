@@ -4,6 +4,9 @@ import { TradingDatabase } from "../../src/database/tradingSchema";
 import { PerformanceMetricsService } from "../services/performanceMetricsService";
 import { StrategiesService } from "../services/strategiesService";
 import { WebhookService } from "../services/webhookService";
+import User from "../models/User";
+import { PlanTier } from "../types/plan";
+import { getPlanLimits, getNextPlanTier, PLAN_BOT_LIMITS } from "../config/planLimits";
 
 export const getUserTradingStats = async (req: Request, res: Response) => {
   try {
@@ -125,6 +128,28 @@ export const getActiveTradingSession = async (req: Request, res: Response) => {
   }
 };
 
+export const getActiveTradingSessions = async (req: Request, res: Response) => {
+  try {
+    const userId = parseInt(req.params.userId);
+
+    if (isNaN(userId)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    const sessions = await TradingDatabase.getActiveTradingSessions(userId);
+    return res.json({
+      success: true,
+      data: {
+        sessions,
+        count: sessions.length
+      }
+    });
+  } catch (error) {
+    console.error("Error getting active trading sessions list:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 export const getTradesBySession = async (req: Request, res: Response) => {
   try {
     const sessionId = parseInt(req.params.sessionId);
@@ -158,12 +183,29 @@ export const startTradingSession = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Strategy is required" });
     }
 
-    // Check if user already has an active session
-    const activeSession = await TradingDatabase.getActiveTradingSession(userId);
-    if (activeSession) {
-      return res.status(400).json({ 
-        message: "User already has an active trading session",
-        activeSessionId: activeSession.id 
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const planTier = (user.plan_tier as PlanTier) || 'FREE';
+    const limits = getPlanLimits(planTier);
+    const activeBots = await TradingDatabase.countActiveTradingSessions(userId);
+
+    if (activeBots >= limits.maxActiveBots) {
+      const upgradeTier = getNextPlanTier(planTier);
+      return res.status(403).json({
+        success: false,
+        errorCode: 'BOT_LIMIT_EXCEEDED',
+        message: `You have reached the ${limits.maxActiveBots} active bot limit for the ${planTier} plan.`,
+        planTier,
+        limits,
+        upgrade: upgradeTier
+          ? {
+              tier: upgradeTier,
+              limits: PLAN_BOT_LIMITS[upgradeTier]
+            }
+          : null
       });
     }
 
@@ -188,7 +230,10 @@ export const startTradingSession = async (req: Request, res: Response) => {
       success: true,
       sessionId: session.id,
       message: "Trading session started successfully",
-      session
+      session,
+      limits,
+      activeBots: activeBots + 1,
+      planTier
     });
   } catch (error) {
     console.error("Error starting trading session:", error);

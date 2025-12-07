@@ -22,11 +22,18 @@ import {
   StrategyParameters
 } from "../../components/shared";
 import TradingSessionControls from "../Dashboard/TradingSessionControls";
-import { useUser, useStrategies } from "../../hooks";
+import { useUser, useStrategies, useSubscription } from "../../hooks";
+import { PlanTier } from "../../types/user";
+import { PlanBotLimits } from "../../api";
 
 const Trading: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
   const { user, isLoading: userLoading, error: userError } = useUser();
+  const {
+    plans,
+    subscription,
+    isPlansLoading
+  } = useSubscription({ enabled: Boolean(user) });
   const { strategies: availableStrategies } = useStrategies();
 
   // Trading session state
@@ -34,6 +41,10 @@ const Trading: React.FC = () => {
   const [selectedStrategy, setSelectedStrategy] = useState<string>("MovingAverage");
   const [strategyParameters, setStrategyParameters] = useState<Record<string, any>>({});
   const [activeSession, setActiveSession] = useState<any>(null);
+
+  const resolvedPlanTier: PlanTier = (subscription?.planTier || user?.plan_tier || 'FREE') as PlanTier;
+  const defaultLimits: PlanBotLimits = { maxActiveBots: 1, maxConfiguredBots: 1 };
+  const currentPlanLimits = plans.find(plan => plan.tier === resolvedPlanTier)?.botLimits || defaultLimits;
 
   // Reset strategy parameters when strategy changes
   useEffect(() => {
@@ -189,6 +200,10 @@ const Trading: React.FC = () => {
                 strategyParameters={strategyParameters}
                 onSessionStarted={handleSessionStarted}
                 onSessionStopped={handleSessionStopped}
+                planTier={resolvedPlanTier}
+                planLimits={currentPlanLimits}
+                availablePlans={plans}
+                isPlanDataLoading={isPlansLoading}
               />
             </TabPanel>
           </Paper>

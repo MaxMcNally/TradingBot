@@ -6,6 +6,7 @@ import {
   getUserTradingSessions,
   getUserPortfolioHistory,
   getActiveTradingSession,
+  getActiveTradingSessions,
   getTradesBySession,
   startTradingSession,
   stopTradingSession,
@@ -24,6 +25,7 @@ router.get('/users/:userId/trades', authenticateToken, getUserRecentTrades);
 router.get('/users/:userId/sessions', authenticateToken, getUserTradingSessions);
 router.get('/users/:userId/portfolio-history', authenticateToken, getUserPortfolioHistory);
 router.get('/users/:userId/active-session', authenticateToken, getActiveTradingSession);
+router.get('/users/:userId/active-sessions', authenticateToken, getActiveTradingSessions);
 
 // Session-specific routes
 router.get('/sessions/:sessionId/trades', authenticateToken, getTradesBySession);
