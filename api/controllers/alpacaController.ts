@@ -22,6 +22,9 @@ const CONNECTION_TTL_MS = 30 * 60 * 1000;
 // Cleanup interval (5 minutes)
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 
+// Store cleanup interval ID for testing/shutdown
+let cleanupIntervalId: NodeJS.Timeout | null = null;
+
 /**
  * Cleanup stale connections (called periodically)
  */
@@ -45,8 +48,19 @@ const cleanupStaleConnections = () => {
  * Start periodic cleanup of stale connections
  */
 const startCleanupInterval = () => {
-  setInterval(cleanupStaleConnections, CLEANUP_INTERVAL_MS);
+  cleanupIntervalId = setInterval(cleanupStaleConnections, CLEANUP_INTERVAL_MS);
   console.log(`🔄 Alpaca connection cleanup interval started (every ${CLEANUP_INTERVAL_MS / 60000} minutes)`);
+};
+
+/**
+ * Stop periodic cleanup (useful for testing or graceful shutdown)
+ */
+export const stopCleanupInterval = () => {
+  if (cleanupIntervalId) {
+    clearInterval(cleanupIntervalId);
+    cleanupIntervalId = null;
+    console.log('🛑 Alpaca connection cleanup interval stopped');
+  }
 };
 
 // Start cleanup interval when module is loaded
