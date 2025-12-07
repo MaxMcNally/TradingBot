@@ -8,6 +8,11 @@ import { AuthenticatedRequest } from '../middleware/auth';
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const IS_PRODUCTION = NODE_ENV === 'production';
 
+// Valid values for order parameters (must match OrderRequest interface)
+const VALID_ORDER_SIDES = ['buy', 'sell'] as const;
+const VALID_ORDER_TYPES = ['market', 'limit', 'stop', 'stop_limit', 'trailing_stop'] as const;
+const VALID_TIME_IN_FORCE = ['day', 'gtc', 'opg', 'cls', 'ioc', 'fok'] as const;
+
 // Store active Alpaca connections in memory (per user)
 const activeConnections: Map<number, AlpacaService> = new Map();
 
@@ -394,26 +399,23 @@ export const submitAlpacaOrder = async (req: AuthenticatedRequest, res: Response
     }
 
     // Validate side parameter
-    const validSides = ['buy', 'sell'];
-    if (!validSides.includes(side)) {
+    if (!VALID_ORDER_SIDES.includes(side)) {
       return res.status(400).json({
-        error: `Invalid side parameter. Must be one of: ${validSides.join(', ')}`
+        error: `Invalid side parameter. Must be one of: ${VALID_ORDER_SIDES.join(', ')}`
       });
     }
 
     // Validate type parameter
-    const validTypes = ['market', 'limit', 'stop', 'stop_limit', 'trailing_stop'];
-    if (!validTypes.includes(type)) {
+    if (!VALID_ORDER_TYPES.includes(type)) {
       return res.status(400).json({
-        error: `Invalid type parameter. Must be one of: ${validTypes.join(', ')}`
+        error: `Invalid type parameter. Must be one of: ${VALID_ORDER_TYPES.join(', ')}`
       });
     }
 
     // Validate time_in_force parameter
-    const validTimeInForce = ['day', 'gtc', 'opg', 'cls', 'ioc', 'fok'];
-    if (!validTimeInForce.includes(time_in_force)) {
+    if (!VALID_TIME_IN_FORCE.includes(time_in_force)) {
       return res.status(400).json({
-        error: `Invalid time_in_force parameter. Must be one of: ${validTimeInForce.join(', ')}`
+        error: `Invalid time_in_force parameter. Must be one of: ${VALID_TIME_IN_FORCE.join(', ')}`
       });
     }
 
