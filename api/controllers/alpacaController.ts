@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { db, isPostgres } from '../initDb';
+import { db } from '../initDb';
 import { encrypt, decrypt, maskSensitiveData } from '../utils/encryption';
 import { AlpacaService, createAlpacaService, validateCredentials, AlpacaCredentials } from '../services/alpacaService';
 import { AuthenticatedRequest } from '../middleware/auth';
@@ -113,9 +113,7 @@ const getAlpacaServiceForUser = async (userId: number): Promise<AlpacaService | 
  */
 const getStoredCredentials = (userId: number): Promise<AlpacaCredentials | null> => {
   return new Promise((resolve, reject) => {
-    const query = isPostgres
-      ? `SELECT key, value FROM settings WHERE user_id = $1 AND key IN ('alpaca_api_key', 'alpaca_api_secret', 'alpaca_is_paper')`
-      : `SELECT key, value FROM settings WHERE user_id = ? AND key IN ('alpaca_api_key', 'alpaca_api_secret', 'alpaca_is_paper')`;
+    const query = `SELECT key, value FROM settings WHERE user_id = $1 AND key IN ('alpaca_api_key', 'alpaca_api_secret', 'alpaca_is_paper')`;
 
     db.all(query, [userId], (err: any, rows: any[]) => {
       if (err) {
@@ -176,14 +174,11 @@ const saveCredentials = (
       { key: 'alpaca_connected_at', value: new Date().toISOString() },
     ];
 
-    const upsertQuery = isPostgres
-      ? `INSERT INTO settings (user_id, key, value) VALUES ($1, $2, $3)
-         ON CONFLICT(user_id, key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`
-      : `INSERT INTO settings (user_id, key, value) VALUES (?, ?, ?)
-         ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP`;
+    const upsertQuery = `INSERT INTO settings (user_id, key, value) VALUES ($1, $2, $3)
+       ON CONFLICT(user_id, key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`;
 
     // Start transaction
-    db.run(isPostgres ? 'BEGIN' : 'BEGIN TRANSACTION', (beginErr: any) => {
+    db.run('BEGIN', (beginErr: any) => {
       if (beginErr) {
         reject(beginErr);
         return;
@@ -197,7 +192,7 @@ const saveCredentials = (
           if (err && !hasError) {
             hasError = true;
             // Rollback transaction on error
-            db.run(isPostgres ? 'ROLLBACK' : 'ROLLBACK', (rollbackErr: any) => {
+            db.run('ROLLBACK', (rollbackErr: any) => {
               // Prefer original error, but log rollback error if present
               if (rollbackErr) {
                 console.error('Rollback error:', rollbackErr);
@@ -209,7 +204,7 @@ const saveCredentials = (
           completed++;
           if (completed === total && !hasError) {
             // Commit transaction
-            db.run(isPostgres ? 'COMMIT' : 'COMMIT', (commitErr: any) => {
+            db.run('COMMIT', (commitErr: any) => {
               if (commitErr) {
                 reject(commitErr);
                 return;
@@ -228,9 +223,7 @@ const saveCredentials = (
  */
 const deleteCredentials = (userId: number): Promise<void> => {
   return new Promise((resolve, reject) => {
-    const query = isPostgres
-      ? `DELETE FROM settings WHERE user_id = $1 AND key LIKE 'alpaca_%'`
-      : `DELETE FROM settings WHERE user_id = ? AND key LIKE 'alpaca_%'`;
+    const query = `DELETE FROM settings WHERE user_id = $1 AND key LIKE 'alpaca_%'`;
 
     db.run(query, [userId], (err: any) => {
       if (err) {

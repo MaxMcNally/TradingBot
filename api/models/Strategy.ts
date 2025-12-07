@@ -1,4 +1,4 @@
-import { db, isPostgres } from '../initDb';
+import { db } from '../initDb';
 
 export interface StrategyData {
   id?: number;
@@ -45,9 +45,7 @@ export class Strategy {
         null;
 
       db.run(
-        isPostgres
-          ? 'INSERT INTO user_strategies (user_id, name, description, strategy_type, config, backtest_results, is_public) VALUES ($1, $2, $3, $4, $5, $6, $7)'
-          : 'INSERT INTO user_strategies (user_id, name, description, strategy_type, config, backtest_results, is_public) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO user_strategies (user_id, name, description, strategy_type, config, backtest_results, is_public) VALUES ($1, $2, $3, $4, $5, $6, $7)',
         [user_id, name, description, strategy_type, configJson, backtestResultsJson, is_public],
         function(this: any, err: any) {
           if (err) {
@@ -74,7 +72,7 @@ export class Strategy {
 
   static async findById(id: number): Promise<StrategyData | null> {
     return new Promise((resolve, reject) => {
-      db.get(isPostgres ? 'SELECT * FROM user_strategies WHERE id = $1' : 'SELECT * FROM user_strategies WHERE id = ?', [id], (err: any, row: any) => {
+      db.get('SELECT * FROM user_strategies WHERE id = $1', [id], (err: any, row: any) => {
         if (err) {
           reject(err);
         } else {
@@ -86,11 +84,11 @@ export class Strategy {
 
   static async findByUserId(userId: number, includeInactive: boolean = false): Promise<StrategyData[]> {
     return new Promise((resolve, reject) => {
-      let query = isPostgres ? 'SELECT * FROM user_strategies WHERE user_id = $1' : 'SELECT * FROM user_strategies WHERE user_id = ?';
+      let query = 'SELECT * FROM user_strategies WHERE user_id = $1';
       const params: any[] = [userId];
       
       if (!includeInactive) {
-        query += ' AND is_active = 1';
+        query += ' AND is_active = TRUE';
       }
       
       query += ' ORDER BY created_at DESC';
@@ -107,7 +105,7 @@ export class Strategy {
 
   static async findByName(userId: number, name: string): Promise<StrategyData | null> {
     return new Promise((resolve, reject) => {
-      db.get(isPostgres ? 'SELECT * FROM user_strategies WHERE user_id = $1 AND name = $2' : 'SELECT * FROM user_strategies WHERE user_id = ? AND name = ?', [userId, name], (err: any, row: any) => {
+      db.get('SELECT * FROM user_strategies WHERE user_id = $1 AND name = $2', [userId, name], (err: any, row: any) => {
         if (err) {
           reject(err);
         } else {
@@ -120,9 +118,7 @@ export class Strategy {
   static async findPublicStrategies(): Promise<StrategyData[]> {
     return new Promise((resolve, reject) => {
       db.all(
-        isPostgres
-          ? "SELECT * FROM user_strategies WHERE is_public = TRUE AND is_active = TRUE ORDER BY created_at DESC"
-          : 'SELECT * FROM user_strategies WHERE is_public = 1 AND is_active = 1 ORDER BY created_at DESC',
+        "SELECT * FROM user_strategies WHERE is_public = TRUE AND is_active = TRUE ORDER BY created_at DESC",
         [],
         (err: any, rows: any[]) => {
           if (err) {
@@ -138,9 +134,7 @@ export class Strategy {
   static async findPublicStrategiesByType(strategyType: string): Promise<StrategyData[]> {
     return new Promise((resolve, reject) => {
       db.all(
-        isPostgres
-          ? 'SELECT * FROM user_strategies WHERE is_public = TRUE AND is_active = TRUE AND strategy_type = $1 ORDER BY created_at DESC'
-          : 'SELECT * FROM user_strategies WHERE is_public = 1 AND is_active = 1 AND strategy_type = ? ORDER BY created_at DESC',
+        'SELECT * FROM user_strategies WHERE is_public = TRUE AND is_active = TRUE AND strategy_type = $1 ORDER BY created_at DESC',
         [strategyType],
         (err: any, rows: any[]) => {
           if (err) {
@@ -160,11 +154,12 @@ export class Strategy {
       
       Object.entries(updateData).forEach(([key, value]) => {
         if (value !== undefined) {
+          const paramIndex = values.length + 1;
           if (key === 'config' || key === 'backtest_results') {
-            fields.push(`${key} = ?`);
+            fields.push(`${key} = $${paramIndex}`);
             values.push(typeof value === 'string' ? value : JSON.stringify(value));
           } else {
-            fields.push(`${key} = ?`);
+            fields.push(`${key} = $${paramIndex}`);
             values.push(value);
           }
         }
@@ -174,10 +169,11 @@ export class Strategy {
         return resolve(null);
       }
       
-      fields.push(isPostgres ? 'updated_at = NOW()' : 'updated_at = CURRENT_TIMESTAMP');
+      fields.push(`updated_at = NOW()`);
+      const idParamIndex = values.length + 1;
       values.push(id);
       
-      const query = isPostgres ? `UPDATE user_strategies SET ${fields.join(', ')} WHERE id = $${values.length}` : `UPDATE user_strategies SET ${fields.join(', ')} WHERE id = ?`;
+      const query = `UPDATE user_strategies SET ${fields.join(', ')} WHERE id = $${idParamIndex}`;
       
       db.run(query, values, function(this: any, err: any) {
         if (err) {
@@ -194,7 +190,7 @@ export class Strategy {
 
   static async delete(id: number): Promise<boolean> {
     return new Promise((resolve, reject) => {
-      db.run(isPostgres ? 'DELETE FROM user_strategies WHERE id = $1' : 'DELETE FROM user_strategies WHERE id = ?', [id], function(this: any, err: any) {
+      db.run('DELETE FROM user_strategies WHERE id = $1', [id], function(this: any, err: any) {
         if (err) {
           reject(err);
         } else {
@@ -207,9 +203,7 @@ export class Strategy {
   static async deactivate(id: number): Promise<boolean> {
     return new Promise((resolve, reject) => {
       db.run(
-        isPostgres
-          ? 'UPDATE user_strategies SET is_active = FALSE, updated_at = NOW() WHERE id = $1'
-          : 'UPDATE user_strategies SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        'UPDATE user_strategies SET is_active = FALSE, updated_at = NOW() WHERE id = $1',
         [id],
         function(this: any, err: any) {
           if (err) {
@@ -225,9 +219,7 @@ export class Strategy {
   static async activate(id: number): Promise<boolean> {
     return new Promise((resolve, reject) => {
       db.run(
-        isPostgres
-          ? 'UPDATE user_strategies SET is_active = TRUE, updated_at = NOW() WHERE id = $1'
-          : 'UPDATE user_strategies SET is_active = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        'UPDATE user_strategies SET is_active = TRUE, updated_at = NOW() WHERE id = $1',
         [id],
         function(this: any, err: any) {
           if (err) {

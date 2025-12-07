@@ -244,8 +244,8 @@ export class TradingMockService extends EventEmitter {
    */
   private async getSessionById(sessionId: number): Promise<any> {
     return new Promise((resolve, reject) => {
-      const { db, isPostgres } = require('../initDb');
-      db.get(isPostgres ? 'SELECT * FROM trading_sessions WHERE id = $1' : 'SELECT * FROM trading_sessions WHERE id = ?', [sessionId], (err: any, row: any) => {
+      const { db } = require('../initDb');
+      db.get('SELECT * FROM trading_sessions WHERE id = $1', [sessionId], (err: any, row: any) => {
         if (err) reject(err);
         else resolve(row);
       });

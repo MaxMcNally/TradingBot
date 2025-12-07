@@ -3,7 +3,6 @@ import { db } from '../initDb';
 
 // Mock the database
 jest.mock('../initDb', () => ({
-  isPostgres: false,
   db: {
     run: jest.fn(),
     get: jest.fn(),

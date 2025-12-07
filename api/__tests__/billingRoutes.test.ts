@@ -2,7 +2,6 @@ import billingRouter, { BILLING_PLANS, PROVIDERS } from '../routes/billing';
 import { db } from '../initDb';
 
 jest.mock('../initDb', () => ({
-  isPostgres: false,
   db: {
     get: jest.fn(),
     all: jest.fn(),

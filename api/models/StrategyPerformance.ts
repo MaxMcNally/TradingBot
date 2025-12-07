@@ -1,4 +1,4 @@
-import { db, isPostgres } from '../initDb';
+import { db } from '../initDb';
 
 export interface StrategyPerformanceData {
   id?: number;
@@ -103,26 +103,17 @@ export class StrategyPerformance {
       const tradesDataJson = JSON.stringify(trades_data);
       const portfolioHistoryJson = JSON.stringify(portfolio_history);
 
-      const query = isPostgres
-        ? `INSERT INTO strategy_performance (
-            user_id, strategy_name, strategy_type, execution_type, session_id,
-            symbols, start_date, end_date, initial_capital, final_capital,
-            total_return, total_return_dollar, max_drawdown, sharpe_ratio, sortino_ratio,
-            win_rate, total_trades, winning_trades, losing_trades, avg_win, avg_loss,
-            profit_factor, largest_win, largest_loss, avg_trade_duration, volatility,
-            beta, alpha, config, trades_data, portfolio_history
-          ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
-            $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31
-          ) RETURNING id`
-        : `INSERT INTO strategy_performance (
-            user_id, strategy_name, strategy_type, execution_type, session_id,
-            symbols, start_date, end_date, initial_capital, final_capital,
-            total_return, total_return_dollar, max_drawdown, sharpe_ratio, sortino_ratio,
-            win_rate, total_trades, winning_trades, losing_trades, avg_win, avg_loss,
-            profit_factor, largest_win, largest_loss, avg_trade_duration, volatility,
-            beta, alpha, config, trades_data, portfolio_history
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+      const query = `INSERT INTO strategy_performance (
+          user_id, strategy_name, strategy_type, execution_type, session_id,
+          symbols, start_date, end_date, initial_capital, final_capital,
+          total_return, total_return_dollar, max_drawdown, sharpe_ratio, sortino_ratio,
+          win_rate, total_trades, winning_trades, losing_trades, avg_win, avg_loss,
+          profit_factor, largest_win, largest_loss, avg_trade_duration, volatility,
+          beta, alpha, config, trades_data, portfolio_history
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+          $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31
+        ) RETURNING id`;
 
       const params = [
         user_id, strategy_name, strategy_type, execution_type, session_id,
@@ -156,7 +147,7 @@ export class StrategyPerformance {
   static async findById(id: number): Promise<StrategyPerformanceData | null> {
     return new Promise((resolve, reject) => {
       db.get(
-        isPostgres ? 'SELECT * FROM strategy_performance WHERE id = $1' : 'SELECT * FROM strategy_performance WHERE id = ?',
+        'SELECT * FROM strategy_performance WHERE id = $1',
         [id],
         (err: any, row: any) => {
           if (err) {
@@ -171,9 +162,7 @@ export class StrategyPerformance {
 
   static async findByUserId(userId: number, limit: number = 100): Promise<StrategyPerformanceData[]> {
     return new Promise((resolve, reject) => {
-      const query = isPostgres
-        ? 'SELECT * FROM strategy_performance WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2'
-        : 'SELECT * FROM strategy_performance WHERE user_id = ? ORDER BY created_at DESC LIMIT ?';
+      const query = 'SELECT * FROM strategy_performance WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2';
       
       db.all(query, [userId, limit], (err: any, rows: any[]) => {
         if (err) {
@@ -187,9 +176,7 @@ export class StrategyPerformance {
 
   static async findByStrategyName(strategyName: string, limit: number = 100): Promise<StrategyPerformanceData[]> {
     return new Promise((resolve, reject) => {
-      const query = isPostgres
-        ? 'SELECT * FROM strategy_performance WHERE strategy_name = $1 ORDER BY created_at DESC LIMIT $2'
-        : 'SELECT * FROM strategy_performance WHERE strategy_name = ? ORDER BY created_at DESC LIMIT ?';
+      const query = 'SELECT * FROM strategy_performance WHERE strategy_name = $1 ORDER BY created_at DESC LIMIT $2';
       
       db.all(query, [strategyName, limit], (err: any, rows: any[]) => {
         if (err) {
@@ -203,9 +190,7 @@ export class StrategyPerformance {
 
   static async findByStrategyType(strategyType: string, limit: number = 100): Promise<StrategyPerformanceData[]> {
     return new Promise((resolve, reject) => {
-      const query = isPostgres
-        ? 'SELECT * FROM strategy_performance WHERE strategy_type = $1 ORDER BY created_at DESC LIMIT $2'
-        : 'SELECT * FROM strategy_performance WHERE strategy_type = ? ORDER BY created_at DESC LIMIT ?';
+      const query = 'SELECT * FROM strategy_performance WHERE strategy_type = $1 ORDER BY created_at DESC LIMIT $2';
       
       db.all(query, [strategyType, limit], (err: any, rows: any[]) => {
         if (err) {
@@ -219,43 +204,24 @@ export class StrategyPerformance {
 
   static async getStrategySummary(strategyName: string): Promise<StrategyPerformanceSummary | null> {
     return new Promise((resolve, reject) => {
-      const query = isPostgres
-        ? `
-          SELECT 
-            strategy_name,
-            strategy_type,
-            COUNT(*) as total_executions,
-            AVG(total_return) as avg_return,
-            MAX(total_return) as best_return,
-            MIN(total_return) as worst_return,
-            AVG(max_drawdown) as avg_max_drawdown,
-            AVG(win_rate) as avg_win_rate,
-            AVG(sharpe_ratio) as avg_sharpe_ratio,
-            SUM(total_trades) as total_trades,
-            (COUNT(CASE WHEN total_return > 0 THEN 1 END) * 100.0 / COUNT(*)) as success_rate,
-            MAX(created_at) as last_execution
-          FROM strategy_performance 
-          WHERE strategy_name = $1
-          GROUP BY strategy_name, strategy_type
-        `
-        : `
-          SELECT 
-            strategy_name,
-            strategy_type,
-            COUNT(*) as total_executions,
-            AVG(total_return) as avg_return,
-            MAX(total_return) as best_return,
-            MIN(total_return) as worst_return,
-            AVG(max_drawdown) as avg_max_drawdown,
-            AVG(win_rate) as avg_win_rate,
-            AVG(sharpe_ratio) as avg_sharpe_ratio,
-            SUM(total_trades) as total_trades,
-            (COUNT(CASE WHEN total_return > 0 THEN 1 END) * 100.0 / COUNT(*)) as success_rate,
-            MAX(created_at) as last_execution
-          FROM strategy_performance 
-          WHERE strategy_name = ?
-          GROUP BY strategy_name, strategy_type
-        `;
+      const query = `
+        SELECT 
+          strategy_name,
+          strategy_type,
+          COUNT(*) as total_executions,
+          AVG(total_return) as avg_return,
+          MAX(total_return) as best_return,
+          MIN(total_return) as worst_return,
+          AVG(max_drawdown) as avg_max_drawdown,
+          AVG(win_rate) as avg_win_rate,
+          AVG(sharpe_ratio) as avg_sharpe_ratio,
+          SUM(total_trades) as total_trades,
+          (COUNT(CASE WHEN total_return > 0 THEN 1 END) * 100.0 / COUNT(*)) as success_rate,
+          MAX(created_at) as last_execution
+        FROM strategy_performance 
+        WHERE strategy_name = $1
+        GROUP BY strategy_name, strategy_type
+      `;
       
       db.get(query, [strategyName], (err: any, row: any) => {
         if (err) {
@@ -269,43 +235,24 @@ export class StrategyPerformance {
 
   static async getAllStrategySummaries(): Promise<StrategyPerformanceSummary[]> {
     return new Promise((resolve, reject) => {
-      const query = isPostgres
-        ? `
-          SELECT 
-            strategy_name,
-            strategy_type,
-            COUNT(*) as total_executions,
-            AVG(total_return) as avg_return,
-            MAX(total_return) as best_return,
-            MIN(total_return) as worst_return,
-            AVG(max_drawdown) as avg_max_drawdown,
-            AVG(win_rate) as avg_win_rate,
-            AVG(sharpe_ratio) as avg_sharpe_ratio,
-            SUM(total_trades) as total_trades,
-            (COUNT(CASE WHEN total_return > 0 THEN 1 END) * 100.0 / COUNT(*)) as success_rate,
-            MAX(created_at) as last_execution
-          FROM strategy_performance 
-          GROUP BY strategy_name, strategy_type
-          ORDER BY avg_return DESC
-        `
-        : `
-          SELECT 
-            strategy_name,
-            strategy_type,
-            COUNT(*) as total_executions,
-            AVG(total_return) as avg_return,
-            MAX(total_return) as best_return,
-            MIN(total_return) as worst_return,
-            AVG(max_drawdown) as avg_max_drawdown,
-            AVG(win_rate) as avg_win_rate,
-            AVG(sharpe_ratio) as avg_sharpe_ratio,
-            SUM(total_trades) as total_trades,
-            (COUNT(CASE WHEN total_return > 0 THEN 1 END) * 100.0 / COUNT(*)) as success_rate,
-            MAX(created_at) as last_execution
-          FROM strategy_performance 
-          GROUP BY strategy_name, strategy_type
-          ORDER BY avg_return DESC
-        `;
+      const query = `
+        SELECT 
+          strategy_name,
+          strategy_type,
+          COUNT(*) as total_executions,
+          AVG(total_return) as avg_return,
+          MAX(total_return) as best_return,
+          MIN(total_return) as worst_return,
+          AVG(max_drawdown) as avg_max_drawdown,
+          AVG(win_rate) as avg_win_rate,
+          AVG(sharpe_ratio) as avg_sharpe_ratio,
+          SUM(total_trades) as total_trades,
+          (COUNT(CASE WHEN total_return > 0 THEN 1 END) * 100.0 / COUNT(*)) as success_rate,
+          MAX(created_at) as last_execution
+        FROM strategy_performance 
+        GROUP BY strategy_name, strategy_type
+        ORDER BY avg_return DESC
+      `;
       
       db.all(query, [], (err: any, rows: any[]) => {
         if (err) {
@@ -319,9 +266,7 @@ export class StrategyPerformance {
 
   static async getTopPerformers(limit: number = 10): Promise<StrategyPerformanceData[]> {
     return new Promise((resolve, reject) => {
-      const query = isPostgres
-        ? 'SELECT * FROM strategy_performance ORDER BY total_return DESC LIMIT $1'
-        : 'SELECT * FROM strategy_performance ORDER BY total_return DESC LIMIT ?';
+      const query = 'SELECT * FROM strategy_performance ORDER BY total_return DESC LIMIT $1';
       
       db.all(query, [limit], (err: any, rows: any[]) => {
         if (err) {
@@ -335,9 +280,7 @@ export class StrategyPerformance {
 
   static async getRecentExecutions(limit: number = 50): Promise<StrategyPerformanceData[]> {
     return new Promise((resolve, reject) => {
-      const query = isPostgres
-        ? 'SELECT * FROM strategy_performance ORDER BY created_at DESC LIMIT $1'
-        : 'SELECT * FROM strategy_performance ORDER BY created_at DESC LIMIT ?';
+      const query = 'SELECT * FROM strategy_performance ORDER BY created_at DESC LIMIT $1';
       
       db.all(query, [limit], (err: any, rows: any[]) => {
         if (err) {
@@ -352,7 +295,7 @@ export class StrategyPerformance {
   static async delete(id: number): Promise<boolean> {
     return new Promise((resolve, reject) => {
       db.run(
-        isPostgres ? 'DELETE FROM strategy_performance WHERE id = $1' : 'DELETE FROM strategy_performance WHERE id = ?',
+        'DELETE FROM strategy_performance WHERE id = $1',
         [id],
         function(this: any, err: any) {
           if (err) {
