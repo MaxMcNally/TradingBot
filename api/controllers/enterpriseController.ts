@@ -2,8 +2,6 @@ import { Response } from "express";
 import { ApiKeyAuthenticatedRequest } from "../middleware/apiKeyAuth";
 import { TradingDatabase } from "../../src/database/tradingSchema";
 import { StrategyPerformance } from "../models/StrategyPerformance";
-import { startTradingSession, stopTradingSession } from "./tradingController";
-
 // Get all bots (trading sessions) for the authenticated enterprise user
 export const getBots = async (req: ApiKeyAuthenticatedRequest, res: Response) => {
   try {
