@@ -393,6 +393,30 @@ export const submitAlpacaOrder = async (req: AuthenticatedRequest, res: Response
       });
     }
 
+    // Validate side parameter
+    const validSides = ['buy', 'sell'];
+    if (!validSides.includes(side)) {
+      return res.status(400).json({
+        error: `Invalid side parameter. Must be one of: ${validSides.join(', ')}`
+      });
+    }
+
+    // Validate type parameter
+    const validTypes = ['market', 'limit', 'stop', 'stop_limit', 'trailing_stop'];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({
+        error: `Invalid type parameter. Must be one of: ${validTypes.join(', ')}`
+      });
+    }
+
+    // Validate time_in_force parameter
+    const validTimeInForce = ['day', 'gtc', 'opg', 'cls', 'ioc', 'fok'];
+    if (!validTimeInForce.includes(time_in_force)) {
+      return res.status(400).json({
+        error: `Invalid time_in_force parameter. Must be one of: ${validTimeInForce.join(', ')}`
+      });
+    }
+
     const service = await getAlpacaServiceForUser(userId);
     if (!service) {
       return res.status(400).json({ error: 'Alpaca account not connected' });
