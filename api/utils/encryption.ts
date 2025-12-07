@@ -4,9 +4,12 @@ import crypto from 'crypto';
 // In production, this should be a strong, unique secret stored securely
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || process.env.JWT_SECRET || 'default-encryption-key-change-in-production';
 
+// Use a unique salt per application instance, from environment or randomly generated at startup
+const ENCRYPTION_SALT = process.env.ENCRYPTION_SALT || crypto.randomBytes(16).toString('hex');
+
 // Derive a 32-byte key from the secret (AES-256 requires 32 bytes)
 const getKey = (): Buffer => {
-  return crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32);
+  return crypto.scryptSync(ENCRYPTION_KEY, ENCRYPTION_SALT, 32);
 };
 
 const IV_LENGTH = 16; // AES block size

@@ -113,7 +113,8 @@ const AlpacaSettings: React.FC<AlpacaSettingsProps> = ({ userId }) => {
       const request: AlpacaConnectRequest = {
         apiKey: apiKey.trim(),
         apiSecret: apiSecret.trim(),
-        isPaper: true, // Always paper trading in dev/staging
+        // Always paper trading in dev/staging; live trading in production
+        isPaper: process.env.NODE_ENV !== 'production',
       };
 
       const response = await connectAlpaca(request);
@@ -125,7 +126,17 @@ const AlpacaSettings: React.FC<AlpacaSettingsProps> = ({ userId }) => {
         await fetchStatus();
       }
     } catch (err: any) {
-      const errorMessage = err.response?.data?.error || err.response?.data?.details?.join(', ') || 'Failed to connect to Alpaca';
+      let errorMessage = err.response?.data?.error;
+      if (!errorMessage) {
+        const details = err.response?.data?.details;
+        if (Array.isArray(details)) {
+          errorMessage = details.join(', ');
+        } else if (typeof details === 'string') {
+          errorMessage = details;
+        } else {
+          errorMessage = 'Failed to connect to Alpaca';
+        }
+      }
       setError(errorMessage);
     } finally {
       setConnecting(false);

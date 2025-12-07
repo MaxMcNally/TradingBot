@@ -1,4 +1,3 @@
-import { Request, Response } from 'express';
 import { db, isPostgres } from '../initDb';
 import { encrypt, decrypt, maskSensitiveData } from '../utils/encryption';
 import { AlpacaService, createAlpacaService, validateCredentials, AlpacaCredentials } from '../services/alpacaService';
@@ -111,21 +110,42 @@ const saveCredentials = (
       : `INSERT INTO settings (user_id, key, value) VALUES (?, ?, ?)
          ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP`;
 
-    let completed = 0;
-    const total = settings.length;
-    let hasError = false;
+    // Start transaction
+    db.run(isPostgres ? 'BEGIN' : 'BEGIN TRANSACTION', (beginErr: any) => {
+      if (beginErr) {
+        reject(beginErr);
+        return;
+      }
+      let completed = 0;
+      const total = settings.length;
+      let hasError = false;
 
-    settings.forEach((setting) => {
-      db.run(upsertQuery, [userId, setting.key, setting.value], (err: any) => {
-        if (err && !hasError) {
-          hasError = true;
-          reject(err);
-          return;
-        }
-        completed++;
-        if (completed === total && !hasError) {
-          resolve();
-        }
+      settings.forEach((setting) => {
+        db.run(upsertQuery, [userId, setting.key, setting.value], (err: any) => {
+          if (err && !hasError) {
+            hasError = true;
+            // Rollback transaction on error
+            db.run(isPostgres ? 'ROLLBACK' : 'ROLLBACK', (rollbackErr: any) => {
+              // Prefer original error, but log rollback error if present
+              if (rollbackErr) {
+                console.error('Rollback error:', rollbackErr);
+              }
+              reject(err);
+            });
+            return;
+          }
+          completed++;
+          if (completed === total && !hasError) {
+            // Commit transaction
+            db.run(isPostgres ? 'COMMIT' : 'COMMIT', (commitErr: any) => {
+              if (commitErr) {
+                reject(commitErr);
+                return;
+              }
+              resolve();
+            });
+          }
+        });
       });
     });
   });
@@ -425,11 +445,11 @@ export const submitAlpacaOrder = async (req: AuthenticatedRequest, res: Response
     }
 
     // Log the order for audit purposes
-    console.log(`📊 Alpaca order submitted by user ${userId}: ${side} ${qty} ${symbol} (${service.getTradingMode()} mode)`);
+    console.log(`📊 Alpaca order submitted by user ${userId}: ${side} ${parsedQty} ${symbol} (${service.getTradingMode()} mode)`);
 
     const order = await service.submitOrder({
       symbol,
-      qty: parseFloat(qty),
+      qty: parsedQty,
       side,
       type,
       time_in_force,
