@@ -250,6 +250,18 @@ export class TradingDatabase {
     });
   }
 
+  static async getTradingSessionById(id: number): Promise<TradingSession | null> {
+    return new Promise((resolve, reject) => {
+      db.get('SELECT * FROM trading_sessions WHERE id = $1', [id], (err: any, row: any) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(row || null);
+        }
+      });
+    });
+  }
+
   static async getTradesBySession(sessionId: number): Promise<Trade[]> {
     return new Promise((resolve, reject) => {
       db.all(

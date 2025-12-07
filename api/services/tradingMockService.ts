@@ -176,6 +176,15 @@ export class TradingMockService extends EventEmitter {
         // Emit trade event
         this.emit('tradeExecuted', { sessionId, trade: savedTrade });
 
+        // Send webhook event for trade executed (async, don't block)
+        import('../services/webhookService').then(({ WebhookService }) => {
+          WebhookService.sendTradeExecutedEvent(config.userId, savedTrade).catch(err => {
+            console.error('Error sending trade executed webhook:', err);
+          });
+        }).catch(err => {
+          console.error('Error loading webhook service:', err);
+        });
+
         tradeCount++;
       } catch (error) {
         console.error('Error in mock trading:', error);

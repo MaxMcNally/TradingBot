@@ -3,6 +3,7 @@ import { UserManager } from "../../src/bot/UserManager";
 import { TradingDatabase } from "../../src/database/tradingSchema";
 import { PerformanceMetricsService } from "../services/performanceMetricsService";
 import { StrategiesService } from "../services/strategiesService";
+import { WebhookService } from "../services/webhookService";
 
 export const getUserTradingStats = async (req: Request, res: Response) => {
   try {
@@ -178,6 +179,11 @@ export const startTradingSession = async (req: Request, res: Response) => {
       winning_trades: 0
     });
 
+    // Send webhook event for bot started
+    WebhookService.sendBotStartedEvent(userId, session.id!, session).catch(err => {
+      console.error('Error sending bot started webhook:', err);
+    });
+
     res.json({
       success: true,
       sessionId: session.id,
@@ -199,13 +205,20 @@ export const stopTradingSession = async (req: Request, res: Response) => {
     }
 
     // Get session data before stopping
+    const sessionData = await TradingDatabase.getTradingSessionById(sessionId);
+    if (!sessionData) {
+      return res.status(404).json({ message: "Trading session not found" });
+    }
     const session = await TradingDatabase.getTradesBySession(sessionId);
-    const sessionData = await TradingDatabase.getActiveTradingSession(session[0]?.user_id || 0);
     
     await TradingDatabase.updateTradingSession(sessionId, {
       end_time: new Date().toISOString(),
       status: 'COMPLETED'
     });
+
+    // Get updated session data
+    const updatedSession = await TradingDatabase.getTradingSessionById(sessionId);
+    let performanceData = null;
 
     // Save performance metrics for the completed session
     try {
@@ -249,11 +262,24 @@ export const stopTradingSession = async (req: Request, res: Response) => {
         );
 
         await PerformanceMetricsService.savePerformanceMetrics(performanceMetrics, userId);
+        performanceData = performanceMetrics;
         console.log(`Performance metrics saved for live trading session: ${sessionId}`);
       }
     } catch (error) {
       console.error('Error saving live trading performance metrics:', error);
       // Don't fail the request if metrics saving fails
+    }
+
+    // Send webhook event for bot finished
+    if (updatedSession) {
+      WebhookService.sendBotFinishedEvent(
+        updatedSession.user_id,
+        sessionId,
+        updatedSession,
+        performanceData
+      ).catch(err => {
+        console.error('Error sending bot finished webhook:', err);
+      });
     }
 
     res.json({

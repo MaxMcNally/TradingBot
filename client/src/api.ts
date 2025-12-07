@@ -512,3 +512,113 @@ export const cancelAlpacaOrder = (orderId: string): Promise<AxiosResponse<{ succ
 // Market information
 export const getAlpacaMarketClock = (): Promise<AxiosResponse<{ clock: AlpacaClock }>> =>
   api.get('/alpaca/clock');
+
+// Developer/Enterprise API
+export interface ApiKey {
+  id: number;
+  key_name: string;
+  key_prefix: string;
+  last_used_at?: string | null;
+  created_at: string;
+}
+
+export interface ApiKeyWithSecret extends ApiKey {
+  api_key: string;
+  api_secret: string;
+}
+
+export interface Webhook {
+  id: number;
+  url: string;
+  event_types: string[];
+  secret?: string | null;
+  is_active: boolean;
+  last_triggered_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateApiKeyData {
+  key_name: string;
+}
+
+export interface CreateWebhookData {
+  url: string;
+  event_types: string[];
+  secret?: string;
+}
+
+// API Key management
+export const getApiKeys = (): Promise<AxiosResponse<ApiResponse<ApiKey[]>>> =>
+  api.get('/developer/api-keys');
+
+export const createApiKey = (data: CreateApiKeyData): Promise<AxiosResponse<ApiResponse<ApiKeyWithSecret>>> =>
+  api.post('/developer/api-keys', data);
+
+export const deleteApiKey = (keyId: number): Promise<AxiosResponse<ApiResponse>> =>
+  api.delete(`/developer/api-keys/${keyId}`);
+
+// Webhook management
+export const getWebhooks = (): Promise<AxiosResponse<ApiResponse<Webhook[]>>> =>
+  api.get('/developer/webhooks');
+
+export const createWebhook = (data: CreateWebhookData): Promise<AxiosResponse<ApiResponse<Webhook>>> =>
+  api.post('/developer/webhooks', data);
+
+export const updateWebhook = (webhookId: number, data: Partial<CreateWebhookData>): Promise<AxiosResponse<ApiResponse<Webhook>>> =>
+  api.put(`/developer/webhooks/${webhookId}`, data);
+
+export const toggleWebhook = (webhookId: number, isActive: boolean): Promise<AxiosResponse<ApiResponse>> =>
+  api.patch(`/developer/webhooks/${webhookId}/toggle`, { is_active: isActive });
+
+export const deleteWebhook = (webhookId: number): Promise<AxiosResponse<ApiResponse>> =>
+  api.delete(`/developer/webhooks/${webhookId}`);
+
+// Usage logs and statistics
+export interface ApiUsageLog {
+  id: number;
+  api_key_id: number;
+  user_id: number;
+  endpoint: string;
+  method: string;
+  status_code: number;
+  response_time_ms?: number | null;
+  request_size?: number | null;
+  response_size?: number | null;
+  ip_address?: string | null;
+  user_agent?: string | null;
+  error_message?: string | null;
+  created_at: string;
+}
+
+export interface ApiUsageStats {
+  total_requests: number;
+  successful_requests: number;
+  failed_requests: number;
+  avg_response_time: number;
+  total_requests_today: number;
+  endpoints: Array<{ endpoint: string; count: number }>;
+}
+
+export interface WebhookLog {
+  id: number;
+  webhook_id: number;
+  webhook_url: string;
+  event_type: string;
+  payload: any;
+  status: 'PENDING' | 'SUCCESS' | 'FAILED';
+  response_code?: number | null;
+  response_body?: string | null;
+  error_message?: string | null;
+  created_at: string;
+  sent_at?: string | null;
+}
+
+export const getApiUsageLogs = (params?: { limit?: number; apiKeyId?: number }): Promise<AxiosResponse<ApiResponse<ApiUsageLog[]>>> =>
+  api.get('/developer/usage-logs', { params });
+
+export const getApiUsageStats = (days?: number): Promise<AxiosResponse<ApiResponse<ApiUsageStats>>> =>
+  api.get('/developer/usage-stats', { params: { days } });
+
+export const getWebhookLogs = (params?: { limit?: number; webhookId?: number }): Promise<AxiosResponse<ApiResponse<WebhookLog[]>>> =>
+  api.get('/developer/webhook-logs', { params });

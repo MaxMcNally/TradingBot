@@ -299,6 +299,67 @@ export const initDatabase = () => {
         )
       `);
 
+      await pgPool!.query(`
+        CREATE TABLE IF NOT EXISTS api_keys (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          key_name TEXT NOT NULL,
+          api_key TEXT NOT NULL,
+          api_secret TEXT NOT NULL,
+          key_prefix TEXT NOT NULL,
+          last_used_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+
+      await pgPool!.query(`
+        CREATE TABLE IF NOT EXISTS webhooks (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          url TEXT NOT NULL,
+          event_types JSONB NOT NULL,
+          secret TEXT,
+          is_active BOOLEAN DEFAULT TRUE,
+          last_triggered_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+
+      await pgPool!.query(`
+        CREATE TABLE IF NOT EXISTS webhook_events (
+          id SERIAL PRIMARY KEY,
+          webhook_id INTEGER NOT NULL REFERENCES webhooks(id) ON DELETE CASCADE,
+          event_type TEXT NOT NULL,
+          payload JSONB NOT NULL,
+          status TEXT NOT NULL CHECK (status IN ('PENDING', 'SUCCESS', 'FAILED')),
+          response_code INTEGER,
+          response_body TEXT,
+          error_message TEXT,
+          created_at TIMESTAMP DEFAULT NOW(),
+          sent_at TIMESTAMP
+        )
+      `);
+
+      await pgPool!.query(`
+        CREATE TABLE IF NOT EXISTS api_usage_logs (
+          id SERIAL PRIMARY KEY,
+          api_key_id INTEGER NOT NULL REFERENCES api_keys(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          endpoint TEXT NOT NULL,
+          method TEXT NOT NULL,
+          status_code INTEGER NOT NULL,
+          response_time_ms INTEGER,
+          request_size INTEGER,
+          response_size INTEGER,
+          ip_address TEXT,
+          user_agent TEXT,
+          error_message TEXT,
+          created_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+
       // Indexes
       await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`);
       await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_settings_user_id ON settings(user_id)`);
@@ -311,6 +372,16 @@ export const initDatabase = () => {
       await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_created_at ON strategy_performance(created_at)`);
       await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id)`);
       await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_subscriptions_created_at ON subscriptions(created_at)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON api_keys(user_id)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_api_keys_api_key ON api_keys(api_key)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_webhooks_user_id ON webhooks(user_id)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_webhooks_is_active ON webhooks(is_active)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_webhook_events_webhook_id ON webhook_events(webhook_id)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_webhook_events_status ON webhook_events(status)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_api_usage_logs_api_key_id ON api_usage_logs(api_key_id)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_api_usage_logs_user_id ON api_usage_logs(user_id)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_api_usage_logs_created_at ON api_usage_logs(created_at)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_api_usage_logs_endpoint ON api_usage_logs(endpoint)`);
 
       // Ensure is_public column exists (idempotent)
       await pgPool!.query(`ALTER TABLE user_strategies ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE`);
