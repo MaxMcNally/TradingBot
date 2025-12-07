@@ -113,7 +113,8 @@ const AlpacaSettings: React.FC<AlpacaSettingsProps> = ({ userId }) => {
       const request: AlpacaConnectRequest = {
         apiKey: apiKey.trim(),
         apiSecret: apiSecret.trim(),
-        isPaper: true, // Always paper trading in dev/staging
+        // Always paper trading in dev/staging; live trading in production
+        isPaper: process.env.NODE_ENV !== 'production',
       };
 
       const response = await connectAlpaca(request);
