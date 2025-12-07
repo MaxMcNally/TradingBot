@@ -44,12 +44,18 @@ import {
   updateWebhook,
   toggleWebhook,
   deleteWebhook,
+  getApiUsageLogs,
+  getApiUsageStats,
+  getWebhookLogs,
   ApiKey,
   ApiKeyWithSecret,
-  Webhook
+  Webhook,
+  ApiUsageLog,
+  ApiUsageStats,
+  WebhookLog
 } from "../../api";
 
-type TabValue = "api-keys" | "webhooks" | "docs";
+type TabValue = "api-keys" | "webhooks" | "logs" | "docs";
 
 const DeveloperDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabValue>("api-keys");
@@ -58,6 +64,13 @@ const DeveloperDashboard: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
+
+  // Usage logs state
+  const [apiUsageLogs, setApiUsageLogs] = useState<ApiUsageLog[]>([]);
+  const [webhookLogs, setWebhookLogs] = useState<WebhookLog[]>([]);
+  const [usageStats, setUsageStats] = useState<ApiUsageStats | null>(null);
+  const [selectedApiKeyFilter, setSelectedApiKeyFilter] = useState<number | undefined>(undefined);
+  const [selectedWebhookFilter, setSelectedWebhookFilter] = useState<number | undefined>(undefined);
 
   // API Key state
   const [createKeyDialog, setCreateKeyDialog] = useState(false);
@@ -85,8 +98,12 @@ const DeveloperDashboard: React.FC = () => {
       loadApiKeys();
     } else if (activeTab === "webhooks") {
       loadWebhooks();
+    } else if (activeTab === "logs") {
+      loadUsageLogs();
+      loadWebhookLogs();
+      loadUsageStats();
     }
-  }, [activeTab]);
+  }, [activeTab, selectedApiKeyFilter, selectedWebhookFilter]);
 
   const loadApiKeys = async () => {
     try {
@@ -109,6 +126,45 @@ const DeveloperDashboard: React.FC = () => {
       setError(err.response?.data?.error || "Failed to load webhooks");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadUsageLogs = async () => {
+    try {
+      setLoading(true);
+      const response = await getApiUsageLogs({
+        limit: 100,
+        apiKeyId: selectedApiKeyFilter
+      });
+      setApiUsageLogs(response.data.data || []);
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Failed to load API usage logs");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadWebhookLogs = async () => {
+    try {
+      setLoading(true);
+      const response = await getWebhookLogs({
+        limit: 100,
+        webhookId: selectedWebhookFilter
+      });
+      setWebhookLogs(response.data.data || []);
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Failed to load webhook logs");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadUsageStats = async () => {
+    try {
+      const response = await getApiUsageStats(30);
+      setUsageStats(response.data.data);
+    } catch (err: any) {
+      console.error("Failed to load usage stats:", err);
     }
   };
 
@@ -811,6 +867,7 @@ with HMAC SHA256 and included in the X-Webhook-Signature header.`}
       <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ mb: 3 }}>
         <Tab label="API Keys" value="api-keys" />
         <Tab label="Webhooks" value="webhooks" />
+        <Tab label="Usage Logs" value="logs" />
         <Tab label="API Documentation" value="docs" />
       </Tabs>
 
@@ -824,6 +881,7 @@ with HMAC SHA256 and included in the X-Webhook-Signature header.`}
         <>
           {activeTab === "api-keys" && renderApiKeys()}
           {activeTab === "webhooks" && renderWebhooks()}
+          {activeTab === "logs" && renderUsageLogs()}
           {activeTab === "docs" && renderDocs()}
         </>
       )}

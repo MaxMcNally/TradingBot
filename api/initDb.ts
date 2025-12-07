@@ -342,6 +342,24 @@ export const initDatabase = () => {
         )
       `);
 
+      await pgPool!.query(`
+        CREATE TABLE IF NOT EXISTS api_usage_logs (
+          id SERIAL PRIMARY KEY,
+          api_key_id INTEGER NOT NULL REFERENCES api_keys(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          endpoint TEXT NOT NULL,
+          method TEXT NOT NULL,
+          status_code INTEGER NOT NULL,
+          response_time_ms INTEGER,
+          request_size INTEGER,
+          response_size INTEGER,
+          ip_address TEXT,
+          user_agent TEXT,
+          error_message TEXT,
+          created_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+
       // Indexes
       await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`);
       await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_settings_user_id ON settings(user_id)`);
@@ -360,6 +378,10 @@ export const initDatabase = () => {
       await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_webhooks_is_active ON webhooks(is_active)`);
       await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_webhook_events_webhook_id ON webhook_events(webhook_id)`);
       await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_webhook_events_status ON webhook_events(status)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_api_usage_logs_api_key_id ON api_usage_logs(api_key_id)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_api_usage_logs_user_id ON api_usage_logs(user_id)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_api_usage_logs_created_at ON api_usage_logs(created_at)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_api_usage_logs_endpoint ON api_usage_logs(endpoint)`);
 
       // Ensure is_public column exists (idempotent)
       await pgPool!.query(`ALTER TABLE user_strategies ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE`);

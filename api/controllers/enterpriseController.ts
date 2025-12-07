@@ -292,7 +292,7 @@ export const getStats = async (req: ApiKeyAuthenticatedRequest, res: Response) =
     const userId = req.apiKey!.user_id;
     
     // Get all sessions
-    const sessions = await TradingDatabase.getTradingSessionsByUserId(userId, 1000);
+    const sessions = await TradingDatabase.getTradingSessionsByUser(userId, 1000);
     const activeSession = await TradingDatabase.getActiveTradingSession(userId);
     
     // Get performance data

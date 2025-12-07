@@ -12,6 +12,11 @@ import {
   toggleWebhook,
   deleteWebhook
 } from "../controllers/webhookController";
+import {
+  getApiUsageLogs,
+  getApiUsageStats,
+  getWebhookLogs
+} from "../controllers/developerController";
 
 export const developerRouter = Router();
 
@@ -29,6 +34,11 @@ developerRouter.post("/webhooks", createWebhook);
 developerRouter.put("/webhooks/:webhookId", updateWebhook);
 developerRouter.patch("/webhooks/:webhookId/toggle", toggleWebhook);
 developerRouter.delete("/webhooks/:webhookId", deleteWebhook);
+
+// Usage logs and statistics
+developerRouter.get("/usage-logs", getApiUsageLogs);
+developerRouter.get("/usage-stats", getApiUsageStats);
+developerRouter.get("/webhook-logs", getWebhookLogs);
 
 export default developerRouter;
 
