@@ -11,8 +11,12 @@ import {
   getMarketClock,
   closeAlpacaPosition,
 } from '../controllers/alpacaController';
+import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
+
+// Apply authentication middleware to all routes
+router.use(authenticateToken);
 
 // Connection management
 router.post('/connect', connectAlpaca);
