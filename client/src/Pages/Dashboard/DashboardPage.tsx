@@ -17,11 +17,11 @@ import {
   ShowChart,
 } from "@mui/icons-material";
 import TradingResults from "./TradingResults";
-import { TabPanel } from "../shared";
+import { TabPanel } from "../../components/shared";
 import { useUser } from "../../hooks";
 
 
-const Dashboard: React.FC = () => {
+const DashboardPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
   const { user, isLoading: userLoading, error: userError } = useUser();
 
@@ -243,4 +243,5 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default DashboardPage;
+

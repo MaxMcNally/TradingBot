@@ -1,4 +1,4 @@
-import { Strategy } from '../../components/Backtesting/Backtesting.types';
+import { Strategy } from '../../Pages/Backtesting/Backtesting.types';
 
 export interface UseStrategiesReturn {
   strategies: Strategy[];

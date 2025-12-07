@@ -3,9 +3,10 @@ import {
   Box,
   Typography,
   Container,
-  Link,
+  Link as MuiLink,
   Divider
 } from '@mui/material';
+import { Link } from 'react-router-dom';
 import { FooterProps } from './Footer.types';
 
 const formatTier = (tier?: string) => {
@@ -51,30 +52,42 @@ const Footer: React.FC<FooterProps> = ({ user }) => {
               alignItems: 'center',
             }}
           >
-            <Link
-              href="#"
+            <MuiLink
+              component={Link}
+              to="/about"
+              color="text.secondary"
+              underline="hover"
+              sx={{ fontSize: '0.875rem' }}
+            >
+              About
+            </MuiLink>
+            <MuiLink
+              component={Link}
+              to="/privacy"
               color="text.secondary"
               underline="hover"
               sx={{ fontSize: '0.875rem' }}
             >
               Privacy Policy
-            </Link>
-            <Link
-              href="#"
+            </MuiLink>
+            <MuiLink
+              component={Link}
+              to="/terms"
               color="text.secondary"
               underline="hover"
               sx={{ fontSize: '0.875rem' }}
             >
               Terms of Service
-            </Link>
-            <Link
-              href="#"
+            </MuiLink>
+            <MuiLink
+              component={Link}
+              to="/support"
               color="text.secondary"
               underline="hover"
               sx={{ fontSize: '0.875rem' }}
             >
               Support
-            </Link>
+            </MuiLink>
           </Box>
 
           {/* Right side - Version/Status */}

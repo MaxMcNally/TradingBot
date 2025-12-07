@@ -42,7 +42,7 @@ import {
   StrategySelectionSection,
   SessionSummary,
   StrategyParameters
-} from "../shared";
+} from "../../components/shared";
 import { useStrategies, useBacktest, useUserStrategies } from "../../hooks";
 import SaveStrategyDialog from "./SaveStrategyDialog";
 

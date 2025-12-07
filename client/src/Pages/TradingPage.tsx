@@ -20,11 +20,11 @@ import {
   StrategySelectionSection,
   SessionSummary,
   StrategyParameters
-} from "../shared";
+} from "../../components/shared";
 import TradingSessionControls from "../Dashboard/TradingSessionControls";
 import { useUser, useStrategies } from "../../hooks";
 
-const Trading: React.FC = () => {
+const TradingPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
   const { user, isLoading: userLoading, error: userError } = useUser();
   const { strategies: availableStrategies } = useStrategies();
@@ -247,4 +247,5 @@ const Trading: React.FC = () => {
   );
 };
 
-export default Trading;
+export default TradingPage;
+

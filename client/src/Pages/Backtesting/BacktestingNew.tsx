@@ -49,7 +49,7 @@ import {
   BacktestResponse, 
   Strategy
 } from "./Backtesting.types";
-import { StockPicker, StrategySelector } from "../shared";
+import { StockPicker, StrategySelector } from "../../components/shared";
 import { useStrategies, useBacktest } from "../../hooks";
 
 interface TabPanelProps {

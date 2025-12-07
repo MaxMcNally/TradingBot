@@ -47,7 +47,7 @@ import {
   StrategySelectionSection,
   StrategySelector,
   StockPicker
-} from "../shared";
+} from "../../components/shared";
 import { useStrategies, useBacktest } from "../../hooks";
 
 
