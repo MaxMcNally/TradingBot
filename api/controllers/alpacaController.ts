@@ -63,13 +63,28 @@ export const stopCleanupInterval = () => {
   }
 };
 
-// Start cleanup interval when module is loaded
-startCleanupInterval();
+/**
+ * Initialize cleanup interval if not already started
+ * This is called lazily on first connection to avoid starting background processes during testing
+ */
+const ensureCleanupStarted = () => {
+  if (!cleanupIntervalId) {
+    startCleanupInterval();
+  }
+};
+
+// Start cleanup interval when module is loaded (can be disabled for testing)
+if (process.env.NODE_ENV !== 'test') {
+  startCleanupInterval();
+}
 
 /**
  * Get or create an Alpaca service for a user
  */
 const getAlpacaServiceForUser = async (userId: number): Promise<AlpacaService | null> => {
+  // Ensure cleanup interval is running
+  ensureCleanupStarted();
+
   // Check if there's already an active connection
   const entry = activeConnections.get(userId);
   if (entry) {

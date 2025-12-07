@@ -127,7 +127,7 @@ const AlpacaSettings: React.FC<AlpacaSettingsProps> = ({ userId }) => {
       }
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 
-        (Array.isArray(err.response?.data?.details) ? err.response.data.details.join(', ') : err.response?.data?.details) || 
+        (Array.isArray(err.response?.data?.details) ? err.response?.data?.details.join(', ') : err.response?.data?.details) || 
         'Failed to connect to Alpaca';
       setError(errorMessage);
     } finally {
