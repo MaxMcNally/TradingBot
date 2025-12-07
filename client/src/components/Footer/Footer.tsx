@@ -8,6 +8,11 @@ import {
 } from '@mui/material';
 import { FooterProps } from './Footer.types';
 
+const formatTier = (tier?: string) => {
+  if (!tier) return 'Free';
+  return `${tier.charAt(0)}${tier.slice(1).toLowerCase()}`;
+};
+
 const Footer: React.FC<FooterProps> = ({ user }) => {
   const currentYear = new Date().getFullYear();
 
@@ -104,6 +109,7 @@ const Footer: React.FC<FooterProps> = ({ user }) => {
                 justifyContent: 'center',
                 alignItems: 'center',
                 gap: 2,
+                flexWrap: 'wrap'
               }}
             >
               <Typography variant="body2" color="text.secondary">
@@ -115,6 +121,26 @@ const Footer: React.FC<FooterProps> = ({ user }) => {
               <Typography variant="body2" color="text.secondary">
                 Member since: {user.createdAt ? new Date(user.createdAt).getFullYear() : 'N/A'}
               </Typography>
+              {user.plan_tier && (
+                <>
+                  <Typography variant="body2" color="text.secondary">
+                    •
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Plan: {formatTier(String(user.plan_tier))}
+                  </Typography>
+                  {user.subscription_renews_at && (
+                    <>
+                      <Typography variant="body2" color="text.secondary">
+                        •
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Renews: {new Date(user.subscription_renews_at).toLocaleDateString()}
+                      </Typography>
+                    </>
+                  )}
+                </>
+              )}
             </Box>
           </>
         )}

@@ -1,4 +1,4 @@
-import { db, isPostgres } from '../initDb';
+import { db } from '../initDb';
 import User, { UserData } from './User';
 
 export interface SettingsData {
@@ -24,9 +24,7 @@ export class Settings {
         return new Promise<void>((resolveSetting, rejectSetting) => {
           // First, try to update existing setting
           db.run(
-            isPostgres
-              ? 'UPDATE settings SET value = $1, updated_at = NOW() WHERE user_id = $2 AND key = $3'
-              : 'UPDATE settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND key = ?',
+            'UPDATE settings SET value = $1, updated_at = NOW() WHERE user_id = $2 AND key = $3',
             [value, UserId, key],
             function(err) {
               if (err) {
@@ -37,9 +35,7 @@ export class Settings {
               // If no rows were affected, insert new setting
               if (this.changes === 0) {
                 db.run(
-                  isPostgres
-                    ? 'INSERT INTO settings (user_id, key, value) VALUES ($1, $2, $3)'
-                    : 'INSERT INTO settings (user_id, key, value) VALUES (?, ?, ?)',
+                  'INSERT INTO settings (user_id, key, value) VALUES ($1, $2, $3)',
                   [UserId, key, value],
                   function(insertErr) {
                     if (insertErr) {
@@ -76,7 +72,7 @@ export class Settings {
 
   static async findByUserId(userId: number): Promise<SettingsData[]> {
     return new Promise((resolve, reject) => {
-      db.all('SELECT * FROM settings WHERE user_id = ?', [userId], (err, rows: any[]) => {
+      db.all('SELECT * FROM settings WHERE user_id = $1', [userId], (err, rows: any[]) => {
         if (err) {
           reject(err);
         } else {
@@ -89,7 +85,7 @@ export class Settings {
   static async findOne(where: { user_id: number; key: string }): Promise<SettingsData | null> {
     return new Promise((resolve, reject) => {
       const { user_id, key } = where;
-      db.get('SELECT * FROM settings WHERE user_id = ? AND key = ?', [user_id, key], (err, row: any) => {
+      db.get('SELECT * FROM settings WHERE user_id = $1 AND key = $2', [user_id, key], (err, row: any) => {
         if (err) {
           reject(err);
         } else {

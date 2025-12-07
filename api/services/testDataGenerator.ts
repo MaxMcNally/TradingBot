@@ -239,11 +239,11 @@ export class TestDataGenerator {
    */
   async cleanupTestData(): Promise<void> {
     try {
-      const { db, isPostgres } = require('../initDb');
+      const { db } = require('../initDb');
       
       // Delete test user and all related data
       await new Promise<void>((resolve, reject) => {
-        db.run(isPostgres ? 'DELETE FROM users WHERE username = $1' : 'DELETE FROM users WHERE username = ?', ['testtrader'], (err: any) => {
+        db.run('DELETE FROM users WHERE username = $1', ['testtrader'], (err: any) => {
           if (err) reject(err);
           else resolve();
         });

@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
+import path from "path";
 
 import {authRouter} from "./routes/auth";
 import {settingsRouter} from "./routes/settings";
@@ -11,13 +12,20 @@ import {cacheRouter} from "./routes/cache";
 import tradingRouter from "./routes/trading";
 import {strategyRouter} from "./routes/strategies";
 import adminRouter from "./routes/adminRoutes";
-import {alpacaRouter} from "./routes/alpaca";
+import billingRouter from "./routes/billing";
 import { initDatabase } from "./initDb";
 import { sessionMonitor } from "./services/sessionMonitor";
 import testRouter from "./routes/test";
 import { authenticateToken } from "./middleware/auth";
 
-dotenv.config();
+// Load .env files - .env.local takes precedence
+// Load .env from project root (one level up from api directory)
+const projectRoot = path.resolve(__dirname, '..');
+dotenv.config({ path: path.join(projectRoot, '.env') });
+// Load .env.local from project root (overrides .env)
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config({ path: path.join(projectRoot, '.env.local'), override: true });
+}
 
 const app = express();
 const PORT = process.env.PORT || 8001;
@@ -67,6 +75,7 @@ app.use("/api", (req, res, next) => {
     { method: "GET", path: "/symbols/popular" },
     { method: "GET", path: "/strategies/strategies/public" },
     { method: "GET", path: "/strategies/strategies/public/:strategyType" },
+    { method: "GET", path: "/billing/plans" },
   ];
 
   const isPublicAuth = publicAuthRoutes.some(
@@ -107,8 +116,8 @@ try {
   app.use("/api/admin", adminRouter);
   console.log("Mounting test router...");
   app.use("/api/test", testRouter);
-  console.log("Mounting alpaca router...");
-  app.use("/api/alpaca", alpacaRouter);
+  console.log("Mounting billing router...");
+  app.use("/api/billing", billingRouter);
   console.log("API routes mounted successfully");
 } catch (error) {
   console.error("Error mounting routes:", error);

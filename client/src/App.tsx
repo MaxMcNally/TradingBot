@@ -10,6 +10,8 @@ import Settings from "./components/Settings";
 import Backtesting from "./components/Backtesting/Backtesting";
 import { Strategies } from "./components/Strategies";
 import { StrategiesMarketplace } from "./components/StrategiesMarketplace";
+import Pricing from "./components/Pricing/Pricing";
+import Checkout from "./components/Checkout/Checkout";
 import { AdminDashboard, AdminRoute } from "./components/Admin";
 import ThemeProvider from "./components/ThemeProvider";
 import { QueryProvider } from "./providers/QueryProvider";
@@ -34,6 +36,8 @@ const AppContent: React.FC = () => {
             <Route path="/backtesting" element={<Backtesting />} />
             <Route path="/strategies" element={<Strategies />} />
             <Route path="/marketplace" element={<StrategiesMarketplace />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/checkout" element={<Checkout />} />
             <Route 
               path="/admin" 
               element={

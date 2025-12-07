@@ -12,11 +12,3 @@ export interface NavigationItem {
   path: string;
   icon: React.ComponentType;
 }
-
-export interface User {
-  id: string;
-  email: string;
-  name?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}

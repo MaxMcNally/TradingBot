@@ -151,6 +151,36 @@ yarn lint:api
 yarn lint:client
 ```
 
+## 💳 Billing & Payment Tiers
+
+| Plan        | Monthly Price | Target Users               | Status Defaults |
+|-------------|---------------|----------------------------|-----------------|
+| Free        | $0            | New accounts exploring the platform | `plan_tier=FREE`, `plan_status=ACTIVE`, `subscription_provider=NONE` |
+| Basic       | $9.99         | Individual traders expanding automation | `subscription_provider` required (Stripe / PayPal / Square) |
+| Premium     | $29.99        | Advanced users needing unlimited strategies | Paid provider required |
+| Enterprise  | $199.99       | Organizations that need dedicated support | Paid provider required |
+
+### Frontend Experience
+- **Pricing Page (`/pricing`)** – Lists every tier, highlights the current plan, and deep-links into checkout.
+- **Checkout Page (`/checkout`)** – Lets signed-in users choose a plan, payment processor (Stripe, PayPal, or Square), and record payment references.
+- **Settings → Subscription** – Shows the active plan, renewal/cancellation status, and recent subscription history with quick links to pricing/checkout flows.
+
+### API Surface
+- `GET /api/billing/plans` – Public endpoint used by the pricing page to render tiers and supported processors.
+- `POST /api/billing/checkout` – Authenticated upgrade/downgrade flow that records provider selection and subscription metadata for the user.
+- `GET /api/billing/subscription` – Authenticated endpoint returning the user’s current plan and last 10 history entries.
+- `PUT /api/billing/subscription` – Authenticated endpoint for cancelling or switching back to Free.
+
+All non-public routes now enforce the shared `authenticateToken` middleware so controllers always receive an `AuthenticatedRequest` populated with user data. This includes billing flows, cache management, test utilities, strategy CRUD, trading session management, and other sensitive APIs.
+
+### Payment Providers
+The UI currently supports three processors during checkout:
+- **Stripe** – default card-based payments
+- **PayPal** – redirect/authorization style payments
+- **Square** – in-person or stored-card style billing
+
+Each provider selection is persisted with the subscription record so downstream automation or customer support can reconcile payments. Future environment variables (API keys, webhook secrets, etc.) can be attached per provider when those integrations are finalized.
+
 ## 🚀 Deploy
 
 ### Railway Deployment (Recommended)

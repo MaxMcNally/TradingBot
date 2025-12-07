@@ -19,7 +19,9 @@ import {
   Psychology as StrategiesIcon,
   Store as MarketplaceIcon,
   TrendingUp as TradingIcon,
-  AdminPanelSettings as AdminIcon
+  AdminPanelSettings as AdminIcon,
+  PriceChange as PricingIcon,
+  CreditCard as BillingIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { HeaderProps } from './Header.types';
@@ -48,6 +50,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
     { label: 'Backtesting', path: '/backtesting', icon: <BacktestIcon /> },
     { label: 'Strategies', path: '/strategies', icon: <StrategiesIcon /> },
     { label: 'Marketplace', path: '/marketplace', icon: <MarketplaceIcon /> },
+    { label: 'Pricing', path: '/pricing', icon: <PricingIcon /> },
     ...(user?.role === 'ADMIN' ? [{ label: 'Admin', path: '/admin', icon: <AdminIcon /> }] : []),
   ];
 
@@ -134,6 +137,10 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
               horizontal: 'right',
             }}
           >
+            <MenuItem onClick={() => { navigate('/pricing'); handleMenuClose(); }}>
+              <BillingIcon sx={{ mr: 1 }} />
+              Billing & Plans
+            </MenuItem>
             <MenuItem onClick={() => { navigate('/settings'); handleMenuClose(); }}>
               <SettingsIcon sx={{ mr: 1 }} />
               Settings

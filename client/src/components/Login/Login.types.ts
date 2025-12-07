@@ -1,4 +1,4 @@
-// Login component types and interfaces
+import { AppUser } from "../../types/user";
 
 export interface LoginFormData {
   username: string;
@@ -15,17 +15,7 @@ export interface LoginResponse {
   };
 }
 
-export interface User {
-  id: string;
-  email: string;
-  name?: string;
-  username?: string;
-  email_verified?: number;
-  two_factor_enabled?: number;
-  role?: 'USER' | 'ADMIN';
-  createdAt?: string;
-  updatedAt?: string;
-}
+export type User = AppUser;
 
 export interface LoginProps {
   setUser: (user: User) => void;

@@ -1,4 +1,4 @@
-// Signup component types and interfaces
+import { AppUser } from "../../types/user";
 
 export interface SignupFormData {
   username: string;
@@ -11,18 +11,10 @@ export interface SignupResponse {
   success: boolean;
   data: {
     token: string;
-    user: User;
+    user: AppUser;
   };
 }
 
-export interface User {
-  id: string;
-  email: string;
-  name?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
 export interface SignupProps {
-  setUser: (user: User) => void;
+  setUser: (user: AppUser) => void;
 }

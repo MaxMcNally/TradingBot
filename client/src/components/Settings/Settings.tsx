@@ -16,8 +16,16 @@ import {
   Paper, 
   Divider,
   Alert,
-  CircularProgress
+  CircularProgress,
+  Chip,
+  Stack,
+  List,
+  ListItem,
+  ListItemText,
+  Skeleton
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import { useSubscription } from "../../hooks";
 import { SettingsProps, Setting, AccountSettings } from "./Settings.types";
 import AlpacaSettings from "./AlpacaSettings";
 
@@ -35,6 +43,15 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
   const [twoFAToken, setTwoFAToken] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
+  const navigate = useNavigate();
+  const {
+    subscription,
+    history,
+    isSubscriptionLoading,
+    isMutating: isSubscriptionMutating,
+    cancelSubscription
+  } = useSubscription({ enabled: Boolean(user?.id) });
+  const [subscriptionAlert, setSubscriptionAlert] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -135,6 +152,36 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
     }));
   };
 
+  const formatTier = (tier?: string) => {
+    if (!tier) return "Free";
+    return `${tier.charAt(0)}${tier.slice(1).toLowerCase()}`;
+  };
+
+  const formatDate = (value?: string | null) => {
+    if (!value) return "—";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "—";
+    return date.toLocaleDateString();
+  };
+
+  const isPaidPlan = subscription?.planTier && subscription.planTier !== "FREE";
+
+  const handleCancelSubscription = async () => {
+    setSubscriptionAlert(null);
+    try {
+      await cancelSubscription();
+      setSubscriptionAlert({
+        type: "success",
+        message: "Subscription canceled. You're back on the Free plan."
+      });
+    } catch (err: any) {
+      setSubscriptionAlert({
+        type: "error",
+        message: err?.response?.data?.error || "Failed to cancel subscription"
+      });
+    }
+  };
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3, maxWidth: 600 }}>
       {/* Alpaca Integration Section */}
@@ -190,6 +237,93 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
             {loading ? <CircularProgress size={20} /> : "Save Account Settings"}
           </Button>
         </Box>
+      </Paper>
+
+      {/* Subscription Management */}
+      <Paper sx={{ p: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Subscription
+        </Typography>
+        <Divider sx={{ my: 2 }} />
+        {subscriptionAlert && (
+          <Alert severity={subscriptionAlert.type} sx={{ mb: 2 }}>
+            {subscriptionAlert.message}
+          </Alert>
+        )}
+        {isSubscriptionLoading ? (
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <Skeleton height={32} />
+            <Skeleton height={24} />
+            <Skeleton height={64} />
+          </Box>
+        ) : (
+          <>
+            <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+              <Chip label={`${formatTier(subscription?.planTier || "FREE")} Plan`} color="primary" />
+              <Chip label={`Status: ${subscription?.planStatus || "ACTIVE"}`} color="default" />
+              <Typography variant="body2" color="text.secondary">
+                Provider: {subscription?.provider || "NONE"}
+              </Typography>
+            </Stack>
+
+            <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                Next renewal: {formatDate(subscription?.renewsAt)}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Started: {formatDate(subscription?.startedAt)}
+              </Typography>
+            </Box>
+
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mt: 3 }}>
+              <Button variant="contained" onClick={() => navigate("/pricing")}>
+                Explore Plans
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => navigate("/checkout", { state: { planTier: subscription?.planTier || "BASIC" } })}
+              >
+                Go to Checkout
+              </Button>
+              {isPaidPlan ? (
+                <Button
+                  color="warning"
+                  variant="outlined"
+                  disabled={isSubscriptionMutating}
+                  onClick={handleCancelSubscription}
+                >
+                  Cancel Subscription
+                </Button>
+              ) : (
+                <Button
+                  color="secondary"
+                  variant="outlined"
+                  onClick={() => navigate("/checkout", { state: { planTier: "BASIC" } })}
+                >
+                  Upgrade to Basic
+                </Button>
+              )}
+            </Stack>
+
+            {history.length > 0 && (
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Recent activity
+                </Typography>
+                <List dense>
+                  {history.slice(0, 3).map((entry) => (
+                    <ListItem key={entry.id} disablePadding>
+                      <ListItemText
+                        primary={`${formatTier(entry.plan_tier)} • ${entry.status}`}
+                        secondary={`Started ${formatDate(entry.started_at)}${entry.renews_at ? ` • Renews ${formatDate(entry.renews_at)}` : ''}`}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              </Box>
+            )}
+          </>
+        )}
       </Paper>
 
       {/* Security Settings Section */}

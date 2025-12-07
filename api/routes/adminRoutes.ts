@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAdmin, requireAdminOrOwner } from '../middleware/adminAuth';
+import { authenticateToken } from '../middleware/auth';
 import {
   getStrategyPerformanceOverview,
   getStrategyPerformanceDetails,
@@ -12,7 +13,8 @@ import {
 
 const router = Router();
 
-// All admin routes require admin authentication
+// All admin routes require authentication + admin privileges
+router.use(authenticateToken);
 router.use(requireAdmin);
 
 // Strategy Performance Routes
