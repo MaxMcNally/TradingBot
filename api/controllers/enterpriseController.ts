@@ -177,16 +177,23 @@ export const startBot = async (req: ApiKeyAuthenticatedRequest, res: Response) =
       winning_trades: 0
     });
 
-    res.json({
-      success: true,
-      data: {
-        id: session.id,
-        status: session.status,
-        mode: session.mode,
-        start_time: session.start_time,
-        initial_cash: session.initial_cash
+    // Actually start the bot and send the webhook event
+    // Call startTradingSession with the required parameters
+    // If startTradingSession expects a request object, construct a minimal one
+    const startTradingReq: any = {
+      apiKey: req.apiKey,
+      body: {
+        mode: mode || 'PAPER',
+        initialCash: initialCash || 10000,
+        symbols,
+        strategy,
+        scheduledEndTime: scheduledEndTime || undefined,
+        sessionId: session.id
       }
-    });
+    };
+    await startTradingSession(startTradingReq, res);
+    // Note: startTradingSession should handle the response, so we return here
+    return;
   } catch (error) {
     console.error("Error starting bot:", error);
     res.status(500).json({ 
