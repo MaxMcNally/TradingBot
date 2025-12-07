@@ -1,12 +1,9 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
+import { ALPACA_PAPER_URL, ALPACA_LIVE_URL } from '../config/alpacaConfig';
 
 // Environment check: Only paper trading allowed in non-production environments
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const IS_PRODUCTION = NODE_ENV === 'production';
-
-// Alpaca API URLs
-const ALPACA_PAPER_URL = 'https://paper-api.alpaca.markets';
-const ALPACA_LIVE_URL = 'https://api.alpaca.markets';
 
 export interface AlpacaCredentials {
   apiKey: string;
