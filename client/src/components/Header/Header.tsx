@@ -21,7 +21,8 @@ import {
   TrendingUp as TradingIcon,
   AdminPanelSettings as AdminIcon,
   PriceChange as PricingIcon,
-  CreditCard as BillingIcon
+  CreditCard as BillingIcon,
+  EmojiEvents as LeaderboardIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { HeaderProps } from './Header.types';
@@ -50,6 +51,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
     { label: 'Backtesting', path: '/backtesting', icon: <BacktestIcon /> },
     { label: 'Strategies', path: '/strategies', icon: <StrategiesIcon /> },
     { label: 'Marketplace', path: '/marketplace', icon: <MarketplaceIcon /> },
+    { label: 'Leaderboard', path: '/leaderboard', icon: <LeaderboardIcon /> },
     { label: 'Pricing', path: '/pricing', icon: <PricingIcon /> },
     ...(user?.role === 'ADMIN' ? [{ label: 'Admin', path: '/admin', icon: <AdminIcon /> }] : []),
   ];

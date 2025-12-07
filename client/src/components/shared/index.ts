@@ -10,6 +10,7 @@ export { default as StockSelectionSection } from './StockSelectionSection';
 export { default as StrategySelectionSection } from './StrategySelectionSection';
 export { default as StrategyParameters } from './StrategyParameters';
 export { UpsellDialog } from './UpsellDialog';
+export { PremiumFeatureGate, LeaderboardGate, MarketplaceGate } from './PremiumFeatureGate';
 
 // Export types
 export type { StockPickerProps } from './StockPicker';
@@ -28,3 +29,4 @@ export type {
   StrategyConfig 
 } from './StrategyParameters';
 export type { UpsellDialogProps } from './UpsellDialog';
+export type { PremiumFeatureGateProps } from './PremiumFeatureGate';

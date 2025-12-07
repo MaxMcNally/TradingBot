@@ -17,6 +17,7 @@ import {
   PrivacyPolicyPage,
   TermsOfServicePage,
   SupportPage,
+  LeaderboardPage,
 } from "./Pages";
 import { AdminRoute, SubscriptionManagement } from "./Pages/Admin";
 import ThemeProvider from "./providers/ThemeProvider";
@@ -192,6 +193,16 @@ const AppContent: React.FC = () => {
             <MainLayout user={user} onLogout={logout}>
               <SupportPage />
             </MainLayout>
+          }
+        />
+        <Route
+          path="/leaderboard"
+          element={
+            <ProtectedRoute>
+              <MainLayout user={user!} onLogout={logout}>
+                <LeaderboardPage />
+              </MainLayout>
+            </ProtectedRoute>
           }
         />
       </Routes>

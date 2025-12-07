@@ -32,6 +32,10 @@ The Free tier is designed for users who want to explore automated trading withou
 - ✅ Community support & tutorials
 - ✅ Paper trading mode
 
+**Restricted Features:**
+- ❌ Leaderboard access (requires Basic or higher)
+- ❌ Strategies Marketplace (requires Basic or higher)
+
 **Best for:**
 - New users learning automated trading
 - Testing strategies before committing
@@ -56,6 +60,8 @@ The Basic tier unlocks more bots and simultaneous execution, perfect for traders
 - ✅ Advanced technical indicators
 - ✅ Historical data access
 - ✅ Email support (24hr response)
+- ✅ **Leaderboard access** - see how your strategies rank globally
+- ✅ **Strategies Marketplace** - browse and copy community strategies
 
 **Best for:**
 - Active individual traders
