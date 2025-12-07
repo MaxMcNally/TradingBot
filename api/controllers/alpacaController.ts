@@ -178,7 +178,7 @@ const saveCredentials = (
        ON CONFLICT(user_id, key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`;
 
     // Start transaction
-    db.run('BEGIN', (beginErr: any) => {
+    db.run('BEGIN', [], (beginErr: any) => {
       if (beginErr) {
         reject(beginErr);
         return;
@@ -192,7 +192,7 @@ const saveCredentials = (
           if (err && !hasError) {
             hasError = true;
             // Rollback transaction on error
-            db.run('ROLLBACK', (rollbackErr: any) => {
+            db.run('ROLLBACK', [], (rollbackErr: any) => {
               // Prefer original error, but log rollback error if present
               if (rollbackErr) {
                 console.error('Rollback error:', rollbackErr);
@@ -204,7 +204,7 @@ const saveCredentials = (
           completed++;
           if (completed === total && !hasError) {
             // Commit transaction
-            db.run('COMMIT', (commitErr: any) => {
+            db.run('COMMIT', [], (commitErr: any) => {
               if (commitErr) {
                 reject(commitErr);
                 return;
@@ -505,6 +505,12 @@ export const submitAlpacaOrder = async (req: AuthenticatedRequest, res: Response
       return res.status(400).json({
         error: `Invalid time_in_force parameter. Must be one of: ${VALID_TIME_IN_FORCE.join(', ')}`
       });
+    }
+
+    // Parse quantity
+    const parsedQty = parseFloat(qty);
+    if (isNaN(parsedQty) || parsedQty <= 0) {
+      return res.status(400).json({ error: 'Invalid quantity. Must be a positive number' });
     }
 
     const service = await getAlpacaServiceForUser(userId);

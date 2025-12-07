@@ -57,7 +57,7 @@ const db = {
   },
 
   // INSERT/UPDATE/DELETE
-  run(sql: string, params: any[], callback: (...args: any[]) => void) {
+  run(sql: string, params: any[] = [], callback?: (...args: any[]) => void) {
     console.log('Postgres run method called with SQL:', sql.substring(0, 100) + '...');
     console.log('Callback provided:', !!callback);
     
