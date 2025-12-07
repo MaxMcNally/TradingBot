@@ -205,42 +205,11 @@ export const startBot = async (req: ApiKeyAuthenticatedRequest, res: Response) =
 
 // Stop a bot
 export const stopBot = async (req: ApiKeyAuthenticatedRequest, res: Response) => {
-  try {
-    const userId = req.apiKey!.user_id;
-    const botId = parseInt(req.params.botId);
-    
-    if (isNaN(botId)) {
-      return res.status(400).json({ 
-        success: false,
-        error: "Invalid bot ID" 
-      });
-    }
-
-    const session = await TradingDatabase.getTradingSessionById(botId);
-    
-    if (!session || session.user_id !== userId) {
-      return res.status(404).json({ 
-        success: false,
-        error: "Bot not found" 
-      });
-    }
-
-    await TradingDatabase.updateTradingSession(botId, {
-      end_time: new Date().toISOString(),
-      status: 'COMPLETED'
-    });
-
-    res.json({
-      success: true,
-      message: "Bot stopped successfully"
-    });
-  } catch (error) {
-    console.error("Error stopping bot:", error);
-    res.status(500).json({ 
-      success: false,
-      error: "Internal server error" 
-    });
-  }
+  // Adapt the request object to match stopTradingSession expectations
+  // Assume stopTradingSession expects req.params.sessionId
+  req.params.sessionId = req.params.botId;
+  // Delegate to stopTradingSession, which handles DB update and webhook
+  return stopTradingSession(req, res);
 };
 
 // Get performance metrics
