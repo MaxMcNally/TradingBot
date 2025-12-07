@@ -1,4 +1,4 @@
-import { Request, Response, RequestHandler } from "express";
+import { Request, RequestHandler } from "express";
 import { ApiKey } from "../models/ApiKey";
 import { User } from "../models/User";
 import { ApiUsageLog } from "../models/ApiUsageLog";
