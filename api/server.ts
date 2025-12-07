@@ -13,6 +13,8 @@ import tradingRouter from "./routes/trading";
 import {strategyRouter} from "./routes/strategies";
 import adminRouter from "./routes/adminRoutes";
 import billingRouter from "./routes/billing";
+import { enterpriseRouter } from "./routes/enterprise";
+import { developerRouter } from "./routes/developer";
 import { initDatabase } from "./initDb";
 import { sessionMonitor } from "./services/sessionMonitor";
 import testRouter from "./routes/test";
@@ -78,6 +80,9 @@ app.use("/api", (req, res, next) => {
     { method: "GET", path: "/billing/plans" },
   ];
 
+  // Enterprise API endpoints (use API key auth, not token auth)
+  const isEnterpriseApi = req.path.startsWith("/enterprise");
+
   const isPublicAuth = publicAuthRoutes.some(
     (r) => r.method === req.method && req.path === r.path
   );
@@ -86,7 +91,7 @@ app.use("/api", (req, res, next) => {
     (r) => r.method === req.method && req.path === r.path
   );
 
-  if (isPublicAuth || isPublicApi) {
+  if (isPublicAuth || isPublicApi || isEnterpriseApi) {
     return next();
   }
 
@@ -118,6 +123,10 @@ try {
   app.use("/api/test", testRouter);
   console.log("Mounting billing router...");
   app.use("/api/billing", billingRouter);
+  console.log("Mounting enterprise router...");
+  app.use("/api/enterprise", enterpriseRouter);
+  console.log("Mounting developer router...");
+  app.use("/api/developer", developerRouter);
   console.log("API routes mounted successfully");
 } catch (error) {
   console.error("Error mounting routes:", error);

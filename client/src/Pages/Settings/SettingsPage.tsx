@@ -30,14 +30,16 @@ import {
   AccountCircle,
   CreditCard,
   Security,
-  AccountBalance
+  AccountBalance,
+  Code
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "../../hooks";
 import { SettingsProps, Setting, AccountSettings } from "./Settings.types";
 import AlpacaSettings from "./AlpacaSettings";
+import DeveloperDashboard from "./DeveloperDashboard";
 
-type SettingsSection = "account" | "subscription" | "alpaca" | "security";
+type SettingsSection = "account" | "subscription" | "alpaca" | "security" | "developer";
 
 const Settings: React.FC<SettingsProps> = ({ user }) => {
   const [activeSection, setActiveSection] = useState<SettingsSection>("account");
@@ -193,11 +195,14 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
     }
   };
 
+  const isEnterprise = user?.plan_tier === 'ENTERPRISE';
+
   const sections = [
     { id: "account" as SettingsSection, label: "Account Settings", icon: <AccountCircle /> },
     { id: "subscription" as SettingsSection, label: "Subscription", icon: <CreditCard /> },
     { id: "alpaca" as SettingsSection, label: "Alpaca Trading Integration", icon: <AccountBalance /> },
     { id: "security" as SettingsSection, label: "Security", icon: <Security /> },
+    ...(isEnterprise ? [{ id: "developer" as SettingsSection, label: "Developer Dashboard", icon: <Code /> }] : []),
   ];
 
   const renderContent = () => {
@@ -400,6 +405,11 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
             </Box>
           </Paper>
         );
+
+      case "developer":
+        return isEnterprise ? (
+          <DeveloperDashboard />
+        ) : null;
 
       default:
         return null;

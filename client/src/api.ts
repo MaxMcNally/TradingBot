@@ -512,3 +512,64 @@ export const cancelAlpacaOrder = (orderId: string): Promise<AxiosResponse<{ succ
 // Market information
 export const getAlpacaMarketClock = (): Promise<AxiosResponse<{ clock: AlpacaClock }>> =>
   api.get('/alpaca/clock');
+
+// Developer/Enterprise API
+export interface ApiKey {
+  id: number;
+  key_name: string;
+  key_prefix: string;
+  last_used_at?: string | null;
+  created_at: string;
+}
+
+export interface ApiKeyWithSecret extends ApiKey {
+  api_key: string;
+  api_secret: string;
+}
+
+export interface Webhook {
+  id: number;
+  url: string;
+  event_types: string[];
+  secret?: string | null;
+  is_active: boolean;
+  last_triggered_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateApiKeyData {
+  key_name: string;
+}
+
+export interface CreateWebhookData {
+  url: string;
+  event_types: string[];
+  secret?: string;
+}
+
+// API Key management
+export const getApiKeys = (): Promise<AxiosResponse<ApiResponse<ApiKey[]>>> =>
+  api.get('/developer/api-keys');
+
+export const createApiKey = (data: CreateApiKeyData): Promise<AxiosResponse<ApiResponse<ApiKeyWithSecret>>> =>
+  api.post('/developer/api-keys', data);
+
+export const deleteApiKey = (keyId: number): Promise<AxiosResponse<ApiResponse>> =>
+  api.delete(`/developer/api-keys/${keyId}`);
+
+// Webhook management
+export const getWebhooks = (): Promise<AxiosResponse<ApiResponse<Webhook[]>>> =>
+  api.get('/developer/webhooks');
+
+export const createWebhook = (data: CreateWebhookData): Promise<AxiosResponse<ApiResponse<Webhook>>> =>
+  api.post('/developer/webhooks', data);
+
+export const updateWebhook = (webhookId: number, data: Partial<CreateWebhookData>): Promise<AxiosResponse<ApiResponse<Webhook>>> =>
+  api.put(`/developer/webhooks/${webhookId}`, data);
+
+export const toggleWebhook = (webhookId: number, isActive: boolean): Promise<AxiosResponse<ApiResponse>> =>
+  api.patch(`/developer/webhooks/${webhookId}/toggle`, { is_active: isActive });
+
+export const deleteWebhook = (webhookId: number): Promise<AxiosResponse<ApiResponse>> =>
+  api.delete(`/developer/webhooks/${webhookId}`);
