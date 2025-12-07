@@ -15,6 +15,8 @@ export interface ApiKeyAuthenticatedRequest extends Request {
   };
 }
 
+const ERROR_MESSAGE_MAX_LENGTH = 500;
+
 export const authenticateApiKey: RequestHandler = async (req, res, next) => {
   try {
     // Check for API key in header (X-API-Key or Authorization: Bearer <key>)
@@ -76,11 +78,11 @@ export const authenticateApiKey: RequestHandler = async (req, res, next) => {
       const statusCode = res.statusCode;
       const ipAddress = req.ip || (req.headers['x-forwarded-for'] as string) || (req.connection?.remoteAddress as string);
       const userAgent = req.headers['user-agent'] || null;
-      const requestSize = req.headers['content-length'] ? parseInt(req.headers['content-length'] as string) : null;
+      const requestSize = req.headers['content-length'] ? parseInt(req.headers['content-length'] as string, 10) : null;
       
       // Get response size from Content-Length header if available
       const responseSizeHeader = res.getHeader('content-length');
-      const responseSize = responseSizeHeader ? parseInt(responseSizeHeader.toString()) : null;
+      const responseSize = responseSizeHeader ? parseInt(responseSizeHeader.toString(), 10) : null;
 
       // Log asynchronously (don't block response)
       ApiUsageLog.create({
@@ -94,7 +96,7 @@ export const authenticateApiKey: RequestHandler = async (req, res, next) => {
         response_size: responseSize || undefined,
         ip_address: typeof ipAddress === 'string' ? ipAddress : null,
         user_agent: userAgent || undefined,
-        error_message: statusCode >= 400 ? res.statusMessage?.substring(0, 500) : undefined
+        error_message: statusCode >= 400 ? res.statusMessage?.substring(0, ERROR_MESSAGE_MAX_LENGTH) : undefined
       }).catch(err => {
         console.error('Error logging API usage:', err);
       });
