@@ -650,6 +650,224 @@ const DeveloperDashboard: React.FC = () => {
     </Box>
   );
 
+  const renderUsageLogs = () => (
+    <Box>
+      <Typography variant="h6" gutterBottom>
+        Usage Logs
+      </Typography>
+      <Divider sx={{ my: 2 }} />
+
+      {/* Usage Statistics */}
+      {usageStats && (
+        <Paper sx={{ p: 2, mb: 3, bgcolor: "grey.50" }}>
+          <Typography variant="subtitle1" gutterBottom>
+            Statistics (Last 30 Days)
+          </Typography>
+          <Stack direction="row" spacing={3} flexWrap="wrap">
+            <Box>
+              <Typography variant="body2" color="text.secondary">Total Requests</Typography>
+              <Typography variant="h6">{usageStats.total_requests.toLocaleString()}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="body2" color="text.secondary">Successful</Typography>
+              <Typography variant="h6" color="success.main">{usageStats.successful_requests.toLocaleString()}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="body2" color="text.secondary">Failed</Typography>
+              <Typography variant="h6" color="error.main">{usageStats.failed_requests.toLocaleString()}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="body2" color="text.secondary">Avg Response Time</Typography>
+              <Typography variant="h6">{usageStats.avg_response_time.toFixed(0)}ms</Typography>
+            </Box>
+            <Box>
+              <Typography variant="body2" color="text.secondary">Today</Typography>
+              <Typography variant="h6">{usageStats.total_requests_today.toLocaleString()}</Typography>
+            </Box>
+          </Stack>
+          {usageStats.endpoints.length > 0 && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>Top Endpoints</Typography>
+              <Stack direction="row" spacing={1} flexWrap="wrap">
+                {usageStats.endpoints.map((ep) => (
+                  <Chip key={ep.endpoint} label={`${ep.endpoint}: ${ep.count}`} size="small" />
+                ))}
+              </Stack>
+            </Box>
+          )}
+        </Paper>
+      )}
+
+      {/* API Usage Logs */}
+      <Box sx={{ mb: 4 }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+          <Typography variant="h6">REST API Logs</Typography>
+          <TextField
+            select
+            label="Filter by API Key"
+            value={selectedApiKeyFilter || ""}
+            onChange={(e) => setSelectedApiKeyFilter(e.target.value ? parseInt(e.target.value) : undefined)}
+            size="small"
+            sx={{ minWidth: 200 }}
+            SelectProps={{
+              native: true
+            }}
+          >
+            <option value="">All API Keys</option>
+            {apiKeys.map((key) => (
+              <option key={key.id} value={key.id}>
+                {key.key_name}
+              </option>
+            ))}
+          </TextField>
+        </Box>
+
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Time</TableCell>
+                <TableCell>Endpoint</TableCell>
+                <TableCell>Method</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Response Time</TableCell>
+                <TableCell>IP Address</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {apiUsageLogs.map((log) => (
+                <TableRow key={log.id}>
+                  <TableCell>{new Date(log.created_at).toLocaleString()}</TableCell>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontFamily: "monospace", fontSize: "0.75rem" }}>
+                      {log.endpoint}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={log.method}
+                      size="small"
+                      color={log.method === "GET" ? "default" : "primary"}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={log.status_code}
+                      size="small"
+                      color={
+                        log.status_code >= 200 && log.status_code < 300
+                          ? "success"
+                          : log.status_code >= 400
+                          ? "error"
+                          : "warning"
+                      }
+                    />
+                  </TableCell>
+                  <TableCell>
+                    {log.response_time_ms ? `${log.response_time_ms}ms` : "—"}
+                  </TableCell>
+                  <TableCell>{log.ip_address || "—"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        {apiUsageLogs.length === 0 && !loading && (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: "center" }}>
+            No API usage logs found
+          </Typography>
+        )}
+      </Box>
+
+      {/* Webhook Logs */}
+      <Box>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+          <Typography variant="h6">Webhook Logs</Typography>
+          <TextField
+            select
+            label="Filter by Webhook"
+            value={selectedWebhookFilter || ""}
+            onChange={(e) => setSelectedWebhookFilter(e.target.value ? parseInt(e.target.value) : undefined)}
+            size="small"
+            sx={{ minWidth: 200 }}
+            SelectProps={{
+              native: true
+            }}
+          >
+            <option value="">All Webhooks</option>
+            {webhooks.map((webhook) => (
+              <option key={webhook.id} value={webhook.id}>
+                {webhook.url}
+              </option>
+            ))}
+          </TextField>
+        </Box>
+
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Time</TableCell>
+                <TableCell>Webhook URL</TableCell>
+                <TableCell>Event Type</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Response Code</TableCell>
+                <TableCell>Error</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {webhookLogs.map((log) => (
+                <TableRow key={log.id}>
+                  <TableCell>{new Date(log.created_at).toLocaleString()}</TableCell>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontFamily: "monospace", fontSize: "0.75rem", maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {log.webhook_url}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Chip label={log.event_type} size="small" />
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={log.status}
+                      size="small"
+                      color={
+                        log.status === "SUCCESS"
+                          ? "success"
+                          : log.status === "FAILED"
+                          ? "error"
+                          : "default"
+                      }
+                    />
+                  </TableCell>
+                  <TableCell>{log.response_code || "—"}</TableCell>
+                  <TableCell>
+                    {log.error_message ? (
+                      <Tooltip title={log.error_message}>
+                        <Typography variant="body2" color="error" sx={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {log.error_message}
+                        </Typography>
+                      </Tooltip>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        {webhookLogs.length === 0 && !loading && (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: "center" }}>
+            No webhook logs found
+          </Typography>
+        )}
+      </Box>
+    </Box>
+  );
+
   const renderDocs = () => (
     <Box>
       <Typography variant="h6" gutterBottom>
