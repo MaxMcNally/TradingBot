@@ -75,7 +75,7 @@ export const authenticateApiKey: RequestHandler = async (req, res, next) => {
       const responseTime = Date.now() - startTime;
       const endpoint = req.path;
       const method = req.method;
-      const ipAddress = req.ip || (req.headers['x-forwarded-for'] as string) || (req.connection?.remoteAddress as string);
+      const ipAddress = req.ip || (req.headers['x-forwarded-for'] as string) || (req.socket?.remoteAddress as string);
       const userAgent = req.headers['user-agent'] || null;
       const requestSize = req.headers['content-length'] ? parseInt(req.headers['content-length'] as string) : null;
       let responseSize: number | null = null;
