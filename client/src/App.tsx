@@ -17,8 +17,9 @@ import {
   PrivacyPolicyPage,
   TermsOfServicePage,
   SupportPage,
+  LeaderboardPage,
 } from "./Pages";
-import { AdminRoute } from "./Pages/Admin";
+import { AdminRoute, SubscriptionManagement } from "./Pages/Admin";
 import ThemeProvider from "./providers/ThemeProvider";
 import { QueryProvider } from "./providers/QueryProvider";
 import { useUser } from "./hooks";
@@ -151,6 +152,18 @@ const AppContent: React.FC = () => {
           }
         />
         <Route
+          path="/admin/subscriptions"
+          element={
+            <ProtectedRoute>
+              <MainLayout user={user!} onLogout={logout}>
+                <AdminRoute>
+                  <SubscriptionManagement />
+                </AdminRoute>
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/about"
           element={
             <MainLayout user={user} onLogout={logout}>
@@ -180,6 +193,16 @@ const AppContent: React.FC = () => {
             <MainLayout user={user} onLogout={logout}>
               <SupportPage />
             </MainLayout>
+          }
+        />
+        <Route
+          path="/leaderboard"
+          element={
+            <ProtectedRoute>
+              <MainLayout user={user!} onLogout={logout}>
+                <LeaderboardPage />
+              </MainLayout>
+            </ProtectedRoute>
           }
         />
       </Routes>

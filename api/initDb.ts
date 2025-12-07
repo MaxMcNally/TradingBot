@@ -360,6 +360,26 @@ export const initDatabase = () => {
         )
       `);
 
+      // Subscription tier configurations (admin-managed)
+      await pgPool!.query(`
+        CREATE TABLE IF NOT EXISTS subscription_tiers (
+          id SERIAL PRIMARY KEY,
+          tier TEXT UNIQUE NOT NULL CHECK (tier IN ('FREE', 'BASIC', 'PREMIUM', 'ENTERPRISE')),
+          name TEXT NOT NULL,
+          monthly_price DECIMAL(10, 2) NOT NULL DEFAULT 0,
+          price_cents INTEGER NOT NULL DEFAULT 0,
+          currency TEXT NOT NULL DEFAULT 'USD',
+          headline TEXT,
+          badge TEXT,
+          max_bots INTEGER NOT NULL DEFAULT 5,
+          max_running_bots INTEGER NOT NULL DEFAULT 1,
+          features JSONB DEFAULT '[]'::jsonb,
+          is_active BOOLEAN DEFAULT TRUE,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+
       // Indexes
       await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`);
       await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_settings_user_id ON settings(user_id)`);
@@ -382,9 +402,27 @@ export const initDatabase = () => {
       await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_api_usage_logs_user_id ON api_usage_logs(user_id)`);
       await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_api_usage_logs_created_at ON api_usage_logs(created_at)`);
       await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_api_usage_logs_endpoint ON api_usage_logs(endpoint)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_subscription_tiers_tier ON subscription_tiers(tier)`);
 
       // Ensure is_public column exists (idempotent)
       await pgPool!.query(`ALTER TABLE user_strategies ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE`);
+
+      // Seed default subscription tiers if none exist
+      const { rows: tierRows } = await pgPool!.query(`SELECT COUNT(*)::int as count FROM subscription_tiers`);
+      if (tierRows[0].count === 0) {
+        await pgPool!.query(`
+          INSERT INTO subscription_tiers (tier, name, monthly_price, price_cents, currency, headline, badge, max_bots, max_running_bots, features) VALUES
+          ('FREE', 'Free', 0, 0, 'USD', 'Perfect for getting started with automated trading', NULL, 5, 1, 
+           '["📊 Create up to 5 trading bots", "🤖 Run 1 bot at a time", "📈 Access to basic trading strategies", "🔄 Daily backtest capabilities", "📱 Web dashboard access", "🎓 Community support & tutorials"]'::jsonb),
+          ('BASIC', 'Basic', 9.99, 999, 'USD', 'Ideal for active traders seeking automation', 'Popular', 15, 5, 
+           '["📊 Create up to 15 trading bots", "🤖 Run 5 bots simultaneously", "⚡ Unlimited intraday backtests", "📧 Email alerts & notifications", "📉 Advanced technical indicators", "🔒 Paper trading mode", "📞 Email support (24hr response)"]'::jsonb),
+          ('PREMIUM', 'Premium', 29.99, 2999, 'USD', 'For serious traders who demand the best', NULL, 50, 25, 
+           '["📊 Create up to 50 trading bots", "🤖 Run 25 bots simultaneously", "🚀 Priority data refresh (real-time)", "⚠️ Advanced risk management tools", "📊 Portfolio analytics dashboard", "🔗 API access for custom integrations", "💬 Webhook notifications", "📞 Priority support (4hr response)"]'::jsonb),
+          ('ENTERPRISE', 'Enterprise', 199.99, 19999, 'USD', 'Complete solution for professional trading operations', 'Best Value', -1, -1, 
+           '["📊 Unlimited trading bots", "🤖 Unlimited concurrent bot execution", "🏢 Custom integrations & white-labeling", "👤 Dedicated success manager", "📋 Compliance & audit controls", "🔐 SSO & advanced security", "📊 Custom reporting & analytics", "📞 24/7 priority support with SLA", "🎯 Custom strategy development assistance"]'::jsonb)
+        `);
+        console.log("Default subscription tiers created");
+      }
 
       // Initialize trading tables (will handle its own dialect)
       await TradingDatabase.initializeTables();

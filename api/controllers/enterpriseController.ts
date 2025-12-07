@@ -2,6 +2,8 @@ import { Response } from "express";
 import { ApiKeyAuthenticatedRequest } from "../middleware/apiKeyAuth";
 import { TradingDatabase } from "../../src/database/tradingSchema";
 import { StrategyPerformance } from "../models/StrategyPerformance";
+import { startTradingSession, stopTradingSession } from "./tradingController";
+
 // Get all bots (trading sessions) for the authenticated enterprise user
 export const getBots = async (req: ApiKeyAuthenticatedRequest, res: Response) => {
   try {
@@ -175,23 +177,16 @@ export const startBot = async (req: ApiKeyAuthenticatedRequest, res: Response) =
       winning_trades: 0
     });
 
-    // Actually start the bot and send the webhook event
-    // Call startTradingSession with the required parameters
-    // If startTradingSession expects a request object, construct a minimal one
-    const startTradingReq: any = {
-      apiKey: req.apiKey,
-      body: {
-        mode: mode || 'PAPER',
-        initialCash: initialCash || 10000,
-        symbols,
-        strategy,
-        scheduledEndTime: scheduledEndTime || undefined,
-        sessionId: session.id
+    res.json({
+      success: true,
+      data: {
+        id: session.id,
+        status: session.status,
+        mode: session.mode,
+        start_time: session.start_time,
+        initial_cash: session.initial_cash
       }
-    };
-    await startTradingSession(startTradingReq, res);
-    // Note: startTradingSession should handle the response, so we return here
-    return;
+    });
   } catch (error) {
     console.error("Error starting bot:", error);
     res.status(500).json({ 
@@ -203,11 +198,42 @@ export const startBot = async (req: ApiKeyAuthenticatedRequest, res: Response) =
 
 // Stop a bot
 export const stopBot = async (req: ApiKeyAuthenticatedRequest, res: Response) => {
-  // Adapt the request object to match stopTradingSession expectations
-  // Assume stopTradingSession expects req.params.sessionId
-  req.params.sessionId = req.params.botId;
-  // Delegate to stopTradingSession, which handles DB update and webhook
-  return stopTradingSession(req, res);
+  try {
+    const userId = req.apiKey!.user_id;
+    const botId = parseInt(req.params.botId);
+    
+    if (isNaN(botId)) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Invalid bot ID" 
+      });
+    }
+
+    const session = await TradingDatabase.getTradingSessionById(botId);
+    
+    if (!session || session.user_id !== userId) {
+      return res.status(404).json({ 
+        success: false,
+        error: "Bot not found" 
+      });
+    }
+
+    await TradingDatabase.updateTradingSession(botId, {
+      end_time: new Date().toISOString(),
+      status: 'COMPLETED'
+    });
+
+    res.json({
+      success: true,
+      message: "Bot stopped successfully"
+    });
+  } catch (error) {
+    console.error("Error stopping bot:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Internal server error" 
+    });
+  }
 };
 
 // Get performance metrics
@@ -219,42 +245,33 @@ export const getPerformance = async (req: ApiKeyAuthenticatedRequest, res: Respo
     const performance = await StrategyPerformance.findByUserId(userId, limit);
     
     // Remove PII and format response
-    const metrics = performance.map(perf => {
-      let symbolsParsed;
-      try {
-        symbolsParsed = JSON.parse(perf.symbols);
-      } catch (e) {
-        console.error(`Failed to parse symbols for performance id ${perf.id}:`, e);
-        symbolsParsed = null;
-      }
-      return {
-        id: perf.id,
-        strategy_name: perf.strategy_name,
-        strategy_type: perf.strategy_type,
-        execution_type: perf.execution_type,
-        session_id: perf.session_id,
-        symbols: symbolsParsed,
-        start_date: perf.start_date,
-        end_date: perf.end_date,
-        initial_capital: perf.initial_capital,
-        final_capital: perf.final_capital,
-        total_return: perf.total_return,
-        total_return_dollar: perf.total_return_dollar,
-        max_drawdown: perf.max_drawdown,
-        sharpe_ratio: perf.sharpe_ratio,
-        sortino_ratio: perf.sortino_ratio,
-        win_rate: perf.win_rate,
-        total_trades: perf.total_trades,
-        winning_trades: perf.winning_trades,
-        losing_trades: perf.losing_trades,
-        avg_win: perf.avg_win,
-        avg_loss: perf.avg_loss,
-        profit_factor: perf.profit_factor,
-        largest_win: perf.largest_win,
-        largest_loss: perf.largest_loss,
-        created_at: perf.created_at
-      };
-    });
+    const metrics = performance.map(perf => ({
+      id: perf.id,
+      strategy_name: perf.strategy_name,
+      strategy_type: perf.strategy_type,
+      execution_type: perf.execution_type,
+      session_id: perf.session_id,
+      symbols: JSON.parse(perf.symbols),
+      start_date: perf.start_date,
+      end_date: perf.end_date,
+      initial_capital: perf.initial_capital,
+      final_capital: perf.final_capital,
+      total_return: perf.total_return,
+      total_return_dollar: perf.total_return_dollar,
+      max_drawdown: perf.max_drawdown,
+      sharpe_ratio: perf.sharpe_ratio,
+      sortino_ratio: perf.sortino_ratio,
+      win_rate: perf.win_rate,
+      total_trades: perf.total_trades,
+      winning_trades: perf.winning_trades,
+      losing_trades: perf.losing_trades,
+      avg_win: perf.avg_win,
+      avg_loss: perf.avg_loss,
+      profit_factor: perf.profit_factor,
+      largest_win: perf.largest_win,
+      largest_loss: perf.largest_loss,
+      created_at: perf.created_at
+    }));
 
     res.json({
       success: true,

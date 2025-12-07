@@ -8,7 +8,12 @@ import {
   getUserPerformanceData,
   getPerformanceAnalytics,
   deletePerformanceRecord,
-  getAllUsers
+  getAllUsers,
+  getSubscriptionTiers,
+  getSubscriptionTierByName,
+  updateSubscriptionTier,
+  getSubscriptionStats,
+  updateUserSubscription
 } from '../controllers/adminController';
 
 const router = Router();
@@ -27,5 +32,12 @@ router.delete('/performance/:id', deletePerformanceRecord);
 // User Management Routes
 router.get('/users', getAllUsers);
 router.get('/users/:userId/performance', requireAdminOrOwner, getUserPerformanceData);
+router.put('/users/:userId/subscription', updateUserSubscription);
+
+// Subscription Tier Management Routes
+router.get('/subscriptions/tiers', getSubscriptionTiers);
+router.get('/subscriptions/tiers/:tier', getSubscriptionTierByName);
+router.put('/subscriptions/tiers/:tier', updateSubscriptionTier);
+router.get('/subscriptions/stats', getSubscriptionStats);
 
 export default router;

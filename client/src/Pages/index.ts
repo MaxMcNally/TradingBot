@@ -13,4 +13,4 @@ export { AboutPage } from './About';
 export { PrivacyPolicyPage } from './PrivacyPolicy';
 export { TermsOfServicePage } from './TermsOfService';
 export { SupportPage } from './Support';
-
+export { LeaderboardPage } from './Leaderboard';

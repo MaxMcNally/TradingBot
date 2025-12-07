@@ -1,13 +1,14 @@
 import { Router, Response } from "express";
 import { db } from "../initDb";
 import { AuthenticatedRequest, authenticateToken } from "../middleware/auth";
+import { BOT_LIMITS, getTierLimits, formatLimit, TierLimits } from "../constants";
 
 export const billingRouter = Router();
 
 export type PlanTier = 'FREE' | 'BASIC' | 'PREMIUM' | 'ENTERPRISE';
 export type PaymentProvider = 'STRIPE' | 'PAYPAL' | 'SQUARE';
 
-export const BILLING_PLANS: Array<{
+export interface BillingPlanWithLimits {
   tier: PlanTier;
   name: string;
   monthlyPrice: number;
@@ -16,19 +17,26 @@ export const BILLING_PLANS: Array<{
   headline: string;
   badge?: string;
   features: string[];
-}> = [
+  limits: TierLimits;
+}
+
+export const BILLING_PLANS: BillingPlanWithLimits[] = [
   {
     tier: 'FREE',
     name: 'Free',
     monthlyPrice: 0,
     priceCents: 0,
     currency: 'USD',
-    headline: 'Essential tools to get started',
+    headline: 'Perfect for getting started with automated trading',
     features: [
-      '1 active strategy',
-      'Community indicators',
-      'Backtest once per day'
-    ]
+      `📊 Create up to ${formatLimit(BOT_LIMITS.FREE.maxBots)} trading bots`,
+      `🤖 Run ${formatLimit(BOT_LIMITS.FREE.maxRunningBots)} bot at a time`,
+      '📈 Access to basic trading strategies',
+      '🔄 Daily backtest capabilities',
+      '📱 Web dashboard access',
+      '🎓 Community support & tutorials'
+    ],
+    limits: BOT_LIMITS.FREE
   },
   {
     tier: 'BASIC',
@@ -36,13 +44,18 @@ export const BILLING_PLANS: Array<{
     monthlyPrice: 9.99,
     priceCents: 999,
     currency: 'USD',
-    headline: 'Unlock automation essentials',
+    headline: 'Ideal for active traders seeking automation',
     features: [
-      '5 active strategies',
-      'Intraday backtests',
-      'Email alerts'
+      `📊 Create up to ${formatLimit(BOT_LIMITS.BASIC.maxBots)} trading bots`,
+      `🤖 Run ${formatLimit(BOT_LIMITS.BASIC.maxRunningBots)} bots simultaneously`,
+      '⚡ Unlimited intraday backtests',
+      '📧 Email alerts & notifications',
+      '📉 Advanced technical indicators',
+      '🔒 Paper trading mode',
+      '📞 Email support (24hr response)'
     ],
-    badge: 'Popular'
+    badge: 'Popular',
+    limits: BOT_LIMITS.BASIC
   },
   {
     tier: 'PREMIUM',
@@ -50,12 +63,18 @@ export const BILLING_PLANS: Array<{
     monthlyPrice: 29.99,
     priceCents: 2999,
     currency: 'USD',
-    headline: 'Advanced analytics & execution',
+    headline: 'For serious traders who demand the best',
     features: [
-      'Unlimited strategies',
-      'Priority data refresh',
-      'Advanced risk tooling'
-    ]
+      `📊 Create up to ${formatLimit(BOT_LIMITS.PREMIUM.maxBots)} trading bots`,
+      `🤖 Run ${formatLimit(BOT_LIMITS.PREMIUM.maxRunningBots)} bots simultaneously`,
+      '🚀 Priority data refresh (real-time)',
+      '⚠️ Advanced risk management tools',
+      '📊 Portfolio analytics dashboard',
+      '🔗 API access for custom integrations',
+      '💬 Webhook notifications',
+      '📞 Priority support (4hr response)'
+    ],
+    limits: BOT_LIMITS.PREMIUM
   },
   {
     tier: 'ENTERPRISE',
@@ -63,13 +82,20 @@ export const BILLING_PLANS: Array<{
     monthlyPrice: 199.99,
     priceCents: 19999,
     currency: 'USD',
-    headline: 'Dedicated support & SLAs',
+    headline: 'Complete solution for professional trading operations',
     features: [
-      'Custom integrations',
-      'Dedicated success manager',
-      'Audit controls'
+      `📊 ${formatLimit(BOT_LIMITS.ENTERPRISE.maxBots)} trading bots`,
+      `🤖 ${formatLimit(BOT_LIMITS.ENTERPRISE.maxRunningBots)} concurrent bot execution`,
+      '🏢 Custom integrations & white-labeling',
+      '👤 Dedicated success manager',
+      '📋 Compliance & audit controls',
+      '🔐 SSO & advanced security',
+      '📊 Custom reporting & analytics',
+      '📞 24/7 priority support with SLA',
+      '🎯 Custom strategy development assistance'
     ],
-    badge: 'Best Value'
+    badge: 'Best Value',
+    limits: BOT_LIMITS.ENTERPRISE
   }
 ];
 
@@ -88,8 +114,78 @@ billingRouter.get('/plans', (_req, res) => {
   return res.json({
     success: true,
     plans: BILLING_PLANS,
-    providers: PROVIDERS
+    providers: PROVIDERS,
+    allLimits: BOT_LIMITS
   });
+});
+
+// Get the current user's tier limits and usage
+billingRouter.get('/limits', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ error: 'User not authenticated' });
+  }
+
+  try {
+    // Get user's current plan tier
+    const userRow = await new Promise<any>((resolve, reject) => {
+      db.get('SELECT plan_tier FROM users WHERE id = $1', [userId], (err: any, row: any) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+
+    if (!userRow) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const planTier = (userRow.plan_tier || 'FREE') as PlanTier;
+    const limits = getTierLimits(planTier);
+
+    // Count total bots/strategies for this user
+    const botCountRow = await new Promise<any>((resolve, reject) => {
+      db.get(
+        'SELECT COUNT(*) as count FROM user_strategies WHERE user_id = $1',
+        [userId],
+        (err: any, row: any) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+
+    // Count active trading sessions for this user
+    const activeSessionsRow = await new Promise<any>((resolve, reject) => {
+      db.get(
+        "SELECT COUNT(*) as count FROM trading_sessions WHERE user_id = $1 AND status = 'ACTIVE'",
+        [userId],
+        (err: any, row: any) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+
+    const totalBots = botCountRow?.count || 0;
+    const runningBots = activeSessionsRow?.count || 0;
+
+    return res.json({
+      success: true,
+      planTier,
+      limits,
+      usage: {
+        totalBots,
+        runningBots
+      },
+      canCreateBot: limits.maxBots === -1 || totalBots < limits.maxBots,
+      canRunBot: limits.maxRunningBots === -1 || runningBots < limits.maxRunningBots,
+      botsRemaining: limits.maxBots === -1 ? -1 : Math.max(0, limits.maxBots - totalBots),
+      runningBotsRemaining: limits.maxRunningBots === -1 ? -1 : Math.max(0, limits.maxRunningBots - runningBots)
+    });
+  } catch (error) {
+    console.error('Error fetching user limits:', error);
+    return res.status(500).json({ error: 'Failed to fetch user limits' });
+  }
 });
 
 billingRouter.get('/subscription', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
@@ -127,6 +223,7 @@ billingRouter.get('/subscription', authenticateToken, (req: AuthenticatedRequest
             return res.status(500).json({ error: 'Failed to load subscription history' });
           }
 
+          const tierLimits = getTierLimits(row.plan_tier);
           return res.json({
             success: true,
             subscription: {
@@ -136,7 +233,8 @@ billingRouter.get('/subscription', authenticateToken, (req: AuthenticatedRequest
               paymentReference: row.subscription_payment_reference,
               startedAt: row.subscription_started_at,
               renewsAt: row.subscription_renews_at,
-              cancelAt: row.subscription_cancel_at
+              cancelAt: row.subscription_cancel_at,
+              limits: tierLimits
             },
             history: historyRows || []
           });

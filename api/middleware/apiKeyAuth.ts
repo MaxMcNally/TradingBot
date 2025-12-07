@@ -1,4 +1,4 @@
-import { Request, RequestHandler } from "express";
+import { Request, Response, RequestHandler } from "express";
 import { ApiKey } from "../models/ApiKey";
 import { User } from "../models/User";
 import { ApiUsageLog } from "../models/ApiUsageLog";
@@ -14,8 +14,6 @@ export interface ApiKeyAuthenticatedRequest extends Request {
     plan_tier?: string;
   };
 }
-
-const ERROR_MESSAGE_MAX_LENGTH = 500;
 
 export const authenticateApiKey: RequestHandler = async (req, res, next) => {
   try {
@@ -49,11 +47,7 @@ export const authenticateApiKey: RequestHandler = async (req, res, next) => {
     }
 
     // Update last used timestamp
-    try {
-      await ApiKey.updateLastUsed(keyData.id!);
-    } catch (err) {
-      console.error('Failed to update last_used:', err);
-    }
+    await ApiKey.updateLastUsed(keyData.id!);
 
     // Attach API key info to request
     (req as ApiKeyAuthenticatedRequest).apiKey = {
@@ -68,21 +62,27 @@ export const authenticateApiKey: RequestHandler = async (req, res, next) => {
       plan_tier: user.plan_tier
     };
 
-    // Log API usage using finish event (async, don't block)
+    // Log API usage (async, don't block)
     const startTime = Date.now();
+    const originalSend = res.send.bind(res);
+    const originalJson = res.json.bind(res);
     
-    res.on('finish', () => {
+    const logUsage = (statusCode: number, body: any) => {
       const responseTime = Date.now() - startTime;
       const endpoint = req.path;
       const method = req.method;
-      const statusCode = res.statusCode;
-      const ipAddress = req.ip || (req.headers['x-forwarded-for'] as string) || (req.socket?.remoteAddress as string);
+      const ipAddress = req.ip || (req.headers['x-forwarded-for'] as string) || (req.connection?.remoteAddress as string);
       const userAgent = req.headers['user-agent'] || null;
-      const requestSize = req.headers['content-length'] ? parseInt(req.headers['content-length'] as string, 10) : null;
+      const requestSize = req.headers['content-length'] ? parseInt(req.headers['content-length'] as string) : null;
+      let responseSize: number | null = null;
       
-      // Get response size from Content-Length header if available
-      const responseSizeHeader = res.getHeader('content-length');
-      const responseSize = responseSizeHeader ? parseInt(responseSizeHeader.toString(), 10) : null;
+      if (body) {
+        try {
+          responseSize = typeof body === 'string' ? body.length : JSON.stringify(body).length;
+        } catch {
+          responseSize = null;
+        }
+      }
 
       // Log asynchronously (don't block response)
       ApiUsageLog.create({
@@ -96,11 +96,21 @@ export const authenticateApiKey: RequestHandler = async (req, res, next) => {
         response_size: responseSize || undefined,
         ip_address: typeof ipAddress === 'string' ? ipAddress : null,
         user_agent: userAgent || undefined,
-        error_message: statusCode >= 400 ? res.statusMessage?.substring(0, ERROR_MESSAGE_MAX_LENGTH) : undefined
+        error_message: statusCode >= 400 ? (typeof body === 'string' ? body.substring(0, 500) : (body?.error || JSON.stringify(body).substring(0, 500))) : undefined
       }).catch(err => {
         console.error('Error logging API usage:', err);
       });
-    });
+    };
+    
+    res.send = function(body: any) {
+      logUsage(res.statusCode, body);
+      return originalSend(body);
+    };
+
+    res.json = function(body: any) {
+      logUsage(res.statusCode, body);
+      return originalJson(body);
+    };
 
     next();
   } catch (error) {

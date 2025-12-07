@@ -1,5 +1,55 @@
 import { Request, Response } from "express";
 import Strategy, { CreateStrategyData, UpdateStrategyData } from "../models/Strategy";
+import { db } from "../initDb";
+import { getTierLimits, PlanTier } from "../constants";
+
+// Helper to get user's plan tier
+const getUserPlanTier = async (userId: number): Promise<PlanTier> => {
+  return new Promise((resolve, reject) => {
+    db.get('SELECT plan_tier FROM users WHERE id = $1', [userId], (err: any, row: any) => {
+      if (err) reject(err);
+      else resolve((row?.plan_tier || 'FREE') as PlanTier);
+    });
+  });
+};
+
+// Helper to count user's strategies
+const countUserStrategies = async (userId: number): Promise<number> => {
+  return new Promise((resolve, reject) => {
+    db.get(
+      'SELECT COUNT(*) as count FROM user_strategies WHERE user_id = $1',
+      [userId],
+      (err: any, row: any) => {
+        if (err) reject(err);
+        else resolve(row?.count || 0);
+      }
+    );
+  });
+};
+
+// Check if user can create a new bot
+const canUserCreateBot = async (userId: number): Promise<{ allowed: boolean; reason?: string; currentCount: number; maxAllowed: number; planTier: PlanTier }> => {
+  const planTier = await getUserPlanTier(userId);
+  const limits = getTierLimits(planTier);
+  const currentCount = await countUserStrategies(userId);
+  
+  if (limits.maxBots !== -1 && currentCount >= limits.maxBots) {
+    return {
+      allowed: false,
+      reason: `You have reached the maximum number of bots (${limits.maxBots}) for your ${limits.displayName} plan. Upgrade to create more bots.`,
+      currentCount,
+      maxAllowed: limits.maxBots,
+      planTier
+    };
+  }
+  
+  return {
+    allowed: true,
+    currentCount,
+    maxAllowed: limits.maxBots,
+    planTier
+  };
+};
 
 export const createStrategy = async (req: Request, res: Response) => {
   try {
@@ -7,6 +57,20 @@ export const createStrategy = async (req: Request, res: Response) => {
     
     if (isNaN(userId)) {
       return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    // Check if user can create more bots based on their plan limits
+    const limitCheck = await canUserCreateBot(userId);
+    if (!limitCheck.allowed) {
+      return res.status(403).json({
+        message: limitCheck.reason,
+        error: 'BOT_LIMIT_EXCEEDED',
+        limitInfo: {
+          currentCount: limitCheck.currentCount,
+          maxAllowed: limitCheck.maxAllowed,
+          planTier: limitCheck.planTier
+        }
+      });
     }
 
     const { name, description, strategy_type, config, backtest_results, is_public = false } = req.body;
@@ -41,7 +105,12 @@ export const createStrategy = async (req: Request, res: Response) => {
 
     res.status(201).json({
       message: "Strategy created successfully",
-      strategy: parsedStrategy
+      strategy: parsedStrategy,
+      limitInfo: {
+        currentCount: limitCheck.currentCount + 1,
+        maxAllowed: limitCheck.maxAllowed,
+        planTier: limitCheck.planTier
+      }
     });
   } catch (error) {
     console.error("Error creating strategy:", error);
@@ -204,6 +273,20 @@ export const saveStrategyFromBacktest = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid user ID" });
     }
 
+    // Check if user can create more bots based on their plan limits
+    const limitCheck = await canUserCreateBot(userId);
+    if (!limitCheck.allowed) {
+      return res.status(403).json({
+        message: limitCheck.reason,
+        error: 'BOT_LIMIT_EXCEEDED',
+        limitInfo: {
+          currentCount: limitCheck.currentCount,
+          maxAllowed: limitCheck.maxAllowed,
+          planTier: limitCheck.planTier
+        }
+      });
+    }
+
     const { 
       name, 
       description, 
@@ -243,7 +326,12 @@ export const saveStrategyFromBacktest = async (req: Request, res: Response) => {
 
     res.status(201).json({
       message: "Strategy saved from backtest successfully",
-      strategy: parsedStrategy
+      strategy: parsedStrategy,
+      limitInfo: {
+        currentCount: limitCheck.currentCount + 1,
+        maxAllowed: limitCheck.maxAllowed,
+        planTier: limitCheck.planTier
+      }
     });
   } catch (error) {
     console.error("Error saving strategy from backtest:", error);
@@ -298,6 +386,20 @@ export const copyPublicStrategy = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid user ID" });
     }
 
+    // Check if user can create more bots based on their plan limits
+    const limitCheck = await canUserCreateBot(userId);
+    if (!limitCheck.allowed) {
+      return res.status(403).json({
+        message: limitCheck.reason,
+        error: 'BOT_LIMIT_EXCEEDED',
+        limitInfo: {
+          currentCount: limitCheck.currentCount,
+          maxAllowed: limitCheck.maxAllowed,
+          planTier: limitCheck.planTier
+        }
+      });
+    }
+
     if (!strategyId) {
       return res.status(400).json({ message: "Strategy ID is required" });
     }
@@ -339,7 +441,12 @@ export const copyPublicStrategy = async (req: Request, res: Response) => {
 
     res.status(201).json({
       message: "Strategy copied successfully",
-      strategy: parsedStrategy
+      strategy: parsedStrategy,
+      limitInfo: {
+        currentCount: limitCheck.currentCount + 1,
+        maxAllowed: limitCheck.maxAllowed,
+        planTier: limitCheck.planTier
+      }
     });
   } catch (error) {
     console.error("Error copying public strategy:", error);

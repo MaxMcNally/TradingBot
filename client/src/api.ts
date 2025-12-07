@@ -113,6 +113,12 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface TierLimits {
+  maxBots: number;
+  maxRunningBots: number;
+  displayName: string;
+}
+
 export interface BillingPlan {
   tier: PlanTier;
   name: string;
@@ -122,6 +128,7 @@ export interface BillingPlan {
   headline: string;
   features: string[];
   badge?: string;
+  limits: TierLimits;
 }
 
 export interface SubscriptionDetails {
@@ -132,6 +139,31 @@ export interface SubscriptionDetails {
   startedAt?: string | null;
   renewsAt?: string | null;
   cancelAt?: string | null;
+  limits?: TierLimits;
+}
+
+export interface UserLimitsResponse {
+  success: boolean;
+  planTier: PlanTier;
+  limits: TierLimits;
+  usage: {
+    totalBots: number;
+    runningBots: number;
+  };
+  canCreateBot: boolean;
+  canRunBot: boolean;
+  botsRemaining: number;
+  runningBotsRemaining: number;
+}
+
+export interface LimitExceededError {
+  message: string;
+  error: 'BOT_LIMIT_EXCEEDED' | 'RUNNING_BOT_LIMIT_EXCEEDED';
+  limitInfo: {
+    currentCount: number;
+    maxAllowed: number;
+    planTier: PlanTier;
+  };
 }
 
 export interface SubscriptionHistoryEntry {
@@ -320,6 +352,9 @@ export const getSubscriptionDetails = (): Promise<AxiosResponse<{ success: boole
 
 export const updateSubscription = (data: { action: 'CANCEL' | 'SWITCH'; planTier?: PlanTier }): Promise<AxiosResponse<ApiResponse<{ subscription: SubscriptionDetails }>>> =>
   api.put('/billing/subscription', data);
+
+export const getUserLimits = (): Promise<AxiosResponse<UserLimitsResponse>> =>
+  api.get('/billing/limits');
 
 // Settings API
 export const getSettings = (user_id: string): Promise<AxiosResponse<Setting[]>> => 
@@ -622,3 +657,82 @@ export const getApiUsageStats = (days?: number): Promise<AxiosResponse<ApiRespon
 
 export const getWebhookLogs = (params?: { limit?: number; webhookId?: number }): Promise<AxiosResponse<ApiResponse<WebhookLog[]>>> =>
   api.get('/developer/webhook-logs', { params });
+
+// ========== Admin APIs ==========
+
+export interface AdminSubscriptionTier {
+  id: number;
+  tier: PlanTier;
+  name: string;
+  monthly_price: number;
+  price_cents: number;
+  currency: string;
+  headline?: string;
+  badge?: string;
+  max_bots: number;
+  max_running_bots: number;
+  features: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UpdateSubscriptionTierData {
+  name?: string;
+  monthly_price?: number;
+  price_cents?: number;
+  currency?: string;
+  headline?: string;
+  badge?: string | null;
+  max_bots?: number;
+  max_running_bots?: number;
+  features?: string[];
+  is_active?: boolean;
+}
+
+export interface AdminUser {
+  id: number;
+  username: string;
+  email?: string;
+  role: 'USER' | 'ADMIN';
+  plan_tier: PlanTier;
+  plan_status: PlanStatus;
+  subscription_provider: SubscriptionProvider;
+  subscription_renews_at?: string | null;
+  created_at: string;
+  bot_count: number;
+}
+
+export interface SubscriptionStats {
+  tiers: (AdminSubscriptionTier & { userCount: number })[];
+  summary: {
+    totalUsers: number;
+    paidUsers: number;
+    freeUsers: number;
+    monthlyRevenueCents: number;
+    monthlyRevenue: number;
+    totalBots: number;
+    activeSessions: number;
+  };
+  tierBreakdown: Array<{ plan_tier: PlanTier; count: number }>;
+}
+
+// Admin - Subscription Tier Management
+export const getAdminSubscriptionTiers = (): Promise<AxiosResponse<ApiResponse<{ tiers: AdminSubscriptionTier[] }>>> =>
+  api.get('/admin/subscriptions/tiers');
+
+export const getAdminSubscriptionTier = (tier: string): Promise<AxiosResponse<ApiResponse<{ tier: AdminSubscriptionTier; userCount: number }>>> =>
+  api.get(`/admin/subscriptions/tiers/${tier}`);
+
+export const updateAdminSubscriptionTier = (tier: string, data: UpdateSubscriptionTierData): Promise<AxiosResponse<ApiResponse<{ tier: AdminSubscriptionTier }>>> =>
+  api.put(`/admin/subscriptions/tiers/${tier}`, data);
+
+export const getAdminSubscriptionStats = (): Promise<AxiosResponse<ApiResponse<SubscriptionStats>>> =>
+  api.get('/admin/subscriptions/stats');
+
+// Admin - User Management
+export const getAdminUsers = (): Promise<AxiosResponse<ApiResponse<{ users: AdminUser[]; total: number }>>> =>
+  api.get('/admin/users');
+
+export const updateAdminUserSubscription = (userId: number, data: { planTier: PlanTier; planStatus?: PlanStatus }): Promise<AxiosResponse<ApiResponse<{ user: AdminUser }>>> =>
+  api.put(`/admin/users/${userId}/subscription`, data);
