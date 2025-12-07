@@ -36,8 +36,9 @@ import {
   Person as PersonIcon,
   Visibility as ViewIcon
 } from '@mui/icons-material';
-import { usePublicStrategies, useUser } from '../../hooks';
+import { usePublicStrategies, useUser, useSubscription } from '../../hooks';
 import { UserStrategy, copyPublicStrategy } from '../../api';
+import { MarketplaceGate } from '../../components/shared';
 
 interface StrategyDetailsDialogProps {
   open: boolean;
@@ -289,6 +290,30 @@ const StrategiesMarketplace: React.FC = () => {
   } = usePublicStrategies();
 
   const { user } = useUser();
+  const { subscription } = useSubscription({ enabled: Boolean(user) });
+
+  // Check if user is on FREE tier
+  const currentTier = subscription?.planTier || user?.plan_tier || 'FREE';
+  const isFreeTier = currentTier === 'FREE';
+
+  // Show upsell gate for free users
+  if (isFreeTier) {
+    return (
+      <Box p={3}>
+        <Box mb={4} textAlign="center">
+          <Typography variant="h4" gutterBottom>
+            <PublicIcon sx={{ mr: 2, verticalAlign: 'middle', color: 'primary.main' }} />
+            Strategies Marketplace
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Discover and copy trading strategies from the community
+          </Typography>
+        </Box>
+        
+        <MarketplaceGate currentTier={currentTier as any} />
+      </Box>
+    );
+  }
 
   const filteredAndSortedStrategies = useMemo(() => {
     let filtered = publicStrategies;
