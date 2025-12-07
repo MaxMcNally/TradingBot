@@ -1,0 +1,519 @@
+import { Request, Response } from 'express';
+import { db, isPostgres } from '../initDb';
+import { encrypt, decrypt, maskSensitiveData } from '../utils/encryption';
+import { AlpacaService, createAlpacaService, validateCredentials, AlpacaCredentials } from '../services/alpacaService';
+import { AuthenticatedRequest } from '../middleware/auth';
+
+// Environment check
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const IS_PRODUCTION = NODE_ENV === 'production';
+
+// Store active Alpaca connections in memory (per user)
+const activeConnections: Map<number, AlpacaService> = new Map();
+
+/**
+ * Get or create an Alpaca service for a user
+ */
+const getAlpacaServiceForUser = async (userId: number): Promise<AlpacaService | null> => {
+  // Check if there's already an active connection
+  if (activeConnections.has(userId)) {
+    return activeConnections.get(userId)!;
+  }
+
+  // Try to load credentials from database
+  const credentials = await getStoredCredentials(userId);
+  if (!credentials) {
+    return null;
+  }
+
+  // Create and cache the service
+  const service = createAlpacaService(credentials);
+  activeConnections.set(userId, service);
+  return service;
+};
+
+/**
+ * Get stored credentials from database
+ */
+const getStoredCredentials = (userId: number): Promise<AlpacaCredentials | null> => {
+  return new Promise((resolve, reject) => {
+    const query = isPostgres
+      ? `SELECT key, value FROM settings WHERE user_id = $1 AND key IN ('alpaca_api_key', 'alpaca_api_secret', 'alpaca_is_paper')`
+      : `SELECT key, value FROM settings WHERE user_id = ? AND key IN ('alpaca_api_key', 'alpaca_api_secret', 'alpaca_is_paper')`;
+
+    db.all(query, [userId], (err: any, rows: any[]) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      if (!rows || rows.length === 0) {
+        resolve(null);
+        return;
+      }
+
+      const settings: Record<string, string> = {};
+      rows.forEach((row: any) => {
+        settings[row.key] = row.value;
+      });
+
+      if (!settings.alpaca_api_key || !settings.alpaca_api_secret) {
+        resolve(null);
+        return;
+      }
+
+      try {
+        const credentials: AlpacaCredentials = {
+          apiKey: decrypt(settings.alpaca_api_key),
+          apiSecret: decrypt(settings.alpaca_api_secret),
+          // Force paper trading in non-production regardless of stored value
+          isPaper: IS_PRODUCTION ? settings.alpaca_is_paper !== 'false' : true,
+        };
+        resolve(credentials);
+      } catch (error) {
+        console.error('Error decrypting Alpaca credentials:', error);
+        resolve(null);
+      }
+    });
+  });
+};
+
+/**
+ * Save Alpaca credentials to database
+ */
+const saveCredentials = (
+  userId: number,
+  apiKey: string,
+  apiSecret: string,
+  isPaper: boolean
+): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const encryptedKey = encrypt(apiKey);
+    const encryptedSecret = encrypt(apiSecret);
+    // Force paper in non-production
+    const actualIsPaper = IS_PRODUCTION ? isPaper : true;
+
+    const settings = [
+      { key: 'alpaca_api_key', value: encryptedKey },
+      { key: 'alpaca_api_secret', value: encryptedSecret },
+      { key: 'alpaca_is_paper', value: actualIsPaper.toString() },
+      { key: 'alpaca_connected_at', value: new Date().toISOString() },
+    ];
+
+    const upsertQuery = isPostgres
+      ? `INSERT INTO settings (user_id, key, value) VALUES ($1, $2, $3)
+         ON CONFLICT(user_id, key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`
+      : `INSERT INTO settings (user_id, key, value) VALUES (?, ?, ?)
+         ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP`;
+
+    let completed = 0;
+    const total = settings.length;
+    let hasError = false;
+
+    settings.forEach((setting) => {
+      db.run(upsertQuery, [userId, setting.key, setting.value], (err: any) => {
+        if (err && !hasError) {
+          hasError = true;
+          reject(err);
+          return;
+        }
+        completed++;
+        if (completed === total && !hasError) {
+          resolve();
+        }
+      });
+    });
+  });
+};
+
+/**
+ * Delete Alpaca credentials from database
+ */
+const deleteCredentials = (userId: number): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const query = isPostgres
+      ? `DELETE FROM settings WHERE user_id = $1 AND key LIKE 'alpaca_%'`
+      : `DELETE FROM settings WHERE user_id = ? AND key LIKE 'alpaca_%'`;
+
+    db.run(query, [userId], (err: any) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      // Remove from active connections
+      activeConnections.delete(userId);
+      resolve();
+    });
+  });
+};
+
+/**
+ * Connect Alpaca account (save credentials and test connection)
+ */
+export const connectAlpaca = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { apiKey, apiSecret, isPaper } = req.body;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    // Validate credentials format
+    const validation = validateCredentials(apiKey, apiSecret);
+    if (!validation.valid) {
+      return res.status(400).json({ 
+        error: 'Invalid credentials format',
+        details: validation.errors 
+      });
+    }
+
+    // Force paper trading in non-production environments
+    const actualIsPaper = IS_PRODUCTION ? isPaper !== false : true;
+
+    if (!IS_PRODUCTION && isPaper === false) {
+      console.log(`⚠️ User ${userId} attempted to enable live trading in ${NODE_ENV} environment. Forcing paper mode.`);
+    }
+
+    // Test the connection first
+    const credentials: AlpacaCredentials = {
+      apiKey,
+      apiSecret,
+      isPaper: actualIsPaper,
+    };
+
+    const service = createAlpacaService(credentials);
+    const testResult = await service.testConnection();
+
+    if (!testResult.success) {
+      return res.status(400).json({
+        error: 'Failed to connect to Alpaca',
+        details: testResult.error,
+      });
+    }
+
+    // Save encrypted credentials
+    await saveCredentials(userId, apiKey, apiSecret, actualIsPaper);
+
+    // Cache the service
+    activeConnections.set(userId, service);
+
+    res.json({
+      success: true,
+      message: 'Alpaca account connected successfully',
+      account: {
+        id: testResult.account?.id,
+        status: testResult.account?.status,
+        currency: testResult.account?.currency,
+        buyingPower: testResult.account?.buying_power,
+        portfolioValue: testResult.account?.portfolio_value,
+        cash: testResult.account?.cash,
+      },
+      tradingMode: service.getTradingMode(),
+      environment: NODE_ENV,
+    });
+  } catch (error) {
+    console.error('Error connecting Alpaca:', error);
+    res.status(500).json({ error: 'Failed to connect Alpaca account' });
+  }
+};
+
+/**
+ * Disconnect Alpaca account (remove credentials)
+ */
+export const disconnectAlpaca = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    await deleteCredentials(userId);
+
+    res.json({
+      success: true,
+      message: 'Alpaca account disconnected successfully',
+    });
+  } catch (error) {
+    console.error('Error disconnecting Alpaca:', error);
+    res.status(500).json({ error: 'Failed to disconnect Alpaca account' });
+  }
+};
+
+/**
+ * Get Alpaca connection status
+ */
+export const getAlpacaStatus = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const credentials = await getStoredCredentials(userId);
+
+    if (!credentials) {
+      return res.json({
+        connected: false,
+        tradingMode: null,
+        environment: NODE_ENV,
+      });
+    }
+
+    // Get or create service and test connection
+    const service = await getAlpacaServiceForUser(userId);
+    if (!service) {
+      return res.json({
+        connected: false,
+        tradingMode: null,
+        environment: NODE_ENV,
+      });
+    }
+
+    const testResult = await service.testConnection();
+
+    res.json({
+      connected: testResult.success,
+      tradingMode: service.getTradingMode(),
+      environment: NODE_ENV,
+      account: testResult.success ? {
+        id: testResult.account?.id,
+        status: testResult.account?.status,
+        currency: testResult.account?.currency,
+        buyingPower: testResult.account?.buying_power,
+        portfolioValue: testResult.account?.portfolio_value,
+        cash: testResult.account?.cash,
+        equity: testResult.account?.equity,
+        tradingBlocked: testResult.account?.trading_blocked,
+        accountBlocked: testResult.account?.account_blocked,
+      } : null,
+      error: testResult.error,
+      maskedApiKey: maskSensitiveData(credentials.apiKey),
+    });
+  } catch (error) {
+    console.error('Error getting Alpaca status:', error);
+    res.status(500).json({ error: 'Failed to get Alpaca status' });
+  }
+};
+
+/**
+ * Get Alpaca account information
+ */
+export const getAlpacaAccount = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const service = await getAlpacaServiceForUser(userId);
+    if (!service) {
+      return res.status(400).json({ error: 'Alpaca account not connected' });
+    }
+
+    const account = await service.getAccount();
+    res.json({ account });
+  } catch (error) {
+    console.error('Error getting Alpaca account:', error);
+    res.status(500).json({ error: 'Failed to get Alpaca account' });
+  }
+};
+
+/**
+ * Get Alpaca positions
+ */
+export const getAlpacaPositions = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const service = await getAlpacaServiceForUser(userId);
+    if (!service) {
+      return res.status(400).json({ error: 'Alpaca account not connected' });
+    }
+
+    const positions = await service.getPositions();
+    res.json({ positions });
+  } catch (error) {
+    console.error('Error getting Alpaca positions:', error);
+    res.status(500).json({ error: 'Failed to get Alpaca positions' });
+  }
+};
+
+/**
+ * Get Alpaca orders
+ */
+export const getAlpacaOrders = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { status, limit } = req.query;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const service = await getAlpacaServiceForUser(userId);
+    if (!service) {
+      return res.status(400).json({ error: 'Alpaca account not connected' });
+    }
+
+    const orders = await service.getOrders(
+      status as 'open' | 'closed' | 'all' | undefined,
+      limit ? parseInt(limit as string) : undefined
+    );
+    res.json({ orders });
+  } catch (error) {
+    console.error('Error getting Alpaca orders:', error);
+    res.status(500).json({ error: 'Failed to get Alpaca orders' });
+  }
+};
+
+/**
+ * Submit an order to Alpaca
+ */
+export const submitAlpacaOrder = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { symbol, qty, side, type, time_in_force, limit_price, stop_price } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    // Validate required fields
+    if (!symbol || !qty || !side || !type || !time_in_force) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: symbol, qty, side, type, time_in_force' 
+      });
+    }
+
+    const service = await getAlpacaServiceForUser(userId);
+    if (!service) {
+      return res.status(400).json({ error: 'Alpaca account not connected' });
+    }
+
+    // Log the order for audit purposes
+    console.log(`📊 Alpaca order submitted by user ${userId}: ${side} ${qty} ${symbol} (${service.getTradingMode()} mode)`);
+
+    const order = await service.submitOrder({
+      symbol,
+      qty: parseFloat(qty),
+      side,
+      type,
+      time_in_force,
+      limit_price: limit_price ? parseFloat(limit_price) : undefined,
+      stop_price: stop_price ? parseFloat(stop_price) : undefined,
+    });
+
+    res.json({
+      success: true,
+      order,
+      tradingMode: service.getTradingMode(),
+    });
+  } catch (error: any) {
+    console.error('Error submitting Alpaca order:', error);
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to submit order';
+    res.status(500).json({ error: errorMessage });
+  }
+};
+
+/**
+ * Cancel an Alpaca order
+ */
+export const cancelAlpacaOrder = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { orderId } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    if (!orderId) {
+      return res.status(400).json({ error: 'Order ID is required' });
+    }
+
+    const service = await getAlpacaServiceForUser(userId);
+    if (!service) {
+      return res.status(400).json({ error: 'Alpaca account not connected' });
+    }
+
+    await service.cancelOrder(orderId);
+
+    res.json({
+      success: true,
+      message: 'Order cancelled successfully',
+    });
+  } catch (error) {
+    console.error('Error cancelling Alpaca order:', error);
+    res.status(500).json({ error: 'Failed to cancel order' });
+  }
+};
+
+/**
+ * Get market status (clock)
+ */
+export const getMarketClock = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const service = await getAlpacaServiceForUser(userId);
+    if (!service) {
+      return res.status(400).json({ error: 'Alpaca account not connected' });
+    }
+
+    const clock = await service.getClock();
+    res.json({ clock });
+  } catch (error) {
+    console.error('Error getting market clock:', error);
+    res.status(500).json({ error: 'Failed to get market clock' });
+  }
+};
+
+/**
+ * Close a position
+ */
+export const closeAlpacaPosition = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { symbol } = req.params;
+    const { qty, percentage } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    if (!symbol) {
+      return res.status(400).json({ error: 'Symbol is required' });
+    }
+
+    const service = await getAlpacaServiceForUser(userId);
+    if (!service) {
+      return res.status(400).json({ error: 'Alpaca account not connected' });
+    }
+
+    const order = await service.closePosition(
+      symbol,
+      qty ? parseFloat(qty) : undefined,
+      percentage ? parseFloat(percentage) : undefined
+    );
+
+    res.json({
+      success: true,
+      order,
+    });
+  } catch (error) {
+    console.error('Error closing position:', error);
+    res.status(500).json({ error: 'Failed to close position' });
+  }
+};

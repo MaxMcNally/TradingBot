@@ -9,6 +9,7 @@ import { MovingAverageStrategy } from '../strategies/movingAverage';
 import { MeanReversionStrategy } from '../strategies/meanReversionStrategy';
 import { MomentumStrategy } from '../strategies/momentumStrategy';
 import { BollingerBandsStrategy } from '../strategies/bollingerBandsStrategy';
+import { AlpacaBroker, AlpacaCredentials, BrokerTradeResult } from './AlpacaBroker';
 
 export interface BotStatus {
   isRunning: boolean;
@@ -26,6 +27,7 @@ export interface BotEvents {
   'error': (error: Error) => void;
   'session-started': (session: TradingSession) => void;
   'session-ended': (session: TradingSession) => void;
+  'alpaca-order': (result: BrokerTradeResult) => void;
 }
 
 export class TradingBot extends EventEmitter {
@@ -45,6 +47,10 @@ export class TradingBot extends EventEmitter {
   private dailyPnL: number = 0;
   private sessionStartValue: number = 0;
   private lastTradeDate: string = '';
+  
+  // Alpaca broker integration (optional)
+  private alpacaBroker: AlpacaBroker | null = null;
+  private useAlpacaBroker: boolean = false;
 
   constructor(config: TradingConfig, provider: DataProvider, userId: number) {
     super();
@@ -312,6 +318,32 @@ export class TradingBot extends EventEmitter {
       const tradingConfig = this.config.getConfig();
       const quantity = 1; // Fixed quantity for now
 
+      // Execute on Alpaca broker if connected
+      let alpacaResult: BrokerTradeResult | null = null;
+      if (this.useAlpacaBroker && this.alpacaBroker && this.alpacaBroker.isReady()) {
+        try {
+          if (signal === "BUY") {
+            alpacaResult = await this.alpacaBroker.marketBuy(symbol, quantity);
+          } else if (signal === "SELL") {
+            alpacaResult = await this.alpacaBroker.marketSell(symbol, quantity);
+          }
+
+          if (alpacaResult) {
+            this.emit('alpaca-order', alpacaResult);
+            if (alpacaResult.success) {
+              console.log(`🔗 Alpaca: ${signal} order submitted - ID: ${alpacaResult.orderId}, Status: ${alpacaResult.status}`);
+            } else {
+              console.error(`❌ Alpaca: Order failed - ${alpacaResult.error}`);
+              // Continue with local portfolio tracking even if Alpaca fails
+            }
+          }
+        } catch (alpacaError) {
+          console.error('Alpaca order execution error:', alpacaError);
+          // Continue with local portfolio tracking
+        }
+      }
+
+      // Update local portfolio tracking
       if (signal === "BUY") {
         this.portfolio.buy(symbol, price, quantity);
       } else if (signal === "SELL") {
@@ -346,7 +378,8 @@ export class TradingBot extends EventEmitter {
       this.emit('trade', savedTrade);
       
       const reasonText = reason ? ` (${reason})` : '';
-      console.log(`📊 ${signal} ${quantity} ${symbol} at $${price.toFixed(2)}${reasonText}`);
+      const alpacaText = alpacaResult?.success ? ' [Alpaca ✓]' : (this.useAlpacaBroker ? ' [Alpaca ✗]' : '');
+      console.log(`📊 ${signal} ${quantity} ${symbol} at $${price.toFixed(2)}${reasonText}${alpacaText}`);
       if (trade.pnl !== undefined) {
         const pnlColor = trade.pnl >= 0 ? '🟢' : '🔴';
         console.log(`${pnlColor} P&L: $${trade.pnl.toFixed(2)} | Daily P&L: $${this.dailyPnL.toFixed(2)}`);
@@ -420,6 +453,68 @@ export class TradingBot extends EventEmitter {
 
   getUserId(): number {
     return this.userId;
+  }
+
+  /**
+   * Connect an Alpaca broker for paper trading
+   * @param credentials Alpaca API credentials
+   * @returns True if connected successfully
+   */
+  async connectAlpacaBroker(credentials: AlpacaCredentials): Promise<boolean> {
+    try {
+      // Force paper trading in non-production
+      const NODE_ENV = process.env.NODE_ENV || 'development';
+      if (NODE_ENV !== 'production') {
+        credentials.isPaper = true;
+      }
+
+      this.alpacaBroker = new AlpacaBroker(credentials);
+      const connected = await this.alpacaBroker.connect();
+      
+      if (connected) {
+        this.useAlpacaBroker = true;
+        console.log(`🔗 TradingBot: Alpaca broker connected (${this.alpacaBroker.getTradingMode()} mode)`);
+        return true;
+      } else {
+        this.alpacaBroker = null;
+        this.useAlpacaBroker = false;
+        return false;
+      }
+    } catch (error) {
+      console.error('TradingBot: Failed to connect Alpaca broker:', error);
+      this.alpacaBroker = null;
+      this.useAlpacaBroker = false;
+      return false;
+    }
+  }
+
+  /**
+   * Disconnect the Alpaca broker
+   */
+  disconnectAlpacaBroker(): void {
+    this.alpacaBroker = null;
+    this.useAlpacaBroker = false;
+    console.log('🔌 TradingBot: Alpaca broker disconnected');
+  }
+
+  /**
+   * Check if Alpaca broker is connected
+   */
+  isAlpacaConnected(): boolean {
+    return this.useAlpacaBroker && this.alpacaBroker !== null && this.alpacaBroker.isReady();
+  }
+
+  /**
+   * Get Alpaca broker status
+   */
+  getAlpacaStatus(): { connected: boolean; mode: 'paper' | 'live' | null } {
+    if (!this.alpacaBroker || !this.useAlpacaBroker) {
+      return { connected: false, mode: null };
+    }
+    return {
+      connected: this.alpacaBroker.isReady(),
+      mode: this.alpacaBroker.getTradingMode(),
+    };
   }
 
   /**

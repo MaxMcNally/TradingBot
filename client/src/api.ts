@@ -314,3 +314,129 @@ export const getPublicStrategiesByType = (strategyType: string): Promise<AxiosRe
 
 export const copyPublicStrategy = (userId: number, strategyId: number, customName?: string): Promise<AxiosResponse<{ message: string; strategy: UserStrategy }>> => 
   api.post(`/strategies/users/${userId}/strategies/copy-public`, { strategyId, customName });
+
+// Alpaca Integration API
+
+export interface AlpacaConnectRequest {
+  apiKey: string;
+  apiSecret: string;
+  isPaper?: boolean;
+}
+
+export interface AlpacaAccount {
+  id: string;
+  status: string;
+  currency: string;
+  buyingPower: string;
+  portfolioValue: string;
+  cash: string;
+  equity?: string;
+  tradingBlocked?: boolean;
+  accountBlocked?: boolean;
+}
+
+export interface AlpacaPosition {
+  asset_id: string;
+  symbol: string;
+  exchange: string;
+  asset_class: string;
+  qty: string;
+  avg_entry_price: string;
+  side: string;
+  market_value: string;
+  cost_basis: string;
+  unrealized_pl: string;
+  unrealized_plpc: string;
+  current_price: string;
+  lastday_price: string;
+  change_today: string;
+}
+
+export interface AlpacaOrder {
+  id: string;
+  client_order_id: string;
+  created_at: string;
+  updated_at: string;
+  submitted_at: string;
+  filled_at: string | null;
+  symbol: string;
+  qty: string;
+  filled_qty: string;
+  filled_avg_price: string | null;
+  order_type: string;
+  type: string;
+  side: string;
+  time_in_force: string;
+  limit_price: string | null;
+  stop_price: string | null;
+  status: string;
+}
+
+export interface AlpacaOrderRequest {
+  symbol: string;
+  qty: number;
+  side: 'buy' | 'sell';
+  type: 'market' | 'limit' | 'stop' | 'stop_limit';
+  time_in_force: 'day' | 'gtc' | 'opg' | 'cls' | 'ioc' | 'fok';
+  limit_price?: number;
+  stop_price?: number;
+}
+
+export interface AlpacaStatusResponse {
+  connected: boolean;
+  tradingMode: 'paper' | 'live' | null;
+  environment: string;
+  account: AlpacaAccount | null;
+  error?: string;
+  maskedApiKey?: string;
+}
+
+export interface AlpacaConnectResponse {
+  success: boolean;
+  message: string;
+  account: AlpacaAccount;
+  tradingMode: 'paper' | 'live';
+  environment: string;
+}
+
+export interface AlpacaClock {
+  timestamp: string;
+  is_open: boolean;
+  next_open: string;
+  next_close: string;
+}
+
+// Alpaca connection management
+export const connectAlpaca = (data: AlpacaConnectRequest): Promise<AxiosResponse<AlpacaConnectResponse>> =>
+  api.post('/alpaca/connect', data);
+
+export const disconnectAlpaca = (): Promise<AxiosResponse<{ success: boolean; message: string }>> =>
+  api.post('/alpaca/disconnect');
+
+export const getAlpacaStatus = (): Promise<AxiosResponse<AlpacaStatusResponse>> =>
+  api.get('/alpaca/status');
+
+// Alpaca account information
+export const getAlpacaAccount = (): Promise<AxiosResponse<{ account: AlpacaAccount }>> =>
+  api.get('/alpaca/account');
+
+// Alpaca positions
+export const getAlpacaPositions = (): Promise<AxiosResponse<{ positions: AlpacaPosition[] }>> =>
+  api.get('/alpaca/positions');
+
+export const closeAlpacaPosition = (symbol: string, qty?: number, percentage?: number): Promise<AxiosResponse<{ success: boolean; order: AlpacaOrder }>> =>
+  api.delete(`/alpaca/positions/${symbol}`, { data: { qty, percentage } });
+
+// Alpaca orders
+export const getAlpacaOrders = (status?: 'open' | 'closed' | 'all', limit?: number): Promise<AxiosResponse<{ orders: AlpacaOrder[] }>> =>
+  api.get('/alpaca/orders', { params: { status, limit } });
+
+export const submitAlpacaOrder = (order: AlpacaOrderRequest): Promise<AxiosResponse<{ success: boolean; order: AlpacaOrder; tradingMode: 'paper' | 'live' }>> =>
+  api.post('/alpaca/orders', order);
+
+export const cancelAlpacaOrder = (orderId: string): Promise<AxiosResponse<{ success: boolean; message: string }>> =>
+  api.delete(`/alpaca/orders/${orderId}`);
+
+// Market information
+export const getAlpacaMarketClock = (): Promise<AxiosResponse<{ clock: AlpacaClock }>> =>
+  api.get('/alpaca/clock');
