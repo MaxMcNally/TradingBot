@@ -203,6 +203,20 @@ export const initDatabase = () => {
         `);
 
         await pgPool!.query(`
+          CREATE TABLE IF NOT EXISTS alpaca_credentials (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            encrypted_key TEXT NOT NULL,
+            encrypted_secret TEXT NOT NULL,
+            key_last4 TEXT,
+            is_paper_only BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW(),
+            UNIQUE(user_id)
+          )
+        `);
+
+        await pgPool!.query(`
           CREATE TABLE IF NOT EXISTS backtest_results (
             id SERIAL PRIMARY KEY,
             user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -275,6 +289,7 @@ export const initDatabase = () => {
         // Indexes
         await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`);
         await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_settings_user_id ON settings(user_id)`);
+        await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_alpaca_credentials_user_id ON alpaca_credentials(user_id)`);
         await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_backtest_results_user_id ON backtest_results(user_id)`);
         await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_user_strategies_user_id ON user_strategies(user_id)`);
         await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_user_id ON strategy_performance(user_id)`);
@@ -358,6 +373,28 @@ export const initDatabase = () => {
           reject(err);
         } else {
           console.log("Settings table created/verified");
+        }
+      });
+
+      db.run(`
+        CREATE TABLE IF NOT EXISTS alpaca_credentials (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          encrypted_key TEXT NOT NULL,
+          encrypted_secret TEXT NOT NULL,
+          key_last4 TEXT,
+          is_paper_only INTEGER DEFAULT 1,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users (id),
+          UNIQUE(user_id)
+        )
+      `, (err: any) => {
+        if (err) {
+          console.error("Error creating alpaca_credentials table:", err);
+          reject(err);
+        } else {
+          console.log("Alpaca credentials table created/verified");
         }
       });
 
@@ -484,6 +521,9 @@ export const initDatabase = () => {
 
       db.run(`CREATE INDEX IF NOT EXISTS idx_settings_user_id ON settings(user_id)`, (err: any) => {
         if (err) console.error("Error creating settings index:", err);
+      });
+      db.run(`CREATE INDEX IF NOT EXISTS idx_alpaca_credentials_user_id ON alpaca_credentials(user_id)`, (err: any) => {
+        if (err) console.error("Error creating alpaca credentials index:", err);
       });
 
       db.run(`CREATE INDEX IF NOT EXISTS idx_backtest_results_user_id ON backtest_results(user_id)`, (err: any) => {

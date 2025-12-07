@@ -259,11 +259,28 @@ SESSION_SECRET=your-session-secret
 # API Keys
 ALPHA_VANTAGE_API_KEY=your-key
 YAHOO_FINANCE_API_KEY=your-key
+CREDENTIALS_ENCRYPTION_KEY=32-byte-secret-for-alpaca
 ```
 
 ### Trading Modes
 - **`paper`** - Simulated trading (default)
 - **`live`** - Real money trading (use with caution)
+
+## 🔐 Alpaca Paper Trading (Dev/Stg Only)
+
+Paper-trading keys can be managed from **Settings → Alpaca Paper Trading**. Bots automatically forward BUY/SELL signals to Alpaca whenever:
+
+- `APP_ENV` or `NODE_ENV` is set to `development`, `dev`, `staging`, `stage`, `stg`, or `test`
+- `CREDENTIALS_ENCRYPTION_KEY` is defined (32+ characters recommended)
+- Users provide their paper API key/secret via the settings screen
+
+> Keys are encrypted at rest using AES-256-GCM, never logged, and sent only to `https://paper-api.alpaca.markets`.
+
+### API Endpoints
+- `GET /api/alpaca/status` – Check if a user has connected credentials.
+- `POST /api/alpaca/connect` – Verify + encrypt keys for the authenticated user.
+- `DELETE /api/alpaca/connect` – Remove stored credentials.
+- `POST /api/alpaca/test` – Validate stored or ad-hoc credentials against Alpaca.
 
 ## 📊 Available Scripts
 

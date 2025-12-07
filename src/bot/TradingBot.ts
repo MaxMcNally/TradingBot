@@ -9,6 +9,7 @@ import { MovingAverageStrategy } from '../strategies/movingAverage';
 import { MeanReversionStrategy } from '../strategies/meanReversionStrategy';
 import { MomentumStrategy } from '../strategies/momentumStrategy';
 import { BollingerBandsStrategy } from '../strategies/bollingerBandsStrategy';
+import { alpacaPaperTradeService } from '../../api/services/alpacaPaperTradeService';
 
 export interface BotStatus {
   isRunning: boolean;
@@ -344,6 +345,19 @@ export class TradingBot extends EventEmitter {
       }
 
       this.emit('trade', savedTrade);
+
+      try {
+        const alpacaResult = await alpacaPaperTradeService.forwardSignal(this.userId, {
+          symbol,
+          qty: quantity,
+          side: signal === 'BUY' ? 'buy' : 'sell',
+        });
+        if (!alpacaResult.success && !alpacaResult.skipped) {
+          console.warn(`Alpaca order failed for ${symbol}: ${alpacaResult.message || 'unknown error'}`);
+        }
+      } catch (alpacaError) {
+        console.error('Error forwarding trade to Alpaca:', alpacaError);
+      }
       
       const reasonText = reason ? ` (${reason})` : '';
       console.log(`📊 ${signal} ${quantity} ${symbol} at $${price.toFixed(2)}${reasonText}`);

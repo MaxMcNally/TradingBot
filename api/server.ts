@@ -15,6 +15,7 @@ import { initDatabase } from "./initDb";
 import { sessionMonitor } from "./services/sessionMonitor";
 import testRouter from "./routes/test";
 import { authenticateToken } from "./middleware/auth";
+import alpacaRouter from "./routes/alpaca";
 
 dotenv.config();
 
@@ -84,6 +85,8 @@ try {
   app.use("/api/cache", cacheRouter);
   console.log("Mounting trading router...");
   app.use("/api/trading", tradingRouter);
+  console.log("Mounting alpaca router...");
+  app.use("/api/alpaca", alpacaRouter);
   console.log("Mounting strategies router...");
   app.use("/api/strategies", strategyRouter);
   console.log("Mounting admin router...");

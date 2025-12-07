@@ -40,3 +40,13 @@ export interface SettingsResponse {
 export interface SettingsProps {
   user: User;
 }
+
+export interface AlpacaConnectionStatus {
+  enabled: boolean;
+  status: {
+    connected: boolean;
+    paperOnly?: boolean;
+    keyLastFour?: string | null;
+    updatedAt?: string;
+  };
+}

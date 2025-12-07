@@ -206,6 +206,16 @@ export interface SearchResponse {
   count?: number;
 }
 
+export interface AlpacaStatusResponse {
+  enabled: boolean;
+  status: {
+    connected: boolean;
+    paperOnly?: boolean;
+    keyLastFour?: string | null;
+    updatedAt?: string;
+  };
+}
+
 // Auth API
 export const signup = (data: { username: string; password: string; email?: string }): Promise<AxiosResponse<ApiResponse<AuthResponse>>> => 
   api.post('/auth/signup', data);
@@ -314,3 +324,16 @@ export const getPublicStrategiesByType = (strategyType: string): Promise<AxiosRe
 
 export const copyPublicStrategy = (userId: number, strategyId: number, customName?: string): Promise<AxiosResponse<{ message: string; strategy: UserStrategy }>> => 
   api.post(`/strategies/users/${userId}/strategies/copy-public`, { strategyId, customName });
+
+// Alpaca Integration API
+export const getAlpacaStatus = (): Promise<AxiosResponse<AlpacaStatusResponse>> =>
+  api.get('/alpaca/status');
+
+export const connectAlpacaAccount = (data: { apiKey: string; apiSecret: string; isPaperOnly?: boolean; skipVerification?: boolean }): Promise<AxiosResponse<{ message: string }>> =>
+  api.post('/alpaca/connect', data);
+
+export const disconnectAlpacaAccount = (): Promise<AxiosResponse<{ message: string }>> =>
+  api.delete('/alpaca/connect');
+
+export const testAlpacaConnection = (data?: { apiKey?: string; apiSecret?: string }): Promise<AxiosResponse<{ message: string; account?: any }>> =>
+  api.post('/alpaca/test', data);
