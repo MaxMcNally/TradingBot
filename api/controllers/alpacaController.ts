@@ -73,17 +73,10 @@ const ensureCleanupStarted = () => {
   }
 };
 
-// Start cleanup interval when module is loaded (can be disabled for testing)
-if (process.env.NODE_ENV !== 'test') {
-  startCleanupInterval();
-}
 // Valid values for order parameters (must match OrderRequest interface)
 const VALID_ORDER_SIDES = ['buy', 'sell'] as const;
 const VALID_ORDER_TYPES = ['market', 'limit', 'stop', 'stop_limit', 'trailing_stop'] as const;
 const VALID_TIME_IN_FORCE = ['day', 'gtc', 'opg', 'cls', 'ioc', 'fok'] as const;
-
-// Store active Alpaca connections in memory (per user)
-const activeConnections: Map<number, AlpacaService> = new Map();
 
 /**
  * Get or create an Alpaca service for a user
