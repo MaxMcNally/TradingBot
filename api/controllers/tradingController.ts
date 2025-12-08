@@ -4,6 +4,8 @@ import { TradingDatabase } from "../../src/database/tradingSchema";
 import { PerformanceMetricsService } from "../services/performanceMetricsService";
 import { StrategiesService } from "../services/strategiesService";
 import { WebhookService } from "../services/webhookService";
+import { CustomStrategy } from "../models/CustomStrategy";
+import { User } from "../models/User";
 
 export const getUserTradingStats = async (req: Request, res: Response) => {
   try {
@@ -143,7 +145,7 @@ export const getTradesBySession = async (req: Request, res: Response) => {
 
 export const startTradingSession = async (req: Request, res: Response) => {
   try {
-    const { mode, initialCash, symbols, strategy, scheduledEndTime } = req.body;
+    const { mode, initialCash, symbols, strategy, customStrategyId, scheduledEndTime } = req.body;
     const userId = parseInt(req.body.userId || req.params.userId);
     
     if (isNaN(userId)) {
@@ -154,8 +156,48 @@ export const startTradingSession = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "At least one symbol is required" });
     }
 
-    if (!strategy) {
-      return res.status(400).json({ message: "Strategy is required" });
+    // Support both regular strategies and custom strategies
+    if (!strategy && !customStrategyId) {
+      return res.status(400).json({ message: "Strategy or customStrategyId is required" });
+    }
+
+    // If using custom strategy, validate user has Premium+ tier and load the strategy
+    if (customStrategyId) {
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.plan_tier !== 'PREMIUM' && user.plan_tier !== 'ENTERPRISE') {
+        return res.status(403).json({ 
+          message: "Custom strategies require Premium or Enterprise subscription",
+          required_tier: "PREMIUM",
+          current_tier: user.plan_tier
+        });
+      }
+
+      const customStrategy = await CustomStrategy.findById(parseInt(customStrategyId));
+      if (!customStrategy) {
+        return res.status(404).json({ message: "Custom strategy not found" });
+      }
+
+      if (customStrategy.user_id !== userId) {
+        return res.status(403).json({ message: "Access denied to custom strategy" });
+      }
+
+      if (!customStrategy.is_active) {
+        return res.status(400).json({ message: "Custom strategy is not active" });
+      }
+
+      // Store custom strategy info in the strategy field for the bot to use
+      const parsed = CustomStrategy.parseStrategyData(customStrategy);
+      req.body.strategy = {
+        type: 'CUSTOM',
+        customStrategyId: customStrategy.id,
+        name: customStrategy.name,
+        buy_conditions: parsed.buy_conditions,
+        sell_conditions: parsed.sell_conditions
+      };
     }
 
     // Check if user already has an active session

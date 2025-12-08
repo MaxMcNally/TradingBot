@@ -58,3 +58,9 @@ export {
   SentimentAnalysisStrategy,
   SentimentAnalysisConfig
 } from './sentimentAnalysisStrategy';
+
+// Custom Strategy (for Premium+ users)
+export {
+  CustomStrategy,
+  CustomStrategyConfig
+} from './customStrategy';

@@ -171,6 +171,12 @@ export class ConfigManager {
           strategyLookback = params.lookbackDays || 3;
           break;
         
+        case 'CUSTOM':
+          // Custom strategies may use various indicators
+          // Use a conservative default that covers most indicators (MACD needs ~35, others need less)
+          strategyLookback = 50;
+          break;
+        
         default:
           // For unknown strategies, use a conservative default
           strategyLookback = 30;

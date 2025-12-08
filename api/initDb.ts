@@ -241,6 +241,25 @@ export const initDatabase = () => {
       `);
 
       await pgPool!.query(`
+        CREATE TABLE IF NOT EXISTS custom_strategies (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          name TEXT NOT NULL,
+          description TEXT,
+          buy_conditions TEXT NOT NULL,
+          sell_conditions TEXT NOT NULL,
+          is_active BOOLEAN DEFAULT TRUE,
+          is_public BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW(),
+          UNIQUE(user_id, name)
+        )
+      `);
+      
+      // Add is_public column if it doesn't exist (for existing databases)
+      await pgPool!.query(`ALTER TABLE custom_strategies ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE`);
+
+      await pgPool!.query(`
         CREATE TABLE IF NOT EXISTS strategy_performance (
           id SERIAL PRIMARY KEY,
           user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

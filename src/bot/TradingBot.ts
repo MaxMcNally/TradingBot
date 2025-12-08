@@ -9,6 +9,7 @@ import { MovingAverageStrategy } from '../strategies/movingAverage';
 import { MeanReversionStrategy } from '../strategies/meanReversionStrategy';
 import { MomentumStrategy } from '../strategies/momentumStrategy';
 import { BollingerBandsStrategy } from '../strategies/bollingerBandsStrategy';
+import { CustomStrategy, CustomStrategyConfig } from '../strategies/customStrategy';
 import { AlpacaBroker, AlpacaCredentials, BrokerTradeResult } from './AlpacaBroker';
 
 export interface BotStatus {
@@ -115,6 +116,16 @@ export class TradingBot extends EventEmitter {
               recencyHalfLifeHours,
               tiingoApiKey,
             });
+            break;
+
+          case 'CUSTOM':
+            // Custom strategy using chainable indicators
+            const customConfig: CustomStrategyConfig = {
+              name: strategyConfig.parameters.name || 'CustomStrategy',
+              buy_conditions: strategyConfig.parameters.buy_conditions,
+              sell_conditions: strategyConfig.parameters.sell_conditions
+            };
+            strategy = new CustomStrategy(customConfig);
             break;
 
           default:
@@ -266,9 +277,25 @@ export class TradingBot extends EventEmitter {
             // Add historical prices to strategy (excluding the last one to avoid double-processing)
             for (let i = 0; i < historicalData.length - 1; i++) {
               const dataPoint = historicalData[i];
-              const price = (dataPoint as any).close || (dataPoint as any).c;
-              if (price) {
-                strategy.addPrice(price);
+              
+              // Check if this is a CustomStrategy that needs full OHLCV data
+              if (strategy instanceof CustomStrategy) {
+                // Convert historical data point to PriceData format
+                const priceData = {
+                  date: (dataPoint as any).date || new Date((dataPoint as any).t || Date.now()).toISOString().split('T')[0],
+                  open: (dataPoint as any).open || (dataPoint as any).o || (dataPoint as any).close || (dataPoint as any).c,
+                  high: (dataPoint as any).high || (dataPoint as any).h || (dataPoint as any).close || (dataPoint as any).c,
+                  low: (dataPoint as any).low || (dataPoint as any).l || (dataPoint as any).close || (dataPoint as any).c,
+                  close: (dataPoint as any).close || (dataPoint as any).c,
+                  volume: (dataPoint as any).volume || (dataPoint as any).v || 0
+                };
+                strategy.addPriceData(priceData);
+              } else {
+                // Regular strategies just need close price
+                const price = (dataPoint as any).close || (dataPoint as any).c;
+                if (price) {
+                  strategy.addPrice(price);
+                }
               }
             }
           }
