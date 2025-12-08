@@ -116,7 +116,6 @@ const Strategies: React.FC = () => {
     deleteStrategy: deleteCustomStrategy,
     isCreating: isCreatingCustom,
     isUpdating: isUpdatingCustom,
-    isDeleting: isDeletingCustom,
     refetch: refetchCustomStrategies
   } = useCustomStrategies(includeInactive);
 
