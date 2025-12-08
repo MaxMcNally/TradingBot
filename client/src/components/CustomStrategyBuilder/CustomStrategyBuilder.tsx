@@ -42,8 +42,8 @@ import {
   ArrowForward as ArrowForwardIcon,
   CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
-import { ConditionNode, validateCustomStrategy } from '../../../api/customStrategiesApi';
-import { useCustomStrategies } from '../../../hooks';
+import { ConditionNode, validateCustomStrategy } from '../../api/customStrategiesApi';
+import { useCustomStrategies } from '../../hooks/useCustomStrategies';
 
 interface CustomStrategyBuilderProps {
   open: boolean;
@@ -193,12 +193,14 @@ const conditionNodeToChain = (node: ConditionNode, idPrefix: string = '', counte
     }];
   } else if (node.type === 'and' || node.type === 'or') {
     const items: ChainItem[] = [];
+    // TypeScript doesn't narrow node.type properly, so we assert it's a LogicalOperator
+    const operator: LogicalOperator = node.type === 'and' ? 'and' : 'or';
     node.children?.forEach((child, index) => {
       if (index > 0) {
         items.push({
           id: `${idPrefix}op-${counter.value++}`,
           type: 'operator',
-          data: { operator: node.type }
+          data: { operator }
         });
       }
       items.push(...conditionNodeToChain(child, `${idPrefix}`, counter));
@@ -371,7 +373,7 @@ interface IndicatorTileProps {
   onClick: (type: IndicatorType) => void;
 }
 
-const IndicatorTile: React.FC<IndicatorTileProps> = ({ indicatorType, onDragStart, onClick }) => {
+const IndicatorTile = ({ indicatorType, onDragStart, onClick }: IndicatorTileProps) => {
   const def = INDICATOR_DEFINITIONS[indicatorType];
   return (
     <Tooltip title={def.description} arrow placement="top">
@@ -427,7 +429,7 @@ interface OperatorTileProps {
   onClick: (operator: LogicalOperator) => void;
 }
 
-const OperatorTile: React.FC<OperatorTileProps> = ({ operator, onDragStart, onClick }) => {
+const OperatorTile = ({ operator, onDragStart, onClick }: OperatorTileProps) => {
   const colors = {
     and: 'primary',
     or: 'secondary',
@@ -485,7 +487,7 @@ interface ChainTileProps {
   index: number;
 }
 
-const ChainTile: React.FC<ChainTileProps> = ({ item, onEdit, onDelete, onDragStart, onDrop, index }) => {
+const ChainTile = ({ item, onEdit, onDelete, onDragStart, onDrop, index }: ChainTileProps) => {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -613,7 +615,7 @@ interface EditIndicatorDialogProps {
   onSave: (item: ChainItem) => void;
 }
 
-const EditIndicatorDialog: React.FC<EditIndicatorDialogProps> = ({ open, onClose, item, onSave }) => {
+const EditIndicatorDialog = ({ open, onClose, item, onSave }: EditIndicatorDialogProps) => {
   if (!item || !item.data?.indicatorType) return null;
 
   const def = INDICATOR_DEFINITIONS[item.data.indicatorType];
@@ -779,7 +781,7 @@ interface EditOperatorDialogProps {
   onSave: (operator: LogicalOperator) => void;
 }
 
-const EditOperatorDialog: React.FC<EditOperatorDialogProps> = ({ open, onClose, item, onSave }) => {
+const EditOperatorDialog = ({ open, onClose, item, onSave }: EditOperatorDialogProps) => {
   const [operator, setOperator] = useState<LogicalOperator>(item?.data?.operator || 'and');
 
   const handleSave = () => {
@@ -823,14 +825,12 @@ interface ConditionChainProps {
   onAddOperator?: (operator: LogicalOperator) => void;
 }
 
-const ConditionChain: React.FC<ConditionChainProps> = ({ 
-  chain, 
-  onChainChange, 
-  title, 
-  emptyMessage,
-  onAddIndicator,
-  onAddOperator
-}) => {
+const ConditionChain = ({
+  chain,
+  onChainChange,
+  title,
+  emptyMessage
+}: ConditionChainProps) => {
   const [draggedItem, setDraggedItem] = useState<ChainItem | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [editingItem, setEditingItem] = useState<ChainItem | null>(null);
@@ -1009,13 +1009,13 @@ const ConditionChain: React.FC<ConditionChainProps> = ({
 
 const steps = ['Buy Conditions', 'Sell Conditions', 'Strategy Details'];
 
-const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
+const CustomStrategyBuilder = ({
   open,
   onClose,
   onSave,
   editingStrategy,
   isLoading = false
-}) => {
+}: CustomStrategyBuilderProps) => {
   const [activeStep, setActiveStep] = useState(0);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -1471,7 +1471,7 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
                         No buy conditions defined
                       </Typography>
                     ) : (
-                      buyChain.map((item, index) => {
+                      buyChain.map((item) => {
                         if (item.type === 'indicator' && item.data?.indicatorType) {
                           const def = INDICATOR_DEFINITIONS[item.data.indicatorType];
                           const conditionDef = def.conditions.find(c => c.value === item.data?.condition);
@@ -1574,7 +1574,7 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
                         No sell conditions defined
                       </Typography>
                     ) : (
-                      sellChain.map((item, index) => {
+                      sellChain.map((item) => {
                         if (item.type === 'indicator' && item.data?.indicatorType) {
                           const def = INDICATOR_DEFINITIONS[item.data.indicatorType];
                           const conditionDef = def.conditions.find(c => c.value === item.data?.condition);
