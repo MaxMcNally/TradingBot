@@ -111,7 +111,6 @@ const Strategies: React.FC = () => {
 
   const {
     strategies: customStrategies,
-    isError: customStrategiesError,
     createStrategy: createCustomStrategy,
     updateStrategy: updateCustomStrategy,
     deleteStrategy: deleteCustomStrategy,
