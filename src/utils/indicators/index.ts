@@ -34,3 +34,6 @@ export { macd, MACDIndicator, MACDValue } from './macd';
 export { bollingerBands, BollingerBandsIndicator, BollingerBandsValue } from './bollingerBands';
 export { vwap, VWAPIndicator } from './vwap';
 
+// Custom strategy executor
+export { CustomStrategyExecutor, ConditionNode } from './executor';
+
