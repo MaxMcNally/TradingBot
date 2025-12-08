@@ -178,10 +178,11 @@ export const startBot = async (req: ApiKeyAuthenticatedRequest, res: Response) =
 
     // Actually start the bot and send the webhook event
     // Call startTradingSession with the required parameters
-    // If startTradingSession expects a request object, construct a minimal one
-    const startTradingReq: any = {
-      apiKey: req.apiKey,
+    // Construct a request object compatible with startTradingSession
+    const startTradingReq = {
+      ...req,
       body: {
+        ...req.body,
         userId: userId,
         mode: mode || 'PAPER',
         initialCash: initialCash || 10000,
@@ -190,7 +191,7 @@ export const startBot = async (req: ApiKeyAuthenticatedRequest, res: Response) =
         scheduledEndTime: scheduledEndTime || undefined,
         sessionId: session.id
       }
-    };
+    } as Request;
     await startTradingSession(startTradingReq, res);
     // Note: startTradingSession should handle the response, so we return here
     return;
