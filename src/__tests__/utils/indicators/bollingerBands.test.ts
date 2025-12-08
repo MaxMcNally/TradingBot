@@ -1,4 +1,4 @@
-import { bollingerBands, BollingerBandsIndicator, BollingerBandsValue } from '../../../utils/indicators/bollingerBands';
+import { bollingerBands, BollingerBandsIndicator } from '../../../utils/indicators/bollingerBands';
 import { PriceData } from '../../../utils/indicators/types';
 import { generatePriceData, generateConstantData, generateTrendingData } from './__helpers__';
 
