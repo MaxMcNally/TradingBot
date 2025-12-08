@@ -11,6 +11,7 @@ import {symbolRouter} from "./routes/symbols";
 import {cacheRouter} from "./routes/cache";
 import tradingRouter from "./routes/trading";
 import {strategyRouter} from "./routes/strategies";
+import { customStrategyRouter } from "./routes/customStrategies";
 import adminRouter from "./routes/adminRoutes";
 import billingRouter from "./routes/billing";
 import { enterpriseRouter } from "./routes/enterprise";
@@ -117,6 +118,8 @@ try {
   app.use("/api/trading", tradingRouter);
   console.log("Mounting strategies router...");
   app.use("/api/strategies", strategyRouter);
+  console.log("Mounting custom strategies router...");
+  app.use("/api/custom-strategies", customStrategyRouter);
   console.log("Mounting admin router...");
   app.use("/api/admin", adminRouter);
   console.log("Mounting test router...");
