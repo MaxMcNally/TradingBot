@@ -46,11 +46,10 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
 
   const navigationItems = [
     { label: 'Dashboard', path: '/', icon: <DashboardIcon /> },
-    { label: 'Trading', path: '/trading', icon: <TradingIcon /> },
-    { label: 'Backtesting', path: '/backtesting', icon: <BacktestIcon /> },
     { label: 'Strategies', path: '/strategies', icon: <StrategiesIcon /> },
+    { label: 'Backtesting', path: '/backtesting', icon: <BacktestIcon /> },
+    { label: 'Trading', path: '/trading', icon: <TradingIcon /> },
     { label: 'Marketplace', path: '/marketplace', icon: <MarketplaceIcon /> },
-    { label: 'Pricing', path: '/pricing', icon: <PricingIcon /> },
     ...(user?.role === 'ADMIN' ? [{ label: 'Admin', path: '/admin', icon: <AdminIcon /> }] : []),
   ];
 
