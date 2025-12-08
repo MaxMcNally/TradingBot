@@ -36,11 +36,15 @@ import {
   Assessment as AssessmentIcon,
   Public as PublicIcon,
   Person as PersonIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  AutoAwesome as AutoAwesomeIcon
 } from '@mui/icons-material';
-import { useUserStrategies, usePublicStrategies } from '../../hooks';
+import { useUserStrategies, usePublicStrategies, useUser, useCustomStrategies } from '../../hooks';
 import { UserStrategy } from '../../api';
+import { CustomStrategy } from '../../api/customStrategiesApi';
 import StrategyDialog from './StrategyDialog';
+import CustomStrategyBuilder from './CustomStrategyBuilder';
+import PremiumUpsellDialog from './PremiumUpsellDialog';
 import { StrategyFormData } from './Strategies.types';
 
 interface TabPanelProps {
@@ -66,6 +70,9 @@ function TabPanel(props: TabPanelProps) {
 }
 
 const Strategies: React.FC = () => {
+  const { user } = useUser();
+  const isPremium = user?.plan_tier === 'PREMIUM' || user?.plan_tier === 'ENTERPRISE';
+  
   const [activeTab, setActiveTab] = useState(0);
   const [includeInactive, setIncludeInactive] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -74,6 +81,9 @@ const Strategies: React.FC = () => {
   const [selectedStrategy, setSelectedStrategy] = useState<UserStrategy | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [strategyToDelete, setStrategyToDelete] = useState<UserStrategy | null>(null);
+  const [customStrategyBuilderOpen, setCustomStrategyBuilderOpen] = useState(false);
+  const [editingCustomStrategy, setEditingCustomStrategy] = useState<CustomStrategy | null>(null);
+  const [upsellDialogOpen, setUpsellDialogOpen] = useState(false);
 
   const {
     strategies: userStrategies,
@@ -99,6 +109,19 @@ const Strategies: React.FC = () => {
     refetch: refetchPublicStrategies
   } = usePublicStrategies();
 
+  const {
+    strategies: customStrategies,
+    isLoading: customStrategiesLoading,
+    isError: customStrategiesError,
+    createStrategy: createCustomStrategy,
+    updateStrategy: updateCustomStrategy,
+    deleteStrategy: deleteCustomStrategy,
+    isCreating: isCreatingCustom,
+    isUpdating: isUpdatingCustom,
+    isDeleting: isDeletingCustom,
+    refetch: refetchCustomStrategies
+  } = useCustomStrategies(includeInactive);
+
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
   };
@@ -108,7 +131,53 @@ const Strategies: React.FC = () => {
     setDialogOpen(true);
   };
 
+  const handleCreateCustomStrategy = () => {
+    if (!isPremium) {
+      setUpsellDialogOpen(true);
+      return;
+    }
+    setEditingCustomStrategy(null);
+    setCustomStrategyBuilderOpen(true);
+  };
+
+  const handleEditCustomStrategy = (strategy: CustomStrategy) => {
+    setEditingCustomStrategy(strategy);
+    setCustomStrategyBuilderOpen(true);
+    setAnchorEl(null);
+  };
+
+  const handleSaveCustomStrategy = async (data: {
+    name: string;
+    description?: string;
+    buy_conditions: any;
+    sell_conditions: any;
+    is_public?: boolean;
+  }) => {
+    try {
+      if (editingCustomStrategy) {
+        await updateCustomStrategy(editingCustomStrategy.id, data);
+      } else {
+        await createCustomStrategy(data);
+      }
+      setCustomStrategyBuilderOpen(false);
+      setEditingCustomStrategy(null);
+      await refetchCustomStrategies();
+    } catch (error: any) {
+      console.error('Error saving custom strategy:', error);
+      alert(error?.response?.data?.error || 'Failed to save custom strategy');
+      throw error;
+    }
+  };
+
   const handleEditStrategy = (strategy: UserStrategy) => {
+    // Check if it's a custom strategy
+    if (strategy.strategy_type === 'custom') {
+      const customStrategy = customStrategies.find(s => s.id === strategy.id);
+      if (customStrategy) {
+        handleEditCustomStrategy(customStrategy);
+        return;
+      }
+    }
     setEditingStrategy(strategy);
     setDialogOpen(true);
     setAnchorEl(null);
@@ -133,7 +202,16 @@ const Strategies: React.FC = () => {
   const handleConfirmDelete = async () => {
     if (strategyToDelete) {
       try {
-        await deleteStrategy(strategyToDelete.id);
+        // Check if it's a custom strategy
+        if (strategyToDelete.strategy_type === 'custom') {
+          const customStrategy = customStrategies.find(s => s.id === strategyToDelete.id);
+          if (customStrategy) {
+            await deleteCustomStrategy(customStrategy.id);
+            await refetchCustomStrategies();
+          }
+        } else {
+          await deleteStrategy(strategyToDelete.id);
+        }
         setDeleteDialogOpen(false);
         setStrategyToDelete(null);
       } catch (error) {
@@ -144,10 +222,19 @@ const Strategies: React.FC = () => {
 
   const handleToggleActive = async (strategy: UserStrategy) => {
     try {
-      if (strategy.is_active) {
-        await deactivateStrategy(strategy.id);
+      // Check if it's a custom strategy
+      if (strategy.strategy_type === 'custom') {
+        const customStrategy = customStrategies.find(s => s.id === strategy.id);
+        if (customStrategy) {
+          await updateCustomStrategy(customStrategy.id, { is_active: !customStrategy.is_active });
+          await refetchCustomStrategies();
+        }
       } else {
-        await activateStrategy(strategy.id);
+        if (strategy.is_active) {
+          await deactivateStrategy(strategy.id);
+        } else {
+          await activateStrategy(strategy.id);
+        }
       }
       handleMenuClose();
     } catch (error) {
@@ -185,7 +272,8 @@ const Strategies: React.FC = () => {
       'bollinger_bands': 'Bollinger Bands',
       'mean_reversion': 'Mean Reversion',
       'momentum': 'Momentum',
-      'breakout': 'Breakout'
+      'breakout': 'Breakout',
+      'custom': 'Custom Strategy'
     };
     return typeMap[type] || type;
   };
@@ -437,13 +525,34 @@ const Strategies: React.FC = () => {
             label="Show Inactive"
           />
           <Button
-            variant="contained"
+            variant="outlined"
             startIcon={<AddIcon />}
             onClick={handleCreateStrategy}
             disabled={isCreating}
           >
             Create Strategy
           </Button>
+          {isPremium && (
+            <Button
+              variant="contained"
+              startIcon={<AutoAwesomeIcon />}
+              onClick={handleCreateCustomStrategy}
+              disabled={isCreatingCustom}
+              color="primary"
+            >
+              Create Custom Strategy
+            </Button>
+          )}
+          {!isPremium && (
+            <Button
+              variant="contained"
+              startIcon={<AutoAwesomeIcon />}
+              onClick={() => setUpsellDialogOpen(true)}
+              color="primary"
+            >
+              Create Custom Strategy
+            </Button>
+          )}
         </Box>
       </Box>
 
@@ -488,11 +597,99 @@ const Strategies: React.FC = () => {
               Retry
             </Button>
           </Box>
-        ) : userStrategies.length === 0 ? (
-          renderEmptyState('My', <StrategyIcon sx={{ fontSize: 64, color: 'grey.400' }} />)
+        ) : userStrategies.length === 0 && (!isPremium || customStrategies.length === 0) ? (
+          <Box>
+            {renderEmptyState('My', <StrategyIcon sx={{ fontSize: 64, color: 'grey.400' }} />)}
+            {isPremium && (
+              <Card sx={{ mt: 3, bgcolor: 'primary.light', color: 'primary.contrastText' }}>
+                <CardContent>
+                  <Box display="flex" alignItems="center" gap={2} mb={2}>
+                    <AutoAwesomeIcon sx={{ fontSize: 40 }} />
+                    <Box>
+                      <Typography variant="h6">Build Custom Trading Algorithms</Typography>
+                      <Typography variant="body2">
+                        Create advanced strategies by chaining technical indicators
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Button
+                    variant="contained"
+                    color="inherit"
+                    startIcon={<AutoAwesomeIcon />}
+                    onClick={handleCreateCustomStrategy}
+                    sx={{ mt: 1 }}
+                  >
+                    Create Custom Strategy
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </Box>
         ) : (
           <Grid container spacing={3}>
             {userStrategies.map((strategy) => renderStrategyCard(strategy, true))}
+            {isPremium && customStrategies.map((strategy) => (
+              <Grid item xs={12} md={6} lg={4} key={`custom-${strategy.id}`}>
+                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', border: '2px solid', borderColor: 'primary.main' }}>
+                  <CardContent sx={{ flexGrow: 1 }}>
+                    <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+                      <Typography variant="h6" component="h2" noWrap>
+                        {strategy.name}
+                      </Typography>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Chip label="Custom" color="primary" size="small" />
+                        <Chip
+                          label={strategy.is_active ? 'Active' : 'Inactive'}
+                          color={strategy.is_active ? 'success' : 'default'}
+                          size="small"
+                        />
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            setAnchorEl(e.currentTarget);
+                            setSelectedStrategy({
+                              id: strategy.id,
+                              user_id: strategy.user_id,
+                              name: strategy.name,
+                              description: strategy.description,
+                              strategy_type: 'custom',
+                              config: {},
+                              is_active: strategy.is_active,
+                              is_public: false,
+                              created_at: strategy.created_at,
+                              updated_at: strategy.updated_at
+                            } as UserStrategy);
+                          }}
+                        >
+                          <MoreVertIcon />
+                        </IconButton>
+                      </Box>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" mb={2}>
+                      {strategy.description || 'Custom trading algorithm'}
+                    </Typography>
+                    <Chip
+                      label="Custom Strategy"
+                      variant="outlined"
+                      size="small"
+                      sx={{ mb: 2 }}
+                    />
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
+                      Created: {formatDate(strategy.created_at)}
+                    </Typography>
+                  </CardContent>
+                  <CardActions>
+                    <Button
+                      size="small"
+                      startIcon={<EditIcon />}
+                      onClick={() => handleEditCustomStrategy(strategy)}
+                    >
+                      Edit
+                    </Button>
+                  </CardActions>
+                </Card>
+              </Grid>
+            ))}
           </Grid>
         )}
       </TabPanel>
@@ -599,6 +796,34 @@ const Strategies: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Custom Strategy Builder */}
+      {isPremium && (
+        <CustomStrategyBuilder
+          open={customStrategyBuilderOpen}
+          onClose={() => {
+            setCustomStrategyBuilderOpen(false);
+            setEditingCustomStrategy(null);
+          }}
+          onSave={handleSaveCustomStrategy}
+          editingStrategy={editingCustomStrategy ? {
+            id: editingCustomStrategy.id,
+            name: editingCustomStrategy.name,
+            description: editingCustomStrategy.description,
+            buy_conditions: editingCustomStrategy.buy_conditions,
+            sell_conditions: editingCustomStrategy.sell_conditions,
+            is_public: editingCustomStrategy.is_public
+          } : undefined}
+          isLoading={isCreatingCustom || isUpdatingCustom}
+        />
+      )}
+
+      {/* Premium Upsell Dialog */}
+      <PremiumUpsellDialog
+        open={upsellDialogOpen}
+        onClose={() => setUpsellDialogOpen(false)}
+        previewMode={true}
+      />
     </Box>
   );
 };

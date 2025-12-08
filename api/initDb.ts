@@ -249,11 +249,15 @@ export const initDatabase = () => {
           buy_conditions TEXT NOT NULL,
           sell_conditions TEXT NOT NULL,
           is_active BOOLEAN DEFAULT TRUE,
+          is_public BOOLEAN DEFAULT FALSE,
           created_at TIMESTAMP DEFAULT NOW(),
           updated_at TIMESTAMP DEFAULT NOW(),
           UNIQUE(user_id, name)
         )
       `);
+      
+      // Add is_public column if it doesn't exist (for existing databases)
+      await pgPool!.query(`ALTER TABLE custom_strategies ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE`);
 
       await pgPool!.query(`
         CREATE TABLE IF NOT EXISTS strategy_performance (

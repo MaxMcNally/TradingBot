@@ -25,6 +25,7 @@ export interface CustomStrategyData {
   buy_conditions: string; // JSON string of ConditionNode
   sell_conditions: string; // JSON string of ConditionNode
   is_active: boolean;
+  is_public?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -35,6 +36,7 @@ export interface CreateCustomStrategyData {
   description?: string;
   buy_conditions: ConditionNode | ConditionNode[];
   sell_conditions: ConditionNode | ConditionNode[];
+  is_public?: boolean;
 }
 
 export interface UpdateCustomStrategyData {
@@ -43,19 +45,20 @@ export interface UpdateCustomStrategyData {
   buy_conditions?: ConditionNode | ConditionNode[];
   sell_conditions?: ConditionNode | ConditionNode[];
   is_active?: boolean;
+  is_public?: boolean;
 }
 
 export class CustomStrategy {
   static async create(strategyData: CreateCustomStrategyData): Promise<CustomStrategyData> {
     return new Promise((resolve, reject) => {
-      const { user_id, name, description, buy_conditions, sell_conditions } = strategyData;
+      const { user_id, name, description, buy_conditions, sell_conditions, is_public } = strategyData;
       
       const buyConditionsJson = JSON.stringify(buy_conditions);
       const sellConditionsJson = JSON.stringify(sell_conditions);
 
       db.run(
-        'INSERT INTO custom_strategies (user_id, name, description, buy_conditions, sell_conditions) VALUES ($1, $2, $3, $4, $5)',
-        [user_id, name, description || null, buyConditionsJson, sellConditionsJson],
+        'INSERT INTO custom_strategies (user_id, name, description, buy_conditions, sell_conditions, is_public) VALUES ($1, $2, $3, $4, $5, $6)',
+        [user_id, name, description || null, buyConditionsJson, sellConditionsJson, is_public || false],
         function(this: any, err: any) {
           if (err) {
             reject(err);
@@ -68,6 +71,7 @@ export class CustomStrategy {
               buy_conditions: buyConditionsJson,
               sell_conditions: sellConditionsJson,
               is_active: true,
+              is_public: is_public || false,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             });
@@ -100,7 +104,7 @@ export class CustomStrategy {
       
       query += ' ORDER BY created_at DESC';
       
-      db.all(query, params, (err: any, rows: any[]) => {
+      db.all(query, params, (err: any, rows?: any[]) => {
         if (err) {
           reject(err);
         } else {
@@ -208,21 +212,23 @@ export class CustomStrategy {
   }
 
   // Helper method to parse JSON fields
-  static parseStrategyData(strategy: CustomStrategyData): CustomStrategyData & {
+  static parseStrategyData(strategy: CustomStrategyData): Omit<CustomStrategyData, 'buy_conditions' | 'sell_conditions'> & {
     buy_conditions: ConditionNode | ConditionNode[];
     sell_conditions: ConditionNode | ConditionNode[];
   } {
     try {
-      const parsed = { ...strategy };
-      if (parsed.buy_conditions) {
-        parsed.buy_conditions = JSON.parse(parsed.buy_conditions as string) as ConditionNode | ConditionNode[];
-      }
-      if (parsed.sell_conditions) {
-        parsed.sell_conditions = JSON.parse(parsed.sell_conditions as string) as ConditionNode | ConditionNode[];
-      }
-      return parsed as CustomStrategyData & {
-        buy_conditions: ConditionNode | ConditionNode[];
-        sell_conditions: ConditionNode | ConditionNode[];
+      const buyConditions = typeof strategy.buy_conditions === 'string' 
+        ? JSON.parse(strategy.buy_conditions) as ConditionNode | ConditionNode[]
+        : strategy.buy_conditions as ConditionNode | ConditionNode[];
+      
+      const sellConditions = typeof strategy.sell_conditions === 'string'
+        ? JSON.parse(strategy.sell_conditions) as ConditionNode | ConditionNode[]
+        : strategy.sell_conditions as ConditionNode | ConditionNode[];
+
+      return {
+        ...strategy,
+        buy_conditions: buyConditions,
+        sell_conditions: sellConditions
       };
     } catch (error) {
       console.error('Error parsing custom strategy data:', error);

@@ -111,12 +111,14 @@ export class CustomStrategyExecutor {
         switch (condition) {
           case 'overbought':
             if (type === 'rsi') {
-              return indicator.overbought(value as number || 70);
+              const threshold = typeof value === 'number' ? value : 70;
+              return indicator.overbought(threshold);
             }
             break;
           case 'oversold':
             if (type === 'rsi') {
-              return indicator.oversold(value as number || 30);
+              const threshold = typeof value === 'number' ? value : 30;
+              return indicator.oversold(threshold);
             }
             break;
           case 'signalAbove':

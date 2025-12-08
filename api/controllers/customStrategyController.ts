@@ -11,7 +11,7 @@ export const createCustomStrategy = async (req: AuthenticatedRequest, res: Respo
       return res.status(401).json({ error: "User not authenticated" });
     }
 
-    const { name, description, buy_conditions, sell_conditions } = req.body;
+    const { name, description, buy_conditions, sell_conditions, is_public } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: "Strategy name is required" });
@@ -60,7 +60,8 @@ export const createCustomStrategy = async (req: AuthenticatedRequest, res: Respo
       name,
       description,
       buy_conditions: buyNodes.length === 1 ? buyNodes[0] : buyNodes,
-      sell_conditions: sellNodes.length === 1 ? sellNodes[0] : sellNodes
+      sell_conditions: sellNodes.length === 1 ? sellNodes[0] : sellNodes,
+      is_public: is_public === true
     });
 
     res.status(201).json({

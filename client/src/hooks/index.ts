@@ -39,3 +39,7 @@ export type {
   UsePortfolioHistoryReturn,
   UseTradingSessionManagementReturn
 } from './useTrading';
+
+// Custom Strategy hooks
+export { useCustomStrategies } from './useCustomStrategies';
+export type { UseCustomStrategiesReturn } from './useCustomStrategies';
