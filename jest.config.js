@@ -8,7 +8,8 @@ module.exports = {
   ],
   testPathIgnorePatterns: [
     '/node_modules/',
-    '/__tests__/disabled/'
+    '/__tests__/disabled/',
+    '/__tests__/.*/.*testHelpers\\.ts$'
   ],
   transform: {
     '^.+\\.ts$': 'ts-jest',
