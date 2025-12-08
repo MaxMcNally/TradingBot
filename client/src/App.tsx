@@ -17,6 +17,7 @@ import {
   PrivacyPolicyPage,
   TermsOfServicePage,
   SupportPage,
+  HowItWorksPage,
 } from "./Pages";
 import { AdminRoute } from "./Pages/Admin";
 import ThemeProvider from "./providers/ThemeProvider";
@@ -179,6 +180,14 @@ const AppContent: React.FC = () => {
           element={
             <MainLayout user={user} onLogout={logout}>
               <SupportPage />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/how-it-works"
+          element={
+            <MainLayout user={user} onLogout={logout}>
+              <HowItWorksPage />
             </MainLayout>
           }
         />

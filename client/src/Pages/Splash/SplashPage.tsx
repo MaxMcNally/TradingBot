@@ -176,6 +176,25 @@ const SplashPage: React.FC = () => {
             >
               Sign In
             </Button>
+            <Button
+              variant="text"
+              size="large"
+              onClick={() => navigate("/how-it-works")}
+              sx={{
+                py: 1.5,
+                px: 4,
+                fontSize: "1.1rem",
+                fontWeight: 600,
+                color: "white",
+                "&:hover": {
+                  backgroundColor: "rgba(255, 255, 255, 0.1)",
+                  transform: "translateY(-2px)",
+                },
+                transition: "all 0.3s ease",
+              }}
+            >
+              How It Works
+            </Button>
           </Stack>
         </Box>
 

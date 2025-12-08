@@ -63,6 +63,15 @@ const Footer: React.FC<FooterProps> = ({ user }) => {
             </MuiLink>
             <MuiLink
               component={Link}
+              to="/how-it-works"
+              color="text.secondary"
+              underline="hover"
+              sx={{ fontSize: '0.875rem' }}
+            >
+              How It Works
+            </MuiLink>
+            <MuiLink
+              component={Link}
               to="/privacy"
               color="text.secondary"
               underline="hover"
