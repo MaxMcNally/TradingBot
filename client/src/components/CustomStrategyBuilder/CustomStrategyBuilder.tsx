@@ -43,7 +43,6 @@ import {
   CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
 import { ConditionNode, validateCustomStrategy } from '../../api/customStrategiesApi';
-import { useCustomStrategies } from '../../hooks/useCustomStrategies';
 
 interface CustomStrategyBuilderProps {
   open: boolean;
