@@ -1,4 +1,4 @@
-import { macd, MACDIndicator, MACDValue } from '../../../utils/indicators/macd';
+import { macd, MACDIndicator } from '../../../utils/indicators/macd';
 import { PriceData } from '../../../utils/indicators/types';
 import { generatePriceData, generateTrendingData } from './__helpers__';
 
