@@ -349,6 +349,7 @@ YAHOO_FINANCE_API_KEY=your-key
 
 ## 📚 Documentation
 
+- [UX Paradigm & User Experience](UX_PARADIGM.md) - Complete overview of user tiers, bot concepts, and platform features
 - [Railway Deployment Guide](RAILWAY_DEPLOYMENT.md)
 - [CircleCI + Railway Setup](CIRCLECI_RAILWAY_SETUP.md)
 - [Quick Deploy Guide](QUICK_DEPLOY.md)
