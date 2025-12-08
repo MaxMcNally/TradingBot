@@ -7,7 +7,8 @@ import {
   getCustomStrategyById,
   updateCustomStrategy,
   deleteCustomStrategy,
-  testCustomStrategy
+  testCustomStrategy,
+  validateCustomStrategy
 } from "../controllers/customStrategyController";
 
 const router = Router();
@@ -21,6 +22,9 @@ router.post("/", createCustomStrategy);
 
 // Get all custom strategies for the authenticated user
 router.get("/", getUserCustomStrategies);
+
+// Validate a custom strategy
+router.post("/validate", validateCustomStrategy);
 
 // Test a custom strategy with sample data
 router.post("/test", testCustomStrategy);

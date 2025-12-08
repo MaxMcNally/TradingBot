@@ -42,8 +42,8 @@ import {
   ArrowForward as ArrowForwardIcon,
   CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
-import { ConditionNode } from '../../api/customStrategiesApi';
-import { useCustomStrategies } from '../../hooks';
+import { ConditionNode, validateCustomStrategy } from '../../../api/customStrategiesApi';
+import { useCustomStrategies } from '../../../hooks';
 
 interface CustomStrategyBuilderProps {
   open: boolean;
@@ -1022,6 +1022,9 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
   const [isPublic, setIsPublic] = useState(false);
   const [buyChain, setBuyChain] = useState<ChainItem[]>([]);
   const [sellChain, setSellChain] = useState<ChainItem[]>([]);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
+  const [isValidating, setIsValidating] = useState(false);
 
   // Update state when editingStrategy changes or dialog opens
   useEffect(() => {
@@ -1061,6 +1064,9 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
         setBuyChain([]);
         setSellChain([]);
       }
+      // Clear validation state when opening
+      setValidationErrors([]);
+      setValidationWarnings([]);
     }
   }, [open, editingStrategy]);
 
@@ -1159,6 +1165,83 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
     setActiveStep((prevStep) => prevStep - 1);
   };
 
+  const handleValidate = async () => {
+    if (buyChain.length === 0 || sellChain.length === 0) {
+      return { valid: false, errors: [], warnings: [] };
+    }
+
+    setIsValidating(true);
+    try {
+      const buyConditions = chainToConditionNode(buyChain);
+      const sellConditions = chainToConditionNode(sellChain);
+
+      const response = await validateCustomStrategy({
+        buy_conditions: buyConditions,
+        sell_conditions: sellConditions
+      });
+
+      console.log('Validation response:', response.data);
+
+      // Handle both response structures for compatibility
+      // API returns: { success: true, data: { valid, errors, warnings } }
+      // Or old format: { success: true, valid, errors, warnings }
+      const responseData = response.data;
+      let validation;
+      
+      if (responseData.data) {
+        // New format with data wrapper
+        validation = responseData.data;
+      } else if (responseData.valid !== undefined || responseData.errors !== undefined) {
+        // Old format or direct format
+        validation = responseData;
+      } else {
+        console.error('Unexpected validation response format:', responseData);
+        throw new Error('Invalid validation response format');
+      }
+      
+      const errors = Array.isArray(validation.errors) ? validation.errors : [];
+      const warnings = Array.isArray(validation.warnings) ? validation.warnings : [];
+      const valid = validation.valid !== undefined ? validation.valid : (errors.length === 0);
+      
+      console.log('Parsed validation:', { valid, errors, warnings });
+      
+      // Always set the state, even if arrays are empty (to clear previous errors)
+      setValidationErrors(errors);
+      setValidationWarnings(warnings);
+      
+      return { valid, errors, warnings };
+    } catch (error: any) {
+      console.error('Error validating strategy:', error);
+      console.error('Error response:', error?.response?.data);
+      
+      // Check if it's actually a validation response with errors (non-200 status)
+      if (error?.response?.data) {
+        const errorData = error.response.data;
+        // Check if it has validation data
+        if (errorData.data && (errorData.data.errors !== undefined || errorData.data.warnings !== undefined)) {
+          const validation = errorData.data;
+          setValidationErrors(validation.errors || []);
+          setValidationWarnings(validation.warnings || []);
+          return validation;
+        }
+        // Check if it's the old format
+        if (errorData.valid !== undefined || errorData.errors !== undefined) {
+          setValidationErrors(errorData.errors || []);
+          setValidationWarnings(errorData.warnings || []);
+          return { valid: errorData.valid || false, errors: errorData.errors || [], warnings: errorData.warnings || [] };
+        }
+      }
+      
+      // Otherwise it's a real error
+      const errorMsg = error?.response?.data?.error || error?.message || 'Failed to validate strategy';
+      setValidationErrors([errorMsg]);
+      setValidationWarnings([]);
+      return { valid: false, errors: [errorMsg], warnings: [] };
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!name.trim()) {
       alert('Please enter a strategy name');
@@ -1173,6 +1256,29 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
     if (sellChain.length === 0) {
       alert('Please add at least one sell condition');
       return;
+    }
+
+    // Validate before saving
+    const validation = await handleValidate();
+    if (!validation.valid) {
+      const errorMessage = validation.errors.length > 0
+        ? `Validation failed:\n${validation.errors.join('\n')}`
+        : 'Strategy validation failed. Please review your conditions.';
+      
+      if (validation.errors.length > 0) {
+        alert(errorMessage);
+        return;
+      }
+    }
+
+    // If there are errors, don't proceed
+    if (validationErrors.length > 0) {
+      const proceed = window.confirm(
+        `Your strategy has validation errors:\n${validationErrors.join('\n')}\n\nDo you want to save anyway?`
+      );
+      if (!proceed) {
+        return;
+      }
     }
 
     try {
@@ -1200,8 +1306,18 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
     setIsPublic(false);
     setBuyChain([]);
     setSellChain([]);
+    setValidationErrors([]);
+    setValidationWarnings([]);
     onClose();
   };
+
+  // Validate when moving to final step
+  useEffect(() => {
+    if (activeStep === 2 && buyChain.length > 0 && sellChain.length > 0) {
+      handleValidate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeStep]);
 
   const renderStepContent = () => {
     switch (activeStep) {
@@ -1540,6 +1656,55 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
               </Stack>
             </Paper>
 
+            {/* Validation Disclaimer */}
+            <Alert severity="info" sx={{ mb: 3 }}>
+              <Typography variant="body2" fontWeight="bold" gutterBottom>
+                Strategy Validation
+              </Typography>
+              <Typography variant="body2">
+                We will attempt to validate your strategy for logical consistency and common issues. 
+                However, please verify that your strategy makes sense for your trading goals before proceeding. 
+                Always test your strategy thoroughly before using it with real money.
+              </Typography>
+            </Alert>
+
+            {/* Validation Results */}
+            {validationErrors.length > 0 && validationErrors.some(err => err && err.trim().length > 0) && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                  Validation Errors
+                </Typography>
+                <ul style={{ margin: 0, paddingLeft: 20 }}>
+                  {validationErrors.filter(err => err && err.trim().length > 0).map((error, index) => (
+                    <li key={index}>
+                      <Typography variant="body2">{error}</Typography>
+                    </li>
+                  ))}
+                </ul>
+              </Alert>
+            )}
+
+            {validationWarnings.length > 0 && (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                  Validation Warnings
+                </Typography>
+                <ul style={{ margin: 0, paddingLeft: 20 }}>
+                  {validationWarnings.map((warning, index) => (
+                    <li key={index}>
+                      <Typography variant="body2">{warning}</Typography>
+                    </li>
+                  ))}
+                </ul>
+              </Alert>
+            )}
+
+            {isValidating && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                <Typography variant="body2">Validating strategy...</Typography>
+              </Alert>
+            )}
+
             <Typography variant="h6" gutterBottom>
               Strategy Details
             </Typography>
@@ -1662,3 +1827,4 @@ const CustomStrategyBuilder: React.FC<CustomStrategyBuilderProps> = ({
 };
 
 export default CustomStrategyBuilder;
+

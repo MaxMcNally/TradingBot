@@ -43,7 +43,7 @@ import { useUserStrategies, usePublicStrategies, useUser, useCustomStrategies } 
 import { UserStrategy } from '../../api';
 import { CustomStrategy } from '../../api/customStrategiesApi';
 import StrategyDialog from './StrategyDialog';
-import CustomStrategyBuilder from './CustomStrategyBuilder';
+import CustomStrategyBuilder from '../../components/CustomStrategyBuilder';
 import PremiumUpsellDialog from './PremiumUpsellDialog';
 import { StrategyFormData } from './Strategies.types';
 

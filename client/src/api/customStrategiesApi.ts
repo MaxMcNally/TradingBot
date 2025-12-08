@@ -65,6 +65,18 @@ export interface TestCustomStrategyResponse {
   }>;
 }
 
+export interface ValidateCustomStrategyRequest {
+  buy_conditions: ConditionNode | ConditionNode[];
+  sell_conditions: ConditionNode | ConditionNode[];
+}
+
+export interface ValidateCustomStrategyResponse {
+  success: boolean;
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
 // Get all custom strategies for the authenticated user
 export const getCustomStrategies = (includeInactive: boolean = false): Promise<AxiosResponse<ApiResponse<CustomStrategy[]>>> =>
   api.get(`/custom-strategies?includeInactive=${includeInactive}`);
@@ -84,6 +96,10 @@ export const updateCustomStrategy = (strategyId: number, data: UpdateCustomStrat
 // Delete a custom strategy
 export const deleteCustomStrategy = (strategyId: number): Promise<AxiosResponse<ApiResponse>> =>
   api.delete(`/custom-strategies/${strategyId}`);
+
+// Validate a custom strategy
+export const validateCustomStrategy = (data: ValidateCustomStrategyRequest): Promise<AxiosResponse<ApiResponse<ValidateCustomStrategyResponse>>> =>
+  api.post('/custom-strategies/validate', data);
 
 // Test a custom strategy with sample data
 export const testCustomStrategy = (data: TestCustomStrategyRequest): Promise<AxiosResponse<ApiResponse<TestCustomStrategyResponse>>> =>

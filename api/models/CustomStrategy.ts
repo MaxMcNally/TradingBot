@@ -12,6 +12,10 @@ export interface ConditionNode {
     params: Record<string, any>; // Indicator-specific parameters
     condition: string; // e.g., 'above', 'below', 'crossesAbove', etc.
     value?: number | string; // Threshold value or indicator reference
+    refIndicator?: { // For indicator-to-indicator comparisons
+      type: 'sma' | 'ema' | 'rsi' | 'macd' | 'bollingerBands' | 'vwap';
+      params: Record<string, any>;
+    };
   };
   // For logical operators
   children?: ConditionNode[];

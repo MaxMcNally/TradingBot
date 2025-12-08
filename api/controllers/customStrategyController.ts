@@ -231,6 +231,44 @@ export const deleteCustomStrategy = async (req: AuthenticatedRequest, res: Respo
   }
 };
 
+// Validate a custom strategy
+export const validateCustomStrategy = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    const { buy_conditions, sell_conditions } = req.body;
+
+    if (!buy_conditions) {
+      return res.status(400).json({ error: "Buy conditions are required" });
+    }
+
+    if (!sell_conditions) {
+      return res.status(400).json({ error: "Sell conditions are required" });
+    }
+
+    // Run comprehensive validation
+    const validation = CustomStrategyService.validateStrategy(buy_conditions, sell_conditions);
+
+    res.json({
+      success: true,
+      data: {
+        valid: validation.valid,
+        errors: validation.errors,
+        warnings: validation.warnings
+      }
+    });
+  } catch (error) {
+    console.error("Error validating custom strategy:", error);
+    res.status(500).json({ 
+      error: "Internal server error",
+      message: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+};
+
 // Test a custom strategy with sample data
 export const testCustomStrategy = async (req: AuthenticatedRequest, res: Response) => {
   try {
