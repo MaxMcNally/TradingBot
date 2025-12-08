@@ -1,6 +1,6 @@
 import { Response } from "express";
 import { AuthenticatedRequest } from "../middleware/auth";
-import { CustomStrategy, ConditionNode } from "../models/CustomStrategy";
+import { CustomStrategy } from "../models/CustomStrategy";
 import { CustomStrategyService } from "../services/customStrategyService";
 
 // Create a custom strategy
