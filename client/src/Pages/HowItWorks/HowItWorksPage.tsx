@@ -96,6 +96,7 @@ const HowItWorksPage: React.FC = () => {
         "Paper trade bots",
         "View Leaderboard",
         "Browse Marketplace (read-only)",
+        "Clone and edit Free Public Bots",
       ],
       limitations: [
         "Cannot create custom strategies",
@@ -117,6 +118,7 @@ const HowItWorksPage: React.FC = () => {
         "Live trade with Alpaca",
         "View Leaderboard",
         "Browse Marketplace (read-only)",
+        "Clone and edit Free Public Bots",
       ],
       limitations: [
         "Cannot create custom strategies",
@@ -136,8 +138,9 @@ const HowItWorksPage: React.FC = () => {
         "Paper trade bots",
         "Live trade with Alpaca",
         "View Leaderboard",
-        "Sell bots in Marketplace",
-        "Buy bots from Marketplace",
+        "Sell bots in Marketplace (Free Public or Paid)",
+        "Buy bots from Marketplace (Free Public or Paid)",
+        "Clone and edit Free Public Bots",
       ],
       limitations: [],
       target: "Advanced users needing unlimited strategies",
@@ -167,7 +170,8 @@ const HowItWorksPage: React.FC = () => {
     { feature: "Paper Trading", free: "✅", basic: "✅", premium: "✅", enterprise: "✅" },
     { feature: "Live Trading", free: "❌", basic: "✅", premium: "✅", enterprise: "✅" },
     { feature: "Leaderboard", free: "✅", basic: "✅", premium: "✅", enterprise: "✅" },
-    { feature: "Marketplace (Buy)", free: "❌", basic: "❌", premium: "✅", enterprise: "✅" },
+    { feature: "Marketplace (Buy Paid)", free: "❌", basic: "❌", premium: "✅", enterprise: "✅" },
+    { feature: "Marketplace (Clone Free)", free: "✅", basic: "✅", premium: "✅", enterprise: "✅" },
     { feature: "Marketplace (Sell)", free: "❌", basic: "❌", premium: "✅", enterprise: "✅" },
     { feature: "API Access", free: "❌", basic: "❌", premium: "❌", enterprise: "✅" },
     { feature: "Webhooks", free: "❌", basic: "❌", premium: "❌", enterprise: "✅" },
@@ -304,9 +308,25 @@ const HowItWorksPage: React.FC = () => {
               <Psychology sx={{ mr: 1, color: "warning.main" }} />
               Marketplace
             </Typography>
-            <Typography variant="body1" paragraph sx={{ lineHeight: 1.8 }}>
-              Users can list their successful bots in the Marketplace for others to purchase and use. This creates revenue opportunities for strategy creators and provides access to proven strategies for buyers.
+            <Typography variant="body1" paragraph sx={{ lineHeight: 1.8, mb: 2 }}>
+              The Marketplace offers two types of bots:
             </Typography>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                Free Public Bots
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                Can be cloned and edited by any user. Perfect for learning and community collaboration.
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                Paid Bots
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Proprietary and non-editable. Strategy creators earn revenue while buyers get ready-to-use strategies.
+              </Typography>
+            </Box>
           </Paper>
         </Grid>
       </Grid>

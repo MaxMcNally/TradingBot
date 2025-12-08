@@ -78,16 +78,36 @@ User-created strategies built using the Custom Strategy Builder. These allow adv
 
 ## Marketplace
 
+The Marketplace offers two types of bots: **Free Public Bots** and **Paid Bots**, each with different usage rights and capabilities.
+
+### Free Public Bots
+- **Open Source Model**: Free public bots can be cloned by any user
+- **Editable**: Users can clone and edit free public bots to customize them for their needs
+- **Community Contribution**: Encourages sharing and collaboration
+- **Learning Tool**: Perfect for users who want to learn from successful strategies
+- **No Cost**: Available at no charge to all users with Marketplace access
+
+### Paid Bots
+- **Proprietary**: Paid bots are proprietary and protected
+- **Non-Editable**: Purchased paid bots cannot be edited by buyers
+- **Revenue Model**: Strategy creators earn revenue from bot sales
+- **Premium Quality**: Typically represents proven, high-performing strategies
+- **Licensed Use**: Buyers receive a license to use the bot but not to modify or redistribute it
+
 ### Selling Bots
-Users can list their successful bots in the Marketplace for other users to purchase and use. This creates:
+Users can list their successful bots in the Marketplace in either format:
+- **Free Public**: Share strategies with the community, build reputation, and contribute to the ecosystem
+- **Paid**: Monetize successful strategies by selling proprietary bots
 - Revenue opportunities for strategy creators
 - Access to proven strategies for buyers
 - A community-driven strategy ecosystem
 
 ### Buying Bots
-Users can browse and purchase bots created by others:
+Users can browse and acquire bots created by others:
+- **Free Public Bots**: Clone and customize to learn and adapt strategies
+- **Paid Bots**: Purchase ready-to-use proprietary strategies
 - Access to proven, tested strategies
-- Learning opportunities from successful implementations
+- Learning opportunities from successful implementations (free bots)
 - Time-saving alternative to building from scratch
 
 ## User Tiers & Capabilities
@@ -101,6 +121,7 @@ Users can browse and purchase bots created by others:
 - Paper trade bots
 - View Leaderboard
 - Browse Marketplace (read-only)
+- Clone and edit **Free Public Bots** from Marketplace
 
 **Limitations**:
 - Cannot create custom strategies
@@ -122,6 +143,7 @@ Users can browse and purchase bots created by others:
 - **Live trade** with Alpaca account integration
 - View Leaderboard
 - Browse Marketplace (read-only)
+- Clone and edit **Free Public Bots** from Marketplace
 
 **Limitations**:
 - Cannot create custom strategies
@@ -141,8 +163,9 @@ Users can browse and purchase bots created by others:
 - Paper trade bots
 - Live trade with Alpaca account integration
 - View Leaderboard
-- **Sell bots in Marketplace**
-- **Buy bots from Marketplace**
+- **Sell bots in Marketplace** (Free Public or Paid)
+- **Buy bots from Marketplace** (Free Public or Paid)
+- Clone and edit **Free Public Bots**
 
 **Use Case**: Perfect for serious traders who want full control over strategy development, the ability to monetize successful strategies, and access to the broader strategy ecosystem.
 
@@ -210,7 +233,8 @@ Users can browse and purchase bots created by others:
 | Paper Trading | ✅ | ✅ | ✅ | ✅ |
 | Live Trading | ❌ | ✅ | ✅ | ✅ |
 | Leaderboard | ✅ | ✅ | ✅ | ✅ |
-| Marketplace (Buy) | ❌ | ❌ | ✅ | ✅ |
+| Marketplace (Buy Paid) | ❌ | ❌ | ✅ | ✅ |
+| Marketplace (Buy/Clone Free) | ✅ | ✅ | ✅ | ✅ |
 | Marketplace (Sell) | ❌ | ❌ | ✅ | ✅ |
 | API Access | ❌ | ❌ | ❌ | ✅ |
 | Webhooks | ❌ | ❌ | ❌ | ✅ |
