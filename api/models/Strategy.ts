@@ -10,6 +10,7 @@ export interface StrategyData {
   backtest_results?: string; // JSON string of backtest results
   is_active: boolean;
   is_public: boolean;
+  avatar?: number | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -22,6 +23,7 @@ export interface CreateStrategyData {
   config: any; // Object that will be stringified
   backtest_results?: any; // Object that will be stringified
   is_public?: boolean;
+  avatar?: number | null;
 }
 
 export interface UpdateStrategyData {
@@ -32,12 +34,13 @@ export interface UpdateStrategyData {
   backtest_results?: any; // Object that will be stringified
   is_active?: boolean;
   is_public?: boolean;
+  avatar?: number | null;
 }
 
 export class Strategy {
   static async create(strategyData: CreateStrategyData): Promise<StrategyData> {
     return new Promise((resolve, reject) => {
-      const { user_id, name, description, strategy_type, config, backtest_results, is_public = false } = strategyData;
+      const { user_id, name, description, strategy_type, config, backtest_results, is_public = false, avatar } = strategyData;
       
       const configJson = typeof config === 'string' ? config : JSON.stringify(config);
       const backtestResultsJson = backtest_results ? 
@@ -45,8 +48,8 @@ export class Strategy {
         null;
 
       db.run(
-        'INSERT INTO user_strategies (user_id, name, description, strategy_type, config, backtest_results, is_public) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-        [user_id, name, description, strategy_type, configJson, backtestResultsJson, is_public],
+        'INSERT INTO user_strategies (user_id, name, description, strategy_type, config, backtest_results, is_public, avatar) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+        [user_id, name, description, strategy_type, configJson, backtestResultsJson, is_public, avatar || null],
         function(this: any, err: any) {
           if (err) {
             reject(err);
@@ -61,6 +64,7 @@ export class Strategy {
               backtest_results: backtestResultsJson || undefined,
               is_active: true,
               is_public,
+              avatar: avatar || null,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             });

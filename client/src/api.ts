@@ -227,6 +227,7 @@ export interface UserStrategy {
   backtest_results?: any;
   is_active: boolean;
   is_public: boolean;
+  avatar?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -238,6 +239,7 @@ export interface CreateStrategyData {
   config: any;
   backtest_results?: any;
   is_public?: boolean;
+  avatar?: number | null;
 }
 
 export interface UpdateStrategyData {
@@ -248,6 +250,7 @@ export interface UpdateStrategyData {
   backtest_results?: any;
   is_active?: boolean;
   is_public?: boolean;
+  avatar?: number | null;
 }
 
 export interface SymbolOption {

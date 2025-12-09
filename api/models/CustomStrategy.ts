@@ -30,6 +30,7 @@ export interface CustomStrategyData {
   sell_conditions: string; // JSON string of ConditionNode
   is_active: boolean;
   is_public?: boolean;
+  avatar?: number | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -41,6 +42,7 @@ export interface CreateCustomStrategyData {
   buy_conditions: ConditionNode | ConditionNode[];
   sell_conditions: ConditionNode | ConditionNode[];
   is_public?: boolean;
+  avatar?: number | null;
 }
 
 export interface UpdateCustomStrategyData {
@@ -50,19 +52,20 @@ export interface UpdateCustomStrategyData {
   sell_conditions?: ConditionNode | ConditionNode[];
   is_active?: boolean;
   is_public?: boolean;
+  avatar?: number | null;
 }
 
 export class CustomStrategy {
   static async create(strategyData: CreateCustomStrategyData): Promise<CustomStrategyData> {
     return new Promise((resolve, reject) => {
-      const { user_id, name, description, buy_conditions, sell_conditions, is_public } = strategyData;
+      const { user_id, name, description, buy_conditions, sell_conditions, is_public, avatar } = strategyData;
       
       const buyConditionsJson = JSON.stringify(buy_conditions);
       const sellConditionsJson = JSON.stringify(sell_conditions);
 
       db.run(
-        'INSERT INTO custom_strategies (user_id, name, description, buy_conditions, sell_conditions, is_public) VALUES ($1, $2, $3, $4, $5, $6)',
-        [user_id, name, description || null, buyConditionsJson, sellConditionsJson, is_public || false],
+        'INSERT INTO custom_strategies (user_id, name, description, buy_conditions, sell_conditions, is_public, avatar) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+        [user_id, name, description || null, buyConditionsJson, sellConditionsJson, is_public || false, avatar || null],
         function(this: any, err: any) {
           if (err) {
             reject(err);
@@ -76,6 +79,7 @@ export class CustomStrategy {
               sell_conditions: sellConditionsJson,
               is_active: true,
               is_public: is_public || false,
+              avatar: avatar || null,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             });
