@@ -28,17 +28,14 @@ import {
 import {
   Search as SearchIcon,
   FilterList as FilterIcon,
-  TrendingUp as TrendingUpIcon,
-  Assessment as AssessmentIcon,
   Public as PublicIcon,
   ContentCopy as CopyIcon,
-  CalendarToday as CalendarIcon,
-  Person as PersonIcon,
   Visibility as ViewIcon
 } from '@mui/icons-material';
 import { usePublicStrategies } from '../../hooks';
 import { UserStrategy, copyPublicStrategy } from '../../api';
 import { useUser } from '../../hooks';
+import { BotCard } from '../shared';
 
 interface StrategyDetailsDialogProps {
   open: boolean;
@@ -366,24 +363,6 @@ const StrategiesMarketplace: React.FC = () => {
     return typeMap[type] || type;
   };
 
-  const getBacktestResults = (strategy: UserStrategy) => {
-    if (!strategy.backtest_results) return null;
-    
-    try {
-      const results = typeof strategy.backtest_results === 'string' 
-        ? JSON.parse(strategy.backtest_results) 
-        : strategy.backtest_results;
-      
-      return {
-        totalReturn: results.totalReturn || 0,
-        winRate: results.winRate || 0,
-        maxDrawdown: results.maxDrawdown || 0
-      };
-    } catch {
-      return null;
-    }
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -531,89 +510,35 @@ const StrategiesMarketplace: React.FC = () => {
         </Card>
       ) : (
         <Grid container spacing={3}>
-          {filteredAndSortedStrategies.map((strategy) => {
-            const backtestResults = getBacktestResults(strategy);
-            
-            return (
-              <Grid item xs={12} md={6} lg={4} key={strategy.id}>
-                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                      <Typography variant="h6" component="h2" noWrap>
-                        {strategy.name}
-                      </Typography>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Tooltip title="Public Strategy">
-                          <PublicIcon color="primary" fontSize="small" />
-                        </Tooltip>
-                        <Chip
-                          label={getStrategyTypeLabel(strategy.strategy_type)}
-                          variant="outlined"
-                          size="small"
-                        />
-                      </Box>
-                    </Box>
-
-                    <Typography variant="body2" color="text.secondary" mb={2}>
-                      {strategy.description || 'No description provided'}
-                    </Typography>
-
-                    {backtestResults && (
-                      <Box mb={2}>
-                        <Typography variant="subtitle2" gutterBottom>
-                          Performance
-                        </Typography>
-                        <Box display="flex" flexWrap="wrap" gap={1}>
-                          <Chip
-                            icon={<TrendingUpIcon />}
-                            label={`${(backtestResults.totalReturn * 100).toFixed(1)}% Return`}
-                            color={backtestResults.totalReturn > 0 ? 'success' : 'error'}
-                            size="small"
-                          />
-                          <Chip
-                            icon={<AssessmentIcon />}
-                            label={`${(backtestResults.winRate * 100).toFixed(1)}% Win Rate`}
-                            variant="outlined"
-                            size="small"
-                          />
-                        </Box>
-                      </Box>
-                    )}
-
-                    <Box display="flex" alignItems="center" gap={1} mb={2}>
-                      <PersonIcon fontSize="small" color="action" />
-                      <Typography variant="caption" color="text.secondary">
-                        Created by User #{strategy.user_id}
-                      </Typography>
-                    </Box>
-
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                      <CalendarIcon sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
-                      {formatDate(strategy.created_at)}
-                    </Typography>
-                  </CardContent>
-
-                  <CardActions>
-                    <Button
-                      size="small"
-                      startIcon={<ViewIcon />}
-                      onClick={() => handleViewDetails(strategy)}
-                    >
-                      View Details
-                    </Button>
-                    <Button
-                      size="small"
-                      startIcon={<CopyIcon />}
-                      onClick={() => handleCopyStrategy(strategy)}
-                      variant="outlined"
-                    >
-                      Copy
-                    </Button>
-                  </CardActions>
-                </Card>
-              </Grid>
-            );
-          })}
+          {filteredAndSortedStrategies.map((strategy) => (
+            <Grid item xs={12} md={6} lg={4} key={strategy.id}>
+              <BotCard
+                strategy={strategy}
+                size="normal"
+                mode="display"
+                showBacktestResults={true}
+                getStrategyTypeLabel={getStrategyTypeLabel}
+                formatDate={formatDate}
+              />
+              <Box sx={{ mt: 1, display: 'flex', gap: 1, justifyContent: 'center' }}>
+                <Button
+                  size="small"
+                  startIcon={<ViewIcon />}
+                  onClick={() => handleViewDetails(strategy)}
+                >
+                  View Details
+                </Button>
+                <Button
+                  size="small"
+                  startIcon={<CopyIcon />}
+                  onClick={() => handleCopyStrategy(strategy)}
+                  variant="outlined"
+                >
+                  Copy
+                </Button>
+              </Box>
+            </Grid>
+          ))}
         </Grid>
       )}
 

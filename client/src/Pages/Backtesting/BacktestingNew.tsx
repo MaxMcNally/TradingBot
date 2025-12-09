@@ -224,7 +224,7 @@ const BacktestingNew: React.FC = () => {
           <Tabs value={activeTab} onChange={handleTabChange} aria-label="backtest tabs">
             <Tab
               icon={<TrendingUp />}
-              label="Strategy Selection"
+              label="Select a Bot"
               id="backtest-tab-0"
               aria-controls="backtest-tabpanel-0"
             />

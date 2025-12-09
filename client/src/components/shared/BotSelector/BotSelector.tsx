@@ -5,10 +5,7 @@ import {
   CircularProgress,
   Paper,
   Button,
-  Card,
-  CardContent,
-  CardActionArea,
-  Chip,
+  Grid,
   Stack,
 } from '@mui/material';
 import {
@@ -18,7 +15,7 @@ import {
 } from '@mui/icons-material';
 import { UserStrategy } from '../../../api';
 import { CustomStrategy } from '../../../api/customStrategiesApi';
-import { RobotAvatarDisplay } from '../RobotAvatars';
+import { BotCard } from '../BotCard';
 
 // Unified strategy type for display
 export type UnifiedStrategy = {
@@ -135,63 +132,21 @@ export const BotSelector: React.FC<BotSelectorProps> = ({
           )}
         </Paper>
       ) : (
-        <Stack spacing={2}>
+        <Grid container spacing={2}>
           {allStrategies.map((strategy) => (
-            <Card
-              key={`${strategy.type}-${strategy.id}`}
-              sx={{
-                border: selectedStrategy?.id === strategy.id && selectedStrategy?.type === strategy.type ? 2 : 1,
-                borderColor: selectedStrategy?.id === strategy.id && selectedStrategy?.type === strategy.type ? 'primary.main' : 'divider',
-                backgroundColor: selectedStrategy?.id === strategy.id && selectedStrategy?.type === strategy.type ? 'action.selected' : 'background.paper',
-              }}
-            >
-              <CardActionArea onClick={() => onStrategySelect(strategy)}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 1 }}>
-                    <RobotAvatarDisplay 
-                      avatar={strategy.avatar}
-                      size={48}
-                    />
-                    <Box sx={{ flex: 1 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                        <Typography variant="h6" component="div">
-                          {strategy.name}
-                        </Typography>
-                        <Chip
-                          label={strategy.type === 'custom' ? 'Custom' : (strategy.strategy_type || 'Strategy')}
-                          size="small"
-                          color={strategy.type === 'custom' ? 'secondary' : 'primary'}
-                          variant="outlined"
-                        />
-                      </Box>
-                      {strategy.description && (
-                        <Typography variant="body2" color="textSecondary" paragraph>
-                          {strategy.description}
-                        </Typography>
-                      )}
-                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
-                        <Chip
-                          label={strategy.is_active ? 'Active' : 'Inactive'}
-                          size="small"
-                          color={strategy.is_active ? 'success' : 'default'}
-                          variant="outlined"
-                        />
-                        {strategy.is_public && (
-                          <Chip
-                            label="Public"
-                            size="small"
-                            color="secondary"
-                            variant="outlined"
-                          />
-                        )}
-                      </Box>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </CardActionArea>
-            </Card>
+            <Grid item xs={12} sm={6} md={4} key={`${strategy.type}-${strategy.id}`}>
+              <BotCard
+                strategy={strategy}
+                size="compact"
+                mode="selectable"
+                selected={selectedStrategy?.id === strategy.id && selectedStrategy?.type === strategy.type}
+                onSelect={onStrategySelect}
+                showBacktestResults={false}
+                isCustom={strategy.type === 'custom'}
+              />
+            </Grid>
           ))}
-        </Stack>
+        </Grid>
       )}
     </Box>
   );

@@ -126,7 +126,7 @@ const Trading: React.FC = () => {
                 />
                 <Tab
                   icon={<Settings />}
-                  label="Strategy Selection"
+                  label="Select a Bot"
                   id="trading-tab-1"
                   aria-controls="trading-tabpanel-1"
                 />

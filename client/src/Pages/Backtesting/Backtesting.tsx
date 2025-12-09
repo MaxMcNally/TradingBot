@@ -223,7 +223,7 @@ const BacktestingSimple: React.FC = () => {
                 />
                 <Tab
                   icon={<Settings />}
-                  label="Strategy Selection"
+                  label="Select a Bot"
                   id="backtest-tab-1"
                   aria-controls="backtest-tabpanel-1"
                 />
