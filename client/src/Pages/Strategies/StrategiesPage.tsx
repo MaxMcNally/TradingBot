@@ -46,7 +46,7 @@ import StrategyDialog from './StrategyDialog';
 import CustomStrategyBuilder from '../../components/CustomStrategyBuilder';
 import PremiumUpsellDialog from './PremiumUpsellDialog';
 import { StrategyFormData } from './Strategies.types';
-import { RobotAvatarDisplay } from '../../components/shared/RobotAvatars';
+import { BotCard } from '../../components/shared';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -277,135 +277,20 @@ const Strategies: React.FC = () => {
     return typeMap[type] || type;
   };
 
-  const getBacktestResults = (strategy: UserStrategy) => {
-    if (!strategy.backtest_results) return null;
-    
-    try {
-      const results = typeof strategy.backtest_results === 'string' 
-        ? JSON.parse(strategy.backtest_results) 
-        : strategy.backtest_results;
-      
-      return {
-        totalReturn: results.totalReturn || 0,
-        winRate: results.winRate || 0,
-        maxDrawdown: results.maxDrawdown || 0,
-        finalPortfolioValue: results.finalPortfolioValue || 0
-      };
-    } catch {
-      return null;
-    }
-  };
-
   const renderStrategyCard = (strategy: UserStrategy, showActions: boolean = true) => {
-    const backtestResults = getBacktestResults(strategy);
-    
     return (
       <Grid item xs={12} md={6} lg={4} key={strategy.id}>
-        <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-          <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            {/* Top Row - Chips on left, Edit on right */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', mb: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {strategy.is_public && (
-                  <Tooltip title="Public Strategy">
-                    <PublicIcon color="primary" fontSize="small" />
-                  </Tooltip>
-                )}
-                <Chip
-                  label={strategy.is_active ? 'Active' : 'Inactive'}
-                  color={strategy.is_active ? 'success' : 'default'}
-                  size="small"
-                />
-              </Box>
-              {showActions && (
-                <IconButton
-                  size="small"
-                  onClick={(e) => handleMenuOpen(e, strategy)}
-                >
-                  <MoreVertIcon />
-                </IconButton>
-              )}
-            </Box>
-
-            {/* Avatar - Centered */}
-            <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
-              <RobotAvatarDisplay 
-                avatar={strategy.avatar}
-                size={80}
-              />
-            </Box>
-
-            {/* Bot Name */}
-            <Typography variant="h6" component="h2" textAlign="center" mb={2} width="100%">
-              {strategy.name}
-            </Typography>
-
-            {/* Description */}
-            <Typography variant="body2" color="text.secondary" mb={2} textAlign="center" width="100%">
-              {strategy.description || 'No description provided'}
-            </Typography>
-
-            {/* Strategy Type */}
-            <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center', width: '100%' }}>
-              <Chip
-                label={getStrategyTypeLabel(strategy.strategy_type)}
-                variant="outlined"
-                size="small"
-              />
-            </Box>
-
-            {/* Backtest Results */}
-            {backtestResults && (
-              <Box sx={{ width: '100%', mb: 2 }}>
-                <Typography variant="subtitle2" gutterBottom textAlign="center">
-                  Backtest Results
-                </Typography>
-                <Box display="flex" flexWrap="wrap" gap={1} mb={1} justifyContent="center">
-                  <Chip
-                    icon={<TrendingUpIcon />}
-                    label={`${(backtestResults.totalReturn * 100).toFixed(1)}% Return`}
-                    color={backtestResults.totalReturn > 0 ? 'success' : 'error'}
-                    size="small"
-                  />
-                  <Chip
-                    icon={<AssessmentIcon />}
-                    label={`${(backtestResults.winRate * 100).toFixed(1)}% Win Rate`}
-                    variant="outlined"
-                    size="small"
-                  />
-                </Box>
-                <Typography variant="caption" color="text.secondary" display="block" textAlign="center">
-                  Max Drawdown: {(backtestResults.maxDrawdown * 100).toFixed(1)}%
-                </Typography>
-              </Box>
-            )}
-
-            {/* Created Date */}
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 'auto', display: 'block', textAlign: 'center' }}>
-              Created: {formatDate(strategy.created_at)}
-            </Typography>
-          </CardContent>
-
-          {showActions && (
-            <CardActions sx={{ justifyContent: 'center' }}>
-              <Button
-                size="small"
-                startIcon={<EditIcon />}
-                onClick={() => handleEditStrategy(strategy)}
-              >
-                Edit
-              </Button>
-              <Button
-                size="small"
-                startIcon={strategy.is_active ? <DeactivateIcon /> : <ActivateIcon />}
-                onClick={() => handleToggleActive(strategy)}
-                color={strategy.is_active ? 'warning' : 'success'}
-              >
-                {strategy.is_active ? 'Deactivate' : 'Activate'}
-              </Button>
-            </CardActions>
-          )}
-        </Card>
+        <BotCard
+          strategy={strategy}
+          size="normal"
+          mode={showActions ? 'withActions' : 'display'}
+          showBacktestResults={true}
+          onEdit={showActions ? handleEditStrategy : undefined}
+          onToggleActive={showActions ? handleToggleActive : undefined}
+          onMenuClick={showActions ? handleMenuOpen : undefined}
+          getStrategyTypeLabel={getStrategyTypeLabel}
+          formatDate={formatDate}
+        />
       </Grid>
     );
   };
@@ -650,83 +535,33 @@ const Strategies: React.FC = () => {
             {userStrategies.map((strategy) => renderStrategyCard(strategy, true))}
             {isPremium && customStrategies.map((strategy) => (
               <Grid item xs={12} md={6} lg={4} key={`custom-${strategy.id}`}>
-                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', border: '2px solid', borderColor: 'primary.main' }}>
-                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    {/* Top Row - Chips on left, Edit on right */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', mb: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Chip label="Custom" color="primary" size="small" />
-                        <Chip
-                          label={strategy.is_active ? 'Active' : 'Inactive'}
-                          color={strategy.is_active ? 'success' : 'default'}
-                          size="small"
-                        />
-                      </Box>
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          setAnchorEl(e.currentTarget);
-                          setSelectedStrategy({
-                            id: strategy.id,
-                            user_id: strategy.user_id,
-                            name: strategy.name,
-                            description: strategy.description,
-                            strategy_type: 'custom',
-                            config: {},
-                            is_active: strategy.is_active,
-                            is_public: false,
-                            avatar: strategy.avatar,
-                            created_at: strategy.created_at,
-                            updated_at: strategy.updated_at
-                          } as UserStrategy);
-                        }}
-                      >
-                        <MoreVertIcon />
-                      </IconButton>
-                    </Box>
-
-                    {/* Avatar - Centered */}
-                    <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
-                      <RobotAvatarDisplay 
-                        avatar={strategy.avatar}
-                        size={80}
-                      />
-                    </Box>
-
-                    {/* Bot Name */}
-                    <Typography variant="h6" component="h2" textAlign="center" mb={2} width="100%">
-                      {strategy.name}
-                    </Typography>
-
-                    {/* Description */}
-                    <Typography variant="body2" color="text.secondary" mb={2} textAlign="center" width="100%">
-                      {strategy.description || 'Custom trading algorithm'}
-                    </Typography>
-
-                    {/* Strategy Type */}
-                    <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center', width: '100%' }}>
-                      <Chip
-                        label="Custom Strategy"
-                        variant="outlined"
-                        size="small"
-                      />
-                    </Box>
-
-                    {/* Created Date */}
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 'auto', display: 'block', textAlign: 'center' }}>
-                      Created: {formatDate(strategy.created_at)}
-                    </Typography>
-                  </CardContent>
-                  <CardActions sx={{ justifyContent: 'center' }}>
-                    <Button
-                      size="small"
-                      startIcon={<EditIcon />}
-                      onClick={() => handleEditCustomStrategy(strategy)}
-                    >
-                      Edit
-                    </Button>
-                  </CardActions>
-                </Card>
+                <BotCard
+                  strategy={strategy}
+                  size="normal"
+                  mode="withActions"
+                  showBacktestResults={false}
+                  onEdit={handleEditCustomStrategy}
+                  onMenuClick={(e) => {
+                    setAnchorEl(e.currentTarget);
+                    setSelectedStrategy({
+                      id: strategy.id,
+                      user_id: strategy.user_id,
+                      name: strategy.name,
+                      description: strategy.description,
+                      strategy_type: 'custom',
+                      config: {},
+                      is_active: strategy.is_active,
+                      is_public: false,
+                      avatar: strategy.avatar,
+                      created_at: strategy.created_at,
+                      updated_at: strategy.updated_at
+                    } as UserStrategy);
+                  }}
+                  getStrategyTypeLabel={getStrategyTypeLabel}
+                  formatDate={formatDate}
+                  isCustom={true}
+                  borderColor="primary.main"
+                />
               </Grid>
             ))}
           </Grid>

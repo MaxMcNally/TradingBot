@@ -10,6 +10,7 @@ export { default as StockSelectionSection } from './StockSelectionSection';
 export { default as StrategySelectionSection } from './StrategySelectionSection';
 export { default as StrategyParameters } from './StrategyParameters';
 export { BotSelector } from './BotSelector';
+export { BotCard } from './BotCard';
 export * from './RobotAvatars';
 
 // Export types
@@ -29,3 +30,4 @@ export type {
   StrategyConfig 
 } from './StrategyParameters';
 export type { BotSelectorProps, UnifiedStrategy } from './BotSelector';
+export type { BotCardProps } from './BotCard';

@@ -65,8 +65,8 @@ describe('Backtesting Sentiment Strategy', () => {
 
     renderWithQueryClient(<Backtesting />);
 
-    // Switch to Strategy Selection tab
-    fireEvent.click(screen.getByRole('tab', { name: /strategy selection/i }));
+    // Switch to Select a Bot tab
+    fireEvent.click(screen.getByRole('tab', { name: /select a bot/i }));
     // SentimentAnalysis should be available to select
     expect(await screen.findByRole('radio', { name: /sentimentanalysis/i })).toBeInTheDocument();
   });
