@@ -9,7 +9,6 @@ import {
   runBollingerBandsStrategy,
   runBreakoutStrategy
 } from "./strategies";
-import { CustomStrategy, CustomStrategyConfig } from "./strategies/customStrategy";
 import { CustomStrategyExecutor, ConditionNode } from "./utils/indicators/executor";
 import { PriceData } from "./utils/indicators/types";
 import {YahooDataProvider} from "./dataProviders/yahooProvider"
@@ -67,7 +66,7 @@ const argv = yargs(hideBin(process.argv))
 /**
  * Run a custom strategy backtest on historical data
  */
-function runCustomStrategyStrategy(
+function  runCustomStrategy(
   symbol: string,
   data: { date: string; close: number; open: number; volume?: number }[],
   config: {
@@ -373,7 +372,7 @@ async function main() {
           throw new Error('Custom strategy config is required when strategy is "custom"');
         }
         const customConfig = JSON.parse(argv.customStrategy as string);
-        result = runCustomStrategyStrategy(argv.symbol, formattedData, {
+        result =  runCustomStrategy(argv.symbol, formattedData, {
           buy_conditions: customConfig.buy_conditions,
           sell_conditions: customConfig.sell_conditions,
           name: `Custom Strategy ${customConfig.id || ''}`,
