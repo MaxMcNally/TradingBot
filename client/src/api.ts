@@ -1,5 +1,6 @@
 import axios, { AxiosResponse } from "axios";
 import { AppUser, PlanTier, PlanStatus, SubscriptionProvider, CheckoutProvider } from "./types/user";
+import { TradingSessionSettings } from "./api/tradingApi";
 
 // Use environment-based API URL for production, localhost for development
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8001/api";
@@ -173,7 +174,7 @@ export interface BacktestRequest {
     sell_conditions: any;
   };
   // Trading session settings
-  sessionSettings?: any; // TradingSessionSettings - will import proper type if needed
+  sessionSettings?: TradingSessionSettings;
   // Mean Reversion
   window?: number;
   threshold?: number;

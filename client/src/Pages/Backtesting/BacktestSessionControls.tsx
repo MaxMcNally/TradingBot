@@ -12,6 +12,9 @@ import {
   Chip,
   Divider,
   Paper,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from '@mui/material';
 import {
   PlayArrow,
@@ -19,12 +22,16 @@ import {
   Info,
   TrendingUp,
   AccountBalance,
+  ExpandMore,
+  Settings,
 } from '@mui/icons-material';
 import { OrderExecutionModal } from '../../components/shared/OrderExecutionModal';
 import { runBacktest } from '../../api';
 import { BacktestRequest } from '../../api';
 import { UnifiedStrategy } from '../../components/shared';
 import { BacktestResponse } from './Backtesting.types';
+import { TradingSessionSettingsForm } from '../../components/TradingSessionSettingsForm';
+import { TradingSessionSettings } from '../../api/tradingApi';
 
 interface BacktestSessionControlsProps {
   selectedStocks: string[];
@@ -45,6 +52,7 @@ const BacktestSessionControls: React.FC<BacktestSessionControlsProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [orderExecutionModalOpen, setOrderExecutionModalOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   
   // Backtest configuration
   const [startDate, setStartDate] = useState(() => {
@@ -55,6 +63,10 @@ const BacktestSessionControls: React.FC<BacktestSessionControlsProps> = ({
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [initialCapital, setInitialCapital] = useState(10000);
   const [sharesPerTrade, setSharesPerTrade] = useState(100);
+  
+  // Session settings
+  const [sessionSettings, setSessionSettings] = useState<Partial<TradingSessionSettings>>({});
+  const [settingsConfigured, setSettingsConfigured] = useState(false);
 
   const handleRunBacktest = async () => {
     if (selectedStocks.length === 0) {
@@ -107,6 +119,8 @@ const BacktestSessionControls: React.FC<BacktestSessionControlsProps> = ({
         ...(customStrategyData && { customStrategy: customStrategyData }),
         // Include strategy parameters
         ...strategyParameters,
+        // Include session settings if configured
+        ...(settingsConfigured && Object.keys(sessionSettings).length > 0 && { sessionSettings }),
       };
 
       const response = await runBacktest(backtestRequest);
@@ -230,6 +244,41 @@ const BacktestSessionControls: React.FC<BacktestSessionControlsProps> = ({
           </Grid>
         </Box>
 
+        {/* Session Settings (Optional) */}
+        <Box mt={3}>
+          <Accordion expanded={showSettings} onChange={(e, expanded) => setShowSettings(expanded)}>
+            <AccordionSummary expandIcon={<ExpandMore />}>
+              <Box display="flex" alignItems="center" gap={1}>
+                <Settings />
+                <Typography variant="h6">
+                  Trading Session Settings (Optional)
+                </Typography>
+                {settingsConfigured && (
+                  <Chip label="Configured" color="success" size="small" sx={{ ml: 1 }} />
+                )}
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Typography variant="body2" color="textSecondary" paragraph>
+                Configure risk management, order execution, and trading window settings for more realistic backtesting. 
+                These settings will be applied during the backtest simulation.
+              </Typography>
+              <TradingSessionSettingsForm
+                initialSettings={sessionSettings}
+                onSubmit={async (settings) => {
+                  setSessionSettings(settings);
+                  setSettingsConfigured(true);
+                  setShowSettings(false);
+                }}
+                submitLabel="Apply Settings"
+                showAdvanced={true}
+                context="backtesting"
+                isLoading={loading}
+              />
+            </AccordionDetails>
+          </Accordion>
+        </Box>
+
         {/* Configuration Summary */}
         {(selectedStocks.length > 0 || selectedBot) && (
           <Box mt={3}>
@@ -286,6 +335,21 @@ const BacktestSessionControls: React.FC<BacktestSessionControlsProps> = ({
                     </Typography>
                   </Box>
                 </Grid>
+                {settingsConfigured && (
+                  <Grid item xs={12}>
+                    <Box>
+                      <Typography variant="body2" color="textSecondary">
+                        Session Settings
+                      </Typography>
+                      <Chip 
+                        label="Custom settings applied" 
+                        color="success" 
+                        size="small" 
+                        sx={{ mt: 0.5 }}
+                      />
+                    </Box>
+                  </Grid>
+                )}
               </Grid>
             </Paper>
           </Box>

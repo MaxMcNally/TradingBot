@@ -176,7 +176,7 @@ export class MeanReversionStrategy extends AbstractStrategy {
 }
 
 /**
- * Run the mean reversion strategy on historical data
+ * Run the mean reversion strategy on historical data with session settings support
  * 
  * @param symbol - Stock symbol
  * @param data - Historical price data
@@ -185,10 +185,11 @@ export class MeanReversionStrategy extends AbstractStrategy {
  */
 export function runMeanReversionStrategy(
   symbol: string,
-  data: { date: string; close: number, open: number }[],
+  data: { date: string; close: number, open: number, volume?: number }[],
   config: MeanReversionConfig & {
     initialCapital: number;
     sharesPerTrade: number;
+    sessionSettings?: any; // TradingSessionSettings - avoid circular dependency
   }
 ): MeanReversionResult {
   const trades: MeanReversionTrade[] = [];
@@ -197,8 +198,28 @@ export function runMeanReversionStrategy(
     threshold: config.threshold
   });
 
-  let currentShares = 0;
-  let cash = config.initialCapital;
+  // Import here to avoid circular dependency
+  const { BacktestPortfolio } = require('../backtest/BacktestPortfolio');
+  const { OrderExecutionSimulator } = require('../backtest/OrderExecutionSimulator');
+  const { TradingMode } = require('../config');
+  const { DEFAULT_SESSION_SETTINGS } = require('../api/types/tradingSessionSettings');
+
+  // Create session settings (use defaults if not provided)
+  const settings = config.sessionSettings || {
+    ...DEFAULT_SESSION_SETTINGS,
+    session_id: 0, // Placeholder for backtest
+  };
+
+  // Initialize portfolio and order simulator
+  const portfolio = new BacktestPortfolio(
+    config.initialCapital,
+    TradingMode.PAPER,
+    [symbol],
+    settings
+  );
+
+  const orderSimulator = new OrderExecutionSimulator(settings);
+
   let portfolioHistory: Array<{
     date: string;
     portfolioValue: number;
@@ -213,69 +234,157 @@ export function runMeanReversionStrategy(
 
   for (let i = 0; i < data.length; i++) {
     const dayData = data[i];
+    
+    // Reset daily P&L if new day
+    portfolio.resetDailyPnL(dayData.date);
+    
     strategy.addPrice(dayData.close);
     const signal = strategy.getSignal();
     const movingAverage = strategy.getCurrentMovingAverage();
 
-    if (signal === 'BUY' && cash >= dayData.close) {
-      // Execute buy order
-      const sharesToBuy = Math.floor(cash / dayData.close);
-      const actualShares = Math.min(sharesToBuy, config.sharesPerTrade);
-      const cost = actualShares * dayData.close;
-      
-      cash -= cost;
-      currentShares += actualShares;
-      
-      const deviation = movingAverage ? (dayData.close - movingAverage) / movingAverage : undefined;
-      
-      trades.push({
-        symbol,
-        date: dayData.date,
-        action: "BUY",
-        price: dayData.close,
-        shares: actualShares,
-        movingAverage: movingAverage || undefined,
-        deviation
-      });
-    } else if (signal === 'SELL' && currentShares > 0) {
-      // Execute sell order
-      const sharesToSell = Math.min(currentShares, config.sharesPerTrade);
-      const proceeds = sharesToSell * dayData.close;
-      
-      cash += proceeds;
-      currentShares -= sharesToSell;
-      
-      const deviation = movingAverage ? (dayData.close - movingAverage) / movingAverage : undefined;
-      
-      trades.push({
-        symbol,
-        date: dayData.date,
-        action: "SELL",
-        price: dayData.close,
-        shares: sharesToSell,
-        movingAverage: movingAverage || undefined,
-        deviation
-      });
-
-      // Track winning trades for win rate calculation
-      if (trades.length >= 2) {
-        const lastBuyTrade = trades.slice().reverse().find(t => t.action === 'BUY');
-        if (lastBuyTrade && dayData.close > lastBuyTrade.price) {
-          winningTrades++;
+    // Check stop loss/take profit for existing positions
+    const stopLossTakeProfit = portfolio.checkStopLossTakeProfit(symbol, dayData.close);
+    if (stopLossTakeProfit) {
+      const position = (portfolio as any).positions[symbol];
+      if (position && position.shares > 0) {
+        // Execute sell order due to stop loss or take profit
+        const orderRequest = {
+          symbol,
+          side: 'SELL' as const,
+          quantity: position.shares,
+          orderType: settings.order_type_default,
+          currentPrice: dayData.close,
+          volume: dayData.volume,
+          timestamp: dayData.date,
+        };
+        
+        const execution = orderSimulator.executeOrder(orderRequest);
+        if (execution.executed && execution.executedQuantity > 0) {
+          const sellResult = portfolio.sell(symbol, execution.executedPrice, dayData.date, execution.executedQuantity);
+          
+          if (sellResult.success) {
+            const deviation = movingAverage ? (execution.executedPrice - (movingAverage || 0)) / (movingAverage || 1) : undefined;
+            trades.push({
+              symbol,
+              date: dayData.date,
+              action: "SELL",
+              price: execution.executedPrice,
+              shares: sellResult.actualQuantity,
+              movingAverage: movingAverage || undefined,
+              deviation,
+              reason: stopLossTakeProfit,
+              commission: execution.commission,
+              slippage: execution.slippage
+            });
+            
+            // Track winning trades
+            if (sellResult.pnl > 0) {
+              winningTrades++;
+            }
+            totalTrades++;
+          }
         }
-        totalTrades++;
+      }
+    }
+
+    // Check if we can trade (trading window, position limits, etc.)
+    const canOpen = portfolio.canOpenPosition(symbol, dayData.close, dayData.date);
+
+    if (signal === 'BUY' && canOpen.allowed) {
+      // Calculate position size
+      const targetQuantity = portfolio.calculatePositionSize(symbol, dayData.close, dayData.date);
+      
+      if (targetQuantity > 0) {
+        // Execute buy order through order simulator
+        const orderRequest = {
+          symbol,
+          side: 'BUY' as const,
+          quantity: targetQuantity,
+          orderType: settings.order_type_default,
+          limitPrice: settings.limit_price_offset_percentage 
+            ? dayData.close * (1 - settings.limit_price_offset_percentage / 100)
+            : undefined,
+          currentPrice: dayData.close,
+          volume: dayData.volume,
+          timestamp: dayData.date,
+        };
+        
+        const execution = orderSimulator.executeOrder(orderRequest);
+        if (execution.executed && execution.executedQuantity > 0) {
+          const buyResult = portfolio.buy(symbol, execution.executedPrice, dayData.date, execution.executedQuantity);
+          
+          if (buyResult.success) {
+            const deviation = movingAverage ? (execution.executedPrice - (movingAverage || 0)) / (movingAverage || 1) : undefined;
+            trades.push({
+              symbol,
+              date: dayData.date,
+              action: "BUY",
+              price: execution.executedPrice,
+              shares: buyResult.actualQuantity,
+              movingAverage: movingAverage || undefined,
+              deviation,
+              commission: execution.commission,
+              slippage: execution.slippage
+            });
+          }
+        }
+      }
+    } else if (signal === 'SELL') {
+      const position = (portfolio as any).positions[symbol];
+      if (position && position.shares > 0) {
+        // Execute sell order
+        const orderRequest = {
+          symbol,
+          side: 'SELL' as const,
+          quantity: position.shares,
+          orderType: settings.order_type_default,
+          limitPrice: settings.limit_price_offset_percentage 
+            ? dayData.close * (1 + settings.limit_price_offset_percentage / 100)
+            : undefined,
+          currentPrice: dayData.close,
+          volume: dayData.volume,
+          timestamp: dayData.date,
+        };
+        
+        const execution = orderSimulator.executeOrder(orderRequest);
+        if (execution.executed && execution.executedQuantity > 0) {
+          const sellResult = portfolio.sell(symbol, execution.executedPrice, dayData.date, execution.executedQuantity);
+          
+          if (sellResult.success) {
+            const deviation = movingAverage ? (execution.executedPrice - (movingAverage || 0)) / (movingAverage || 1) : undefined;
+            
+            trades.push({
+              symbol,
+              date: dayData.date,
+              action: "SELL",
+              price: execution.executedPrice,
+              shares: sellResult.actualQuantity,
+              movingAverage: movingAverage || undefined,
+              deviation,
+              commission: execution.commission,
+              slippage: execution.slippage
+            });
+
+            // Track winning trades for win rate calculation
+            if (sellResult.pnl > 0) {
+              winningTrades++;
+            }
+            totalTrades++;
+          }
+        }
       }
     }
 
     // Calculate current portfolio value
-    const currentPortfolioValue = cash + (currentShares * dayData.close);
+    const status = portfolio.status({ [symbol]: dayData.close });
+    const currentPortfolioValue = status.totalValue;
     
     // Track detailed portfolio history
     portfolioHistory.push({
       date: dayData.date,
       portfolioValue: currentPortfolioValue,
-      cash: cash,
-      shares: currentShares,
+      cash: status.cash,
+      shares: status.positions[symbol]?.shares || 0,
       price: dayData.close
     });
     
@@ -291,7 +400,8 @@ export function runMeanReversionStrategy(
 
   // Calculate final portfolio value
   const finalPrice = data.length > 0 ? data[data.length - 1].close : 0;
-  const finalPortfolioValue = cash + (currentShares * finalPrice);
+  const finalStatus = portfolio.status({ [symbol]: finalPrice });
+  const finalPortfolioValue = finalStatus.totalValue;
   const totalReturn = (finalPortfolioValue - config.initialCapital) / config.initialCapital;
   const winRate = totalTrades > 0 ? winningTrades / totalTrades : 0;
 

@@ -15,6 +15,10 @@ import {YahooDataProvider} from "./dataProviders/yahooProvider"
 import {PolygonProvider} from "./dataProviders/PolygonProvider"
 import {PolygonFlatFilesCLIProvider} from "./dataProviders/PolygonFlatFilesCLIProvider"
 import {SmartCacheManager} from "./cache/SmartCacheManager"
+import { BacktestPortfolio } from "./backtest/BacktestPortfolio";
+import { OrderExecutionSimulator } from "./backtest/OrderExecutionSimulator";
+import { TradingSessionSettings, DEFAULT_SESSION_SETTINGS } from "../api/types/tradingSessionSettings";
+import { TradingMode } from "./config";
 
 const argv = yargs(hideBin(process.argv))
   .option("symbol", { type: "string", demandOption: true })
@@ -64,7 +68,7 @@ const argv = yargs(hideBin(process.argv))
   .parseSync();
 
 /**
- * Run a custom strategy backtest on historical data
+ * Run a custom strategy backtest on historical data with session settings support
  */
 function  runCustomStrategy(
   symbol: string,
@@ -75,6 +79,7 @@ function  runCustomStrategy(
     name: string;
     initialCapital: number;
     sharesPerTrade: number;
+    sessionSettings?: TradingSessionSettings | null;
   }
 ): {
   trades: any[];
@@ -91,8 +96,23 @@ function  runCustomStrategy(
   }>;
 } {
   const trades: any[] = [];
-  let currentShares = 0;
-  let cash = config.initialCapital;
+  
+  // Create session settings (use defaults if not provided, but create a valid settings object)
+  const settings: TradingSessionSettings = config.sessionSettings || {
+    ...DEFAULT_SESSION_SETTINGS,
+    session_id: 0, // Placeholder for backtest
+  };
+  
+  // Initialize portfolio and order simulator
+  const portfolio = new BacktestPortfolio(
+    config.initialCapital,
+    TradingMode.PAPER,
+    [symbol],
+    settings
+  );
+  
+  const orderSimulator = new OrderExecutionSimulator(settings);
+  
   let portfolioHistory: Array<{
     date: string;
     portfolioValue: number;
@@ -121,21 +141,66 @@ function  runCustomStrategy(
   for (let i = 0; i < data.length; i++) {
     const dayData = data[i];
     
+    // Reset daily P&L if new day
+    portfolio.resetDailyPnL(dayData.date);
+    
     // Get price data up to current point
     const currentPriceData = priceDataHistory.slice(0, i + 1);
     
     // Need at least 10 data points for custom strategy to work
     if (currentPriceData.length < 10) {
       // Still track portfolio value
-      const currentPortfolioValue = cash + (currentShares * dayData.close);
+      const status = portfolio.status({ [symbol]: dayData.close });
       portfolioHistory.push({
         date: dayData.date,
-        portfolioValue: currentPortfolioValue,
-        cash: cash,
-        shares: currentShares,
+        portfolioValue: status.totalValue,
+        cash: status.cash,
+        shares: status.positions[symbol]?.shares || 0,
         price: dayData.close
       });
       continue;
+    }
+
+    // Check stop loss/take profit for existing positions
+    const stopLossTakeProfit = portfolio.checkStopLossTakeProfit(symbol, dayData.close);
+    if (stopLossTakeProfit) {
+      const position = (portfolio as any).positions[symbol];
+      if (position && position.shares > 0) {
+        // Execute sell order due to stop loss or take profit
+        const orderRequest = {
+          symbol,
+          side: 'SELL' as const,
+          quantity: position.shares,
+          orderType: settings.order_type_default,
+          currentPrice: dayData.close,
+          volume: dayData.volume,
+          timestamp: dayData.date,
+        };
+        
+        const execution = orderSimulator.executeOrder(orderRequest);
+        if (execution.executed && execution.executedQuantity > 0) {
+          const sellResult = portfolio.sell(symbol, execution.executedPrice, dayData.date, execution.executedQuantity);
+          
+          if (sellResult.success) {
+            trades.push({
+              symbol,
+              date: dayData.date,
+              action: "SELL",
+              price: execution.executedPrice,
+              shares: sellResult.actualQuantity,
+              reason: stopLossTakeProfit,
+              commission: execution.commission,
+              slippage: execution.slippage
+            });
+            
+            // Track winning trades
+            if (sellResult.pnl > 0) {
+              winningTrades++;
+            }
+            totalTrades++;
+          }
+        }
+      }
     }
 
     // Execute custom strategy to get signal
@@ -151,59 +216,101 @@ function  runCustomStrategy(
       signal = null;
     }
 
-    if (signal === 'BUY' && cash >= dayData.close && currentShares === 0) {
-      // Execute buy order
-      const sharesToBuy = Math.floor(cash / dayData.close);
-      const actualShares = Math.min(sharesToBuy, config.sharesPerTrade);
-      const cost = actualShares * dayData.close;
+    // Check if we can trade (trading window, position limits, etc.)
+    const canOpen = portfolio.canOpenPosition(symbol, dayData.close, dayData.date);
+    
+    if (signal === 'BUY' && canOpen.allowed) {
+      // Calculate position size
+      const targetQuantity = portfolio.calculatePositionSize(symbol, dayData.close, dayData.date);
       
-      cash -= cost;
-      currentShares += actualShares;
-      entryPrices.push(dayData.close);
-      
-      trades.push({
-        symbol,
-        date: dayData.date,
-        action: "BUY",
-        price: dayData.close,
-        shares: actualShares
-      });
-    } else if (signal === 'SELL' && currentShares > 0) {
-      // Execute sell order
-      const sharesToSell = Math.min(currentShares, config.sharesPerTrade);
-      const proceeds = sharesToSell * dayData.close;
-      
-      cash += proceeds;
-      currentShares -= sharesToSell;
-      
-      // Calculate P&L for this trade
-      const entryPrice = entryPrices.shift() || dayData.close;
-      const pnl = (dayData.close - entryPrice) * sharesToSell;
-      
-      trades.push({
-        symbol,
-        date: dayData.date,
-        action: "SELL",
-        price: dayData.close,
-        shares: sharesToSell
-      });
-
-      // Track winning trades for win rate calculation
-      if (pnl > 0) {
-        winningTrades++;
+      if (targetQuantity > 0) {
+        // Execute buy order through order simulator
+        const orderRequest = {
+          symbol,
+          side: 'BUY' as const,
+          quantity: targetQuantity,
+          orderType: settings.order_type_default,
+          limitPrice: settings.limit_price_offset_percentage 
+            ? dayData.close * (1 - settings.limit_price_offset_percentage / 100)
+            : undefined,
+          currentPrice: dayData.close,
+          volume: dayData.volume,
+          timestamp: dayData.date,
+        };
+        
+        const execution = orderSimulator.executeOrder(orderRequest);
+        if (execution.executed && execution.executedQuantity > 0) {
+          const buyResult = portfolio.buy(symbol, execution.executedPrice, dayData.date, execution.executedQuantity);
+          
+          if (buyResult.success) {
+            entryPrices.push(execution.executedPrice);
+            trades.push({
+              symbol,
+              date: dayData.date,
+              action: "BUY",
+              price: execution.executedPrice,
+              shares: buyResult.actualQuantity,
+              commission: execution.commission,
+              slippage: execution.slippage
+            });
+          }
+        }
       }
-      totalTrades++;
+    } else if (signal === 'SELL') {
+      const position = (portfolio as any).positions[symbol];
+      if (position && position.shares > 0) {
+        // Execute sell order
+        const orderRequest = {
+          symbol,
+          side: 'SELL' as const,
+          quantity: position.shares,
+          orderType: settings.order_type_default,
+          limitPrice: settings.limit_price_offset_percentage 
+            ? dayData.close * (1 + settings.limit_price_offset_percentage / 100)
+            : undefined,
+          currentPrice: dayData.close,
+          volume: dayData.volume,
+          timestamp: dayData.date,
+        };
+        
+        const execution = orderSimulator.executeOrder(orderRequest);
+        if (execution.executed && execution.executedQuantity > 0) {
+          const sellResult = portfolio.sell(symbol, execution.executedPrice, dayData.date, execution.executedQuantity);
+          
+          if (sellResult.success) {
+            entryPrices.shift(); // Remove entry price from tracking
+            const pnl = sellResult.pnl;
+            
+            trades.push({
+              symbol,
+              date: dayData.date,
+              action: "SELL",
+              price: execution.executedPrice,
+              shares: sellResult.actualQuantity,
+              commission: execution.commission,
+              slippage: execution.slippage
+            });
+
+            // Track winning trades for win rate calculation
+            if (pnl > 0) {
+              winningTrades++;
+            }
+            totalTrades++;
+          }
+        }
+      }
     }
 
     // Calculate current portfolio value
-    const currentPortfolioValue = cash + (currentShares * dayData.close);
+    const status = portfolio.status({ [symbol]: dayData.close });
+    const currentPortfolioValue = status.totalValue;
     
     // Track detailed portfolio history
     portfolioHistory.push({
       date: dayData.date,
       portfolioValue: currentPortfolioValue,
-      cash: cash,
-      shares: currentShares,
+      cash: status.cash,
+      shares: status.positions[symbol]?.shares || 0,
       price: dayData.close
     });
     
@@ -219,7 +326,8 @@ function  runCustomStrategy(
 
   // Calculate final portfolio value
   const finalPrice = data.length > 0 ? data[data.length - 1].close : 0;
-  const finalPortfolioValue = cash + (currentShares * finalPrice);
+  const finalStatus = portfolio.status({ [symbol]: finalPrice });
+  const finalPortfolioValue = finalStatus.totalValue;
   const totalReturn = (finalPortfolioValue - config.initialCapital) / config.initialCapital;
   const winRate = totalTrades > 0 ? winningTrades / totalTrades : 0;
 
@@ -291,6 +399,23 @@ async function main() {
         volume: volume || 1
       };
     });
+
+    // Parse session settings if provided
+    let sessionSettings: TradingSessionSettings | null = null;
+    if (argv.sessionSettings) {
+      try {
+        const parsed = JSON.parse(argv.sessionSettings as string);
+        // Ensure it has all required fields by merging with defaults
+        sessionSettings = {
+          ...DEFAULT_SESSION_SETTINGS,
+          ...parsed,
+          session_id: 0, // Placeholder for backtest
+        };
+      } catch (error) {
+        console.error('Error parsing session settings:', error);
+        console.log('Continuing with default settings...');
+      }
+    }
 
     let result: any;
     let strategyDescription: string;
@@ -377,7 +502,8 @@ async function main() {
           sell_conditions: customConfig.sell_conditions,
           name: `Custom Strategy ${customConfig.id || ''}`,
           initialCapital: argv.capital,
-          sharesPerTrade: argv.shares
+          sharesPerTrade: argv.shares,
+          sessionSettings: sessionSettings
         });
         strategyDescription = `Custom Strategy (ID: ${customConfig.id || 'N/A'})`;
         break;
