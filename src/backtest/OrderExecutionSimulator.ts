@@ -213,10 +213,10 @@ export class OrderExecutionSimulator {
       return quantity;
     }
 
-    // IOC (Immediate or Cancel) accepts partial fills
+    // IOC (Immediate or Cancel) accepts partial fills - fill maximum available
     if (this.settings.time_in_force === 'ioc') {
       if (availableVolume && availableVolume < quantity) {
-        return Math.floor(availableVolume * 0.8); // Fill what's available
+        return Math.floor(availableVolume);
       }
       return quantity;
     }
@@ -232,8 +232,10 @@ export class OrderExecutionSimulator {
 
     // If partial fills allowed and volume is limited
     if (availableVolume && availableVolume < quantity) {
-      // Fill what's available (simplified - in reality would depend on order book)
-      return Math.floor(availableVolume * 0.8); // Assume 80% of volume is available
+      // Fill what's available (simplified)
+      // In reality, this would depend on order book depth and execution algorithm
+      // Using 80% of volume as a conservative estimate to account for market impact
+      return Math.floor(availableVolume * 0.8);
     }
 
     return quantity;
