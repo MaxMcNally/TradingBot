@@ -56,8 +56,8 @@ settingsRouter.post("/", authenticateToken, (req: AuthenticatedRequest, res: Res
   
   db.run(
     `INSERT INTO settings (user_id, key, value, updated_at)
-     VALUES ($1, $2, $3, NOW())
-     ON CONFLICT(user_id, key) DO UPDATE SET value=EXCLUDED.value, updated_at=NOW()`,
+     VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+     ON CONFLICT(user_id, key) DO UPDATE SET value=EXCLUDED.value, updated_at=CURRENT_TIMESTAMP`,
     [userId, key, value],
     function (err: any) {
       if (err) return res.status(500).json({ error: err.message });
