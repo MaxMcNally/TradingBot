@@ -43,18 +43,6 @@ export class OrderExecutionSimulator {
    * Simulate order execution
    */
   executeOrder(order: OrderRequest): ExecutionResult {
-    // Check time in force
-    if (!this.isOrderValid(order)) {
-      return {
-        executed: false,
-        executedPrice: order.currentPrice,
-        executedQuantity: 0,
-        commission: 0,
-        slippage: 0,
-        reason: 'Order expired or invalid'
-      };
-    }
-
     // Execute based on order type
     let executionPrice = order.currentPrice;
     let executedQuantity = order.quantity;
@@ -217,6 +205,23 @@ export class OrderExecutionSimulator {
    * Handle partial fills based on volume
    */
   private handlePartialFills(quantity: number, availableVolume?: number): number {
+    // FOK (Fill or Kill) requires complete fill - reject partial fills
+    if (this.settings.time_in_force === 'fok') {
+      if (availableVolume && availableVolume < quantity) {
+        return 0; // Can't fill completely, reject the order
+      }
+      return quantity;
+    }
+
+    // IOC (Immediate or Cancel) accepts partial fills - fill maximum available
+    if (this.settings.time_in_force === 'ioc') {
+      if (availableVolume && availableVolume < quantity) {
+        return Math.floor(availableVolume);
+      }
+      return quantity;
+    }
+
+    // For other time_in_force types, use the allow_partial_fills setting
     if (!this.settings.allow_partial_fills) {
       // If partial fills not allowed, need full volume
       if (availableVolume && availableVolume < quantity) {
@@ -227,45 +232,13 @@ export class OrderExecutionSimulator {
 
     // If partial fills allowed and volume is limited
     if (availableVolume && availableVolume < quantity) {
-      // Fill what's available (simplified - in reality would depend on order book)
-      return Math.floor(availableVolume * 0.8); // Assume 80% of volume is available
+      // Fill what's available (simplified)
+      // In reality, this would depend on order book depth and execution algorithm
+      // Using 80% of volume as a conservative estimate to account for market impact
+      return Math.floor(availableVolume * 0.8);
     }
 
     return quantity;
-  }
-
-  /**
-   * Check if order is still valid based on time in force
-   */
-  private isOrderValid(order: OrderRequest): boolean {
-    // Simplified implementation - in reality would track order age
-    // For backtesting, we assume orders execute immediately or are checked per bar
-    
-    switch (this.settings.time_in_force) {
-      case 'day':
-        // Valid for the trading day - in backtest, we execute immediately
-        return true;
-      
-      case 'gtc':
-        // Good until canceled - always valid
-        return true;
-      
-      case 'ioc':
-        // Immediate or cancel - must execute immediately
-        return true;
-      
-      case 'fok':
-        // Fill or kill - must fill completely immediately
-        return true;
-      
-      case 'opg':
-      case 'cls':
-        // Opening/closing auctions - simplified to allow
-        return true;
-      
-      default:
-        return true;
-    }
   }
 }
 
