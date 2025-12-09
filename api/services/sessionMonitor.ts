@@ -81,14 +81,14 @@ export class SessionMonitor {
       const isPostgres = process.env.DATABASE_URL && /^postgres(ql)?:\/\//i.test(process.env.DATABASE_URL);
       
       // Use ? placeholder which will be converted to $1 by toPg for PostgreSQL
-      // For PostgreSQL, cast the parameter to TIMESTAMP
+      // For PostgreSQL, cast both end_time (TEXT) and parameter to TIMESTAMP for comparison
       // For SQLite, the comparison works with text strings
       // The db.all method uses toPg to convert ? to $1, $2, etc. for PostgreSQL
       const sql = isPostgres
         ? `SELECT * FROM trading_sessions 
            WHERE status = 'ACTIVE' 
            AND end_time IS NOT NULL 
-           AND end_time <= CAST(? AS TIMESTAMP)`
+           AND CAST(end_time AS TIMESTAMP) <= CAST(? AS TIMESTAMP)`
         : `SELECT * FROM trading_sessions 
            WHERE status = 'ACTIVE' 
            AND end_time IS NOT NULL 
