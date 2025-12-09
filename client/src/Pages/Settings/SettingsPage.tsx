@@ -31,18 +31,22 @@ import {
   CreditCard,
   Security,
   AccountBalance,
-  Code
+  Code,
+  Palette as PaletteIcon
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "../../hooks";
 import { SettingsProps, Setting, AccountSettings } from "./Settings.types";
 import AlpacaSettings from "./AlpacaSettings";
 import DeveloperDashboard from "./DeveloperDashboard";
+import { useTheme, FontTheme } from "../../providers/ThemeProvider";
+import { FormControl, FormLabel, RadioGroup, FormControlLabel, Radio } from "@mui/material";
 
-type SettingsSection = "account" | "subscription" | "alpaca" | "security" | "developer";
+type SettingsSection = "account" | "appearance" | "subscription" | "alpaca" | "security" | "developer";
 
 const Settings: React.FC<SettingsProps> = ({ user }) => {
   const [activeSection, setActiveSection] = useState<SettingsSection>("account");
+  const { fontTheme, setFontTheme } = useTheme();
   const [settings, setSettings] = useState<Setting[]>([]);
   const [key, setKey] = useState<string>("");
   const [value, setValue] = useState<string>("");
@@ -199,6 +203,7 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
 
   const sections = [
     { id: "account" as SettingsSection, label: "Account Settings", icon: <AccountCircle /> },
+    { id: "appearance" as SettingsSection, label: "Appearance", icon: <PaletteIcon /> },
     { id: "subscription" as SettingsSection, label: "Subscription", icon: <CreditCard /> },
     { id: "alpaca" as SettingsSection, label: "Alpaca Trading Integration", icon: <AccountBalance /> },
     { id: "security" as SettingsSection, label: "Security", icon: <Security /> },
@@ -257,6 +262,80 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
               >
                 {loading ? <CircularProgress size={20} /> : "Save Account Settings"}
               </Button>
+            </Box>
+          </Paper>
+        );
+
+      case "appearance":
+        return (
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Appearance
+            </Typography>
+            <Divider sx={{ my: 2 }} />
+            
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <FormControl component="fieldset">
+                <FormLabel component="legend" sx={{ mb: 2, fontWeight: 600 }}>
+                  Font Theme
+                </FormLabel>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Choose the typography style that matches your aesthetic preference.
+                </Typography>
+                <RadioGroup
+                  value={fontTheme}
+                  onChange={(e) => setFontTheme(e.target.value as FontTheme)}
+                >
+                  <FormControlLabel
+                    value="SPACE_GROTESK"
+                    control={<Radio />}
+                    label={
+                      <Box>
+                        <Typography variant="body1" fontWeight={600}>
+                          The Lumon
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Corporate, odd, brutalist. Space Grotesk font.
+                        </Typography>
+                      </Box>
+                    }
+                  />
+                  <FormControlLabel
+                    value="RAJDHANI"
+                    control={<Radio />}
+                    label={
+                      <Box>
+                        <Typography variant="body1" fontWeight={600}>
+                          The Timekeeper
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Technical, engineered, modular. Rajdhani font.
+                        </Typography>
+                      </Box>
+                    }
+                  />
+                  <FormControlLabel
+                    value="IBM_PLEX"
+                    control={<Radio />}
+                    label={
+                      <Box>
+                        <Typography variant="body1" fontWeight={600}>
+                          Standard Issue
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Reliable, industrial, man-machine interface. IBM Plex Sans font.
+                        </Typography>
+                      </Box>
+                    }
+                  />
+                </RadioGroup>
+              </FormControl>
+
+              <Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Color mode can be toggled from the header using the light/dark mode icon.
+                </Typography>
+              </Box>
             </Box>
           </Paper>
         );

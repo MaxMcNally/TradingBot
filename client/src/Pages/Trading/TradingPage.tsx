@@ -7,49 +7,105 @@ import {
   Paper,
   Alert,
   CircularProgress,
+  Button,
+  Card,
+  CardContent,
+  CardActionArea,
+  Chip,
+  Stack,
 } from "@mui/material";
 import {
   TrendingUp,
   Settings,
-  Tune,
   AccountBalance,
+  Add,
+  Psychology,
 } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
 import { 
   TabPanel,
   StockSelectionSection,
-  StrategySelectionSection,
   SessionSummary,
-  StrategyParameters
 } from "../../components/shared";
 import TradingSessionControls from "../Dashboard/TradingSessionControls";
-import { useUser, useStrategies } from "../../hooks";
+import { useUser, useUserStrategies } from "../../hooks";
+import { useCustomStrategies } from "../../hooks/useCustomStrategies/useCustomStrategies";
+import { UserStrategy } from "../../api";
+import { CustomStrategy } from "../../api/customStrategiesApi";
+
+// Unified strategy type for display
+type UnifiedStrategy = {
+  id: number;
+  name: string;
+  description?: string;
+  type: 'user' | 'custom';
+  strategy_type?: string; // For user strategies
+  is_active: boolean;
+  is_public?: boolean;
+  config?: any; // For user strategies
+  buy_conditions?: any; // For custom strategies
+  sell_conditions?: any; // For custom strategies
+  original: UserStrategy | CustomStrategy;
+};
 
 const TradingPage: React.FC = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
   const { user, isLoading: userLoading, error: userError } = useUser();
-  const { strategies: availableStrategies } = useStrategies();
+  const { strategies: userStrategies, isLoading: userStrategiesLoading } = useUserStrategies(false); // Only active strategies
+  const { strategies: customStrategies, isLoading: customStrategiesLoading } = useCustomStrategies(false); // Only active custom strategies
 
   // Trading session state
   const [selectedStocks, setSelectedStocks] = useState<string[]>([]);
-  const [selectedStrategy, setSelectedStrategy] = useState<string>("MovingAverage");
+  const [selectedStrategy, setSelectedStrategy] = useState<UnifiedStrategy | null>(null);
   const [strategyParameters, setStrategyParameters] = useState<Record<string, any>>({});
   const [activeSession, setActiveSession] = useState<any>(null);
 
-  // Reset strategy parameters when strategy changes
+  // Combine strategies into unified format
+  const allStrategies: UnifiedStrategy[] = React.useMemo(() => {
+    const user: UnifiedStrategy[] = (userStrategies || []).map(s => ({
+      id: s.id,
+      name: s.name,
+      description: s.description,
+      type: 'user' as const,
+      strategy_type: s.strategy_type,
+      is_active: s.is_active,
+      is_public: s.is_public,
+      config: s.config,
+      original: s,
+    }));
+
+    const custom: UnifiedStrategy[] = (customStrategies || []).map(s => ({
+      id: s.id,
+      name: s.name,
+      description: s.description,
+      type: 'custom' as const,
+      is_active: s.is_active,
+      is_public: s.is_public,
+      buy_conditions: s.buy_conditions,
+      sell_conditions: s.sell_conditions,
+      original: s,
+    }));
+
+    return [...user, ...custom];
+  }, [userStrategies, customStrategies]);
+
+  const strategiesLoading = userStrategiesLoading || customStrategiesLoading;
+
+  // Update strategy parameters when strategy changes
   useEffect(() => {
-    if (availableStrategies && selectedStrategy) {
-      const strategy = availableStrategies.find(s => s.name === selectedStrategy);
-      if (strategy && strategy.parameters) {
-        const defaultParams: Record<string, any> = {};
-        Object.entries(strategy.parameters).forEach(([key, param]) => {
-          if (typeof param === 'object' && param !== null && 'default' in param) {
-            defaultParams[key] = param.default;
-          }
+    if (selectedStrategy) {
+      if (selectedStrategy.type === 'user' && selectedStrategy.config) {
+        setStrategyParameters(selectedStrategy.config);
+      } else if (selectedStrategy.type === 'custom') {
+        // For custom strategies, we need to pass buy_conditions and sell_conditions
+        setStrategyParameters({
+          buy_conditions: selectedStrategy.buy_conditions,
+          sell_conditions: selectedStrategy.sell_conditions,
         });
-        setStrategyParameters(defaultParams);
       }
     }
-  }, [selectedStrategy, availableStrategies]);
+  }, [selectedStrategy]);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
@@ -59,17 +115,13 @@ const TradingPage: React.FC = () => {
     setSelectedStocks(stocks);
   };
 
-  const handleStrategyChange = (strategy: string) => {
+  const handleStrategySelect = (strategy: UnifiedStrategy) => {
     setSelectedStrategy(strategy);
-  };
-
-  const handleParametersChange = (parameters: Record<string, any>) => {
-    setStrategyParameters(parameters);
   };
 
   const handleSessionStarted = (session: any) => {
     setActiveSession(session);
-    setActiveTab(3); // Switch to session controls tab
+    setActiveTab(2); // Switch to session controls tab
   };
 
   const handleSessionStopped = () => {
@@ -108,7 +160,7 @@ const TradingPage: React.FC = () => {
           Trading
         </Typography>
         <Typography variant="subtitle1" color="textSecondary">
-          Create and manage your trading sessions. Configure stocks, strategies, and parameters to start trading.
+          Select stocks and a strategy to start a trading session. Create and manage strategies in the Strategies page.
         </Typography>
       </Box>
 
@@ -132,16 +184,10 @@ const TradingPage: React.FC = () => {
                   aria-controls="trading-tabpanel-1"
                 />
                 <Tab
-                  icon={<Tune />}
-                  label="Strategy Parameters"
-                  id="trading-tab-2"
-                  aria-controls="trading-tabpanel-2"
-                />
-                <Tab
                   icon={<AccountBalance />}
                   label="Session Controls"
-                  id="trading-tab-3"
-                  aria-controls="trading-tabpanel-3"
+                  id="trading-tab-2"
+                  aria-controls="trading-tabpanel-2"
                 />
               </Tabs>
             </Box>
@@ -160,32 +206,97 @@ const TradingPage: React.FC = () => {
 
             {/* Strategy Selection Tab */}
             <TabPanel value={activeTab} index={1}>
-              <StrategySelectionSection
-                selectedStrategy={selectedStrategy}
-                onStrategyChange={handleStrategyChange}
-                onParametersChange={handleParametersChange}
-                strategyParameters={strategyParameters}
-                title="Select Trading Strategy"
-                description="Choose a trading strategy for live trading. You can select from basic strategies or public strategies shared by other users."
-                showSummary={false}
-              />
-            </TabPanel>
+              <Box sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  <Settings sx={{ mr: 1, verticalAlign: 'middle' }} />
+                  Select Trading Strategy
+                </Typography>
+                <Typography variant="body2" color="textSecondary" paragraph>
+                  Choose one of your saved strategies to use for live trading. All strategy creation and editing happens in the Strategies page.
+                </Typography>
 
-            {/* Strategy Parameters Tab */}
-            <TabPanel value={activeTab} index={2}>
-              <StrategyParameters
-                selectedStrategy={selectedStrategy}
-                strategyParameters={strategyParameters}
-                onParametersChange={handleParametersChange}
-              />
+                {strategiesLoading ? (
+                  <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+                    <CircularProgress />
+                  </Box>
+                ) : allStrategies.length === 0 ? (
+                  <Paper sx={{ p: 4, textAlign: 'center' }}>
+                    <Psychology sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                    <Typography variant="h6" gutterBottom>
+                      No Strategies Available
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary" paragraph>
+                      You haven't created any trading strategies yet. Create your first strategy to start trading.
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      startIcon={<Add />}
+                      onClick={() => navigate('/strategies')}
+                      sx={{ mt: 2 }}
+                    >
+                      Create Strategy
+                    </Button>
+                  </Paper>
+                ) : (
+                  <Stack spacing={2}>
+                    {allStrategies.map((strategy) => (
+                      <Card
+                        key={`${strategy.type}-${strategy.id}`}
+                        sx={{
+                          border: selectedStrategy?.id === strategy.id && selectedStrategy?.type === strategy.type ? 2 : 1,
+                          borderColor: selectedStrategy?.id === strategy.id && selectedStrategy?.type === strategy.type ? 'primary.main' : 'divider',
+                          backgroundColor: selectedStrategy?.id === strategy.id && selectedStrategy?.type === strategy.type ? 'action.selected' : 'background.paper',
+                        }}
+                      >
+                        <CardActionArea onClick={() => handleStrategySelect(strategy)}>
+                          <CardContent>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                              <Typography variant="h6" component="div">
+                                {strategy.name}
+                              </Typography>
+                              <Chip
+                                label={strategy.type === 'custom' ? 'Custom' : (strategy.strategy_type || 'Strategy')}
+                                size="small"
+                                color={strategy.type === 'custom' ? 'secondary' : 'primary'}
+                                variant="outlined"
+                              />
+                            </Box>
+                            {strategy.description && (
+                              <Typography variant="body2" color="textSecondary" paragraph>
+                                {strategy.description}
+                              </Typography>
+                            )}
+                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+                              <Chip
+                                label={strategy.is_active ? 'Active' : 'Inactive'}
+                                size="small"
+                                color={strategy.is_active ? 'success' : 'default'}
+                                variant="outlined"
+                              />
+                              {strategy.is_public && (
+                                <Chip
+                                  label="Public"
+                                  size="small"
+                                  color="secondary"
+                                  variant="outlined"
+                                />
+                              )}
+                            </Box>
+                          </CardContent>
+                        </CardActionArea>
+                      </Card>
+                    ))}
+                  </Stack>
+                )}
+              </Box>
             </TabPanel>
 
             {/* Session Controls Tab */}
-            <TabPanel value={activeTab} index={3}>
+            <TabPanel value={activeTab} index={2}>
               <TradingSessionControls
                 userId={Number(user.id)}
                 selectedStocks={selectedStocks}
-                selectedStrategy={selectedStrategy}
+                selectedStrategy={selectedStrategy?.name || ''}
                 strategyParameters={strategyParameters}
                 onSessionStarted={handleSessionStarted}
                 onSessionStopped={handleSessionStopped}
@@ -199,7 +310,7 @@ const TradingPage: React.FC = () => {
           <SessionSummary
             title="Trading Session"
             selectedStocks={selectedStocks}
-            selectedStrategy={selectedStrategy}
+            selectedStrategy={selectedStrategy?.name || ''}
             strategyParameters={strategyParameters}
             mode="trading"
             maxStocks={10}

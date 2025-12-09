@@ -8,7 +8,8 @@ import {
   IconButton,
   Menu,
   MenuItem,
-  Avatar
+  Avatar,
+  Tooltip
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -20,15 +21,18 @@ import {
   Store as MarketplaceIcon,
   TrendingUp as TradingIcon,
   AdminPanelSettings as AdminIcon,
-  PriceChange as PricingIcon,
-  CreditCard as BillingIcon
+  CreditCard as BillingIcon,
+  LightMode as LightModeIcon,
+  DarkMode as DarkModeIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { HeaderProps } from './Header.types';
+import { useTheme } from '../../providers/ThemeProvider/useTheme';
 
-const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
+const Header: React.FC = ({ user, onLogout }:HeaderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { mode, setMode } = useTheme();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -44,11 +48,15 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
     onLogout();
   };
 
+  const handleToggleMode = () => {
+    setMode(mode === 'dark' ? 'light' : 'dark');
+  };
+
   const navigationItems = [
     { label: 'Dashboard', path: '/', icon: <DashboardIcon /> },
-    { label: 'Strategies', path: '/strategies', icon: <StrategiesIcon /> },
-    { label: 'Backtesting', path: '/backtesting', icon: <BacktestIcon /> },
-    { label: 'Trading', path: '/trading', icon: <TradingIcon /> },
+    { label: 'Program Bot', path: '/strategies', icon: <StrategiesIcon /> },
+    { label: 'Test Bot', path: '/backtesting', icon: <BacktestIcon /> },
+    { label: 'Run Bot', path: '/trading', icon: <TradingIcon /> },
     { label: 'Marketplace', path: '/marketplace', icon: <MarketplaceIcon /> },
     ...(user?.role === 'ADMIN' ? [{ label: 'Admin', path: '/admin', icon: <AdminIcon /> }] : []),
   ];
@@ -110,6 +118,17 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
 
         {/* User Menu */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Light/Dark Mode Toggle */}
+          <Tooltip title={mode === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>
+            <IconButton
+              onClick={handleToggleMode}
+              color="inherit"
+              sx={{ mr: 1 }}
+            >
+              {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+            </IconButton>
+          </Tooltip>
+          
           <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>
             {user?.name || user?.username || 'User'}
           </Typography>

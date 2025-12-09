@@ -11,7 +11,6 @@ import {
 import {
   TrendingUp,
   Settings,
-  Tune,
   AccountBalance,
 } from "@mui/icons-material";
 import { 
@@ -130,12 +129,6 @@ const Trading: React.FC = () => {
                   label="Strategy Selection"
                   id="trading-tab-1"
                   aria-controls="trading-tabpanel-1"
-                />
-                <Tab
-                  icon={<Tune />}
-                  label="Strategy Parameters"
-                  id="trading-tab-2"
-                  aria-controls="trading-tabpanel-2"
                 />
                 <Tab
                   icon={<AccountBalance />}
