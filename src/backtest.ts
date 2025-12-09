@@ -244,10 +244,10 @@ function  runCustomStrategy(
           
           if (buyResult.success) {
             entryPrices.push(execution.executedPrice);
-            trades.push({
-              symbol,
-              date: dayData.date,
-              action: "BUY",
+      trades.push({
+        symbol,
+        date: dayData.date,
+        action: "BUY",
               price: execution.executedPrice,
               shares: buyResult.actualQuantity,
               commission: execution.commission,
@@ -259,7 +259,7 @@ function  runCustomStrategy(
     } else if (signal === 'SELL') {
       const position = (portfolio as any).positions[symbol];
       if (position && position.shares > 0) {
-        // Execute sell order
+      // Execute sell order
         const orderRequest = {
           symbol,
           side: 'SELL' as const,
@@ -280,22 +280,22 @@ function  runCustomStrategy(
           if (sellResult.success) {
             entryPrices.shift(); // Remove entry price from tracking
             const pnl = sellResult.pnl;
-            
-            trades.push({
-              symbol,
-              date: dayData.date,
-              action: "SELL",
+      
+      trades.push({
+        symbol,
+        date: dayData.date,
+        action: "SELL",
               price: execution.executedPrice,
               shares: sellResult.actualQuantity,
               commission: execution.commission,
               slippage: execution.slippage
-            });
+      });
 
-            // Track winning trades for win rate calculation
-            if (pnl > 0) {
-              winningTrades++;
-            }
-            totalTrades++;
+      // Track winning trades for win rate calculation
+      if (pnl > 0) {
+        winningTrades++;
+      }
+      totalTrades++;
           }
         }
       }
