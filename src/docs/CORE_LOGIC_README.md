@@ -82,6 +82,17 @@ Authorization: Bearer <jwt_token>
 
 ## Starting a Trading Session
 
+### Active Session Limits by Tier
+
+Users can run multiple concurrent trading sessions based on their subscription tier:
+
+- **FREE**: 1 active session
+- **BASIC**: 5 active sessions
+- **PREMIUM**: 10 active sessions
+- **ENTERPRISE**: 10 active sessions
+
+If a user attempts to start a session when they've reached their limit, the API returns an error with details about their current active sessions.
+
 ### User Flow
 
 1. **User selects configuration** (via frontend):
@@ -108,7 +119,11 @@ Authorization: Bearer <jwt_token>
 ```
 
 3. **Backend validates request**:
-   - Checks if user has active session (only one active session per user)
+   - Checks user's subscription tier to determine active session limit
+   - Validates active session count against tier limit:
+     - **FREE**: 1 active session
+     - **BASIC**: 5 active sessions
+     - **PREMIUM/ENTERPRISE**: 10 active sessions
    - Validates strategy exists and user has access
    - Validates session settings (if provided)
    - Checks user subscription tier (custom strategies require Premium/Enterprise)
@@ -131,11 +146,33 @@ Authorization: Bearer <jwt_token>
 // api/controllers/tradingController.ts
 export const startTradingSession = async (req: Request, res: Response) => {
   // 1. Validate request
-  // 2. Check for active session
-  // 3. Create trading session in database
-  // 4. Create/validate session settings
-  // 5. Return session details
+  // 2. Get user and check subscription tier
+  // 3. Check active session count against tier limit:
+  //    - FREE: max 1 session
+  //    - BASIC: max 5 sessions
+  //    - PREMIUM/ENTERPRISE: max 10 sessions
+  // 4. Create trading session in database
+  // 5. Create/validate session settings
+  // 6. Return session details
 }
+```
+
+### Session Limit Enforcement
+
+The system enforces session limits by:
+
+1. **Querying active sessions**: `TradingDatabase.getActiveTradingSessionsCount(userId)`
+2. **Checking tier limit**: Compares count against tier-based limit
+3. **Returning error if limit reached**: Includes current count, max allowed, and active session IDs
+
+```typescript
+// Session limits configuration
+const sessionLimits = {
+  'FREE': 1,
+  'BASIC': 5,
+  'PREMIUM': 10,
+  'ENTERPRISE': 10
+};
 ```
 
 **Note**: The actual `TradingBot` instance runs as a separate process/service. The API creates the session record, and the bot process picks it up and starts trading.

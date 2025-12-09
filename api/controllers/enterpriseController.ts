@@ -3,6 +3,7 @@ import { ApiKeyAuthenticatedRequest } from "../middleware/apiKeyAuth";
 import { TradingDatabase } from "../../src/database/tradingSchema";
 import { StrategyPerformance } from "../models/StrategyPerformance";
 import { startTradingSession, stopTradingSession } from "./tradingController";
+import { User } from "../models/User";
 // Get all bots (trading sessions) for the authenticated enterprise user
 export const getBots = async (req: ApiKeyAuthenticatedRequest, res: Response) => {
   try {
@@ -154,13 +155,38 @@ export const startBot = async (req: ApiKeyAuthenticatedRequest, res: Response) =
       });
     }
 
-    // Check if user already has an active session
-    const activeSession = await TradingDatabase.getActiveTradingSession(userId);
-    if (activeSession) {
+    // Get user to check subscription tier and active session limit
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        error: "User not found" 
+      });
+    }
+
+    // Check active session limit based on subscription tier
+    const activeSessionsCount = await TradingDatabase.getActiveTradingSessionsCount(userId);
+    const planTier = user.plan_tier || 'FREE';
+    
+    // Define session limits by tier
+    const sessionLimits: Record<string, number> = {
+      'FREE': 1,
+      'BASIC': 5,
+      'PREMIUM': 10,
+      'ENTERPRISE': 10
+    };
+    
+    const maxSessions = sessionLimits[planTier] || 1;
+    
+    if (activeSessionsCount >= maxSessions) {
+      const activeSessions = await TradingDatabase.getActiveTradingSessions(userId);
       return res.status(400).json({ 
         success: false,
-        error: "User already has an active trading session",
-        activeBotId: activeSession.id 
+        error: `Maximum active sessions limit reached for ${planTier} tier`,
+        currentCount: activeSessionsCount,
+        maxSessions: maxSessions,
+        planTier: planTier,
+        activeSessionIds: activeSessions.map(s => s.id)
       });
     }
 

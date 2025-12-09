@@ -238,7 +238,7 @@ const StrategyDetailsDialog: React.FC<StrategyDetailsDialogProps> = ({
             </Typography>
             <Box sx={{ 
               p: 2, 
-              bgcolor: 'grey.50', 
+              bgcolor: 'InfoBackground', 
               borderRadius: 1,
               border: '1px solid',
               borderColor: 'grey.200'

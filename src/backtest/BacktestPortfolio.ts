@@ -30,8 +30,12 @@ export class BacktestPortfolio extends Portfolio {
   private dailyPnL: number = 0;
   private totalPnL: number = 0;
   private lastTradeDate: string = '';
-  private positions: Record<string, BacktestPosition>;
   private dailyLossLimitReached: boolean = false;
+  
+  // Helper to access base class positions (which is private)
+  private getPositions(): Record<string, BacktestPosition> {
+    return (this as any).positions as Record<string, BacktestPosition>;
+  }
 
   constructor(
     initialCash: number = 10000,
@@ -42,9 +46,12 @@ export class BacktestPortfolio extends Portfolio {
     super(initialCash, mode, symbols);
     this.settings = settings;
     this.initialCapital = initialCash;
-    this.positions = {};
+    // Initialize positions with extended properties
     symbols.forEach((symbol) => {
-      this.positions[symbol] = { shares: 0, avgPrice: 0, entryDate: '', entryPrice: 0 };
+      const basePos = (this as any).positions[symbol];
+      if (basePos) {
+        (this as any).positions[symbol] = { ...basePos, entryDate: '', entryPrice: 0 };
+      }
     });
   }
 
@@ -126,7 +133,7 @@ export class BacktestPortfolio extends Portfolio {
 
     // Check position size limit
     const status = this.status({ [symbol]: price });
-    const currentPosition = this.positions[symbol];
+    const currentPosition = this.getPositions()[symbol];
     const currentPositionValue = (currentPosition?.shares || 0) * price;
     const maxPositionValue = status.totalValue * (this.settings.max_position_size_percentage / 100);
     
@@ -150,7 +157,7 @@ export class BacktestPortfolio extends Portfolio {
       return null;
     }
 
-    const position = this.positions[symbol];
+    const position = this.getPositions()[symbol];
     if (!position || position.shares === 0) {
       return null;
     }
@@ -187,8 +194,24 @@ export class BacktestPortfolio extends Portfolio {
 
   /**
    * Enhanced buy with position sizing and risk checks
+   * Supports both base class signature (for compatibility) and enhanced signature
    */
-  buy(symbol: string, price: number, currentDate: string, quantity?: number): { success: boolean; actualQuantity: number; reason?: string } {
+  // Overload signatures for better type inference
+  buy(symbol: string, price: number, quantity: number): void;
+  buy(symbol: string, price: number, currentDate: string, quantity?: number): { success: boolean; actualQuantity: number; reason?: string };
+  buy(symbol: string, price: number, currentDateOrQuantity?: string | number, quantity?: number): { success: boolean; actualQuantity: number; reason?: string } | void {
+    // Handle base class signature: buy(symbol, price, quantity)
+    if (typeof currentDateOrQuantity === 'number') {
+      const qty = currentDateOrQuantity;
+      // Call base class implementation for compatibility
+      super.buy(symbol, price, qty);
+      return;
+    }
+    
+    // Handle enhanced signature: buy(symbol, price, currentDate, quantity?)
+    // If currentDateOrQuantity is undefined, we need a date - use current date as fallback
+    const currentDate = (typeof currentDateOrQuantity === 'string' ? currentDateOrQuantity : new Date().toISOString().split('T')[0]);
+    
     // Check if we can open position
     const canOpen = this.canOpenPosition(symbol, price, currentDate);
     if (!canOpen.allowed) {
@@ -206,7 +229,7 @@ export class BacktestPortfolio extends Portfolio {
     const status = this.status({ [symbol]: price });
     
     if (status.cash >= cost) {
-      const pos = this.positions[symbol] || { shares: 0, avgPrice: 0, entryDate: currentDate, entryPrice: price };
+      const pos = this.getPositions()[symbol] || { shares: 0, avgPrice: 0, entryDate: currentDate, entryPrice: price };
       pos.avgPrice = (pos.avgPrice * pos.shares + cost) / (pos.shares + targetQuantity);
       pos.shares += targetQuantity;
       pos.entryDate = currentDate;
@@ -226,9 +249,23 @@ export class BacktestPortfolio extends Portfolio {
 
   /**
    * Enhanced sell with P&L tracking
+   * Supports both base class signature (for compatibility) and enhanced signature
    */
-  sell(symbol: string, price: number, currentDate: string, quantity?: number): { success: boolean; actualQuantity: number; pnl: number } {
-    const pos = this.positions[symbol];
+  // Overload signatures for better type inference
+  sell(symbol: string, price: number, quantity: number): void;
+  sell(symbol: string, price: number, currentDate: string, quantity?: number): { success: boolean; actualQuantity: number; pnl: number };
+  sell(symbol: string, price: number, currentDateOrQuantity?: string | number, quantity?: number): { success: boolean; actualQuantity: number; pnl: number } | void {
+    // Handle base class signature: sell(symbol, price, quantity)
+    if (typeof currentDateOrQuantity === 'number') {
+      const qty = currentDateOrQuantity;
+      // Call base class implementation for compatibility
+      super.sell(symbol, price, qty);
+      return;
+    }
+    
+    // Handle enhanced signature: sell(symbol, price, currentDate, quantity?)
+    const currentDate = currentDateOrQuantity as string;
+    const pos = this.getPositions()[symbol];
     if (!pos || pos.shares === 0) {
       return { success: false, actualQuantity: 0, pnl: 0 };
     }
@@ -312,8 +349,9 @@ export class BacktestPortfolio extends Portfolio {
    */
   getOpenPositionsCount(): number {
     let count = 0;
-    for (const symbol in this.positions) {
-      if (this.positions[symbol].shares > 0) {
+    const positions = this.getPositions();
+    for (const symbol in positions) {
+      if (positions[symbol].shares > 0) {
         count++;
       }
     }

@@ -49,6 +49,7 @@ import {
   UserPortfolioSummary,
   stopTradingSession,
   pauseTradingSession,
+  getTradesBySession,
 } from '../../api/tradingApi';
 import { 
   useTradingStats, 
@@ -91,6 +92,8 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
   // Dialog states
   const [sessionDetailsOpen, setSessionDetailsOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<TradingSession | null>(null);
+  const [sessionTrades, setSessionTrades] = useState<Trade[]>([]);
+  const [loadingTrades, setLoadingTrades] = useState(false);
   
   // Session control states
   const [sessionLoading, setSessionLoading] = useState(false);
@@ -139,9 +142,20 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
     setActiveTab(newValue);
   };
 
-  const handleViewSessionDetails = (session: TradingSession) => {
+  const handleViewSessionDetails = async (session: TradingSession) => {
     setSelectedSession(session);
     setSessionDetailsOpen(true);
+    setLoadingTrades(true);
+    
+    try {
+      const response = await getTradesBySession(session.id);
+      setSessionTrades(response.data || []);
+    } catch (error) {
+      console.error('Error fetching session trades:', error);
+      setSessionTrades([]);
+    } finally {
+      setLoadingTrades(false);
+    }
   };
 
   const handleStopSession = async () => {
@@ -797,6 +811,20 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
                   <Typography variant="subtitle2">Winning Trades:</Typography>
                   <Typography>{selectedSession.winning_trades}</Typography>
                 </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="subtitle2">Win Rate:</Typography>
+                  <Typography>
+                    {selectedSession.total_trades > 0 
+                      ? formatPercentage((selectedSession.winning_trades / selectedSession.total_trades) * 100)
+                      : '0%'}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="subtitle2">Losing Trades:</Typography>
+                  <Typography>
+                    {selectedSession.total_trades - selectedSession.winning_trades}
+                  </Typography>
+                </Grid>
                 <Grid item xs={12}>
                   <Typography variant="subtitle2">Total P&L:</Typography>
                   <Typography
@@ -806,6 +834,67 @@ const TradingResults: React.FC<TradingResultsProps> = ({ userId }) => {
                   >
                     {selectedSession.total_pnl ? formatCurrency(selectedSession.total_pnl) : '-'}
                   </Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+                    Session Trades ({sessionTrades.length})
+                  </Typography>
+                  {loadingTrades ? (
+                    <Box display="flex" justifyContent="center" p={2}>
+                      <CircularProgress size={24} />
+                    </Box>
+                  ) : sessionTrades.length > 0 ? (
+                    <TableContainer component={Paper} variant="outlined">
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Symbol</TableCell>
+                            <TableCell>Action</TableCell>
+                            <TableCell>Quantity</TableCell>
+                            <TableCell>Price</TableCell>
+                            <TableCell>P&L</TableCell>
+                            <TableCell>Time</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {sessionTrades.slice(0, 10).map((trade) => (
+                            <TableRow key={trade.id}>
+                              <TableCell>{trade.symbol}</TableCell>
+                              <TableCell>
+                                <Chip
+                                  label={trade.action}
+                                  size="small"
+                                  color={trade.action === 'BUY' ? 'primary' : 'secondary'}
+                                />
+                              </TableCell>
+                              <TableCell>{trade.quantity}</TableCell>
+                              <TableCell>{formatCurrency(trade.price)}</TableCell>
+                              <TableCell>
+                                <Typography
+                                  variant="body2"
+                                  color={trade.pnl && trade.pnl >= 0 ? 'success.main' : 'error.main'}
+                                >
+                                  {trade.pnl ? formatCurrency(trade.pnl) : '-'}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>{formatDate(trade.timestamp)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      {sessionTrades.length > 10 && (
+                        <Box p={2}>
+                          <Typography variant="body2" color="textSecondary" align="center">
+                            Showing 10 of {sessionTrades.length} trades
+                          </Typography>
+                        </Box>
+                      )}
+                    </TableContainer>
+                  ) : (
+                    <Typography variant="body2" color="textSecondary">
+                      No trades found for this session.
+                    </Typography>
+                  )}
                 </Grid>
               </Grid>
             </Box>

@@ -335,7 +335,7 @@ const BacktestingSimple: React.FC = () => {
                   <Typography variant="subtitle1" gutterBottom>
                     Backtest Configuration
                   </Typography>
-                  <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50' }}>
+                  <Paper variant="outlined" sx={{ p: 2, bgcolor: "InfoBackground" }}>
                     <Stack spacing={2}>
                       <Box display="flex" flexWrap="wrap" gap={2}>
                         <Box>

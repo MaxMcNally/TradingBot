@@ -260,6 +260,30 @@ export class TradingDatabase {
     });
   }
 
+  static async getActiveTradingSessionsCount(userId: number): Promise<number> {
+    return new Promise((resolve, reject) => {
+      db.get('SELECT COUNT(*) as count FROM trading_sessions WHERE user_id = $1 AND status = $2', [userId, 'ACTIVE'], (err: any, row: any) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(row?.count || 0);
+        }
+      });
+    });
+  }
+
+  static async getActiveTradingSessions(userId: number): Promise<TradingSession[]> {
+    return new Promise((resolve, reject) => {
+      db.all('SELECT * FROM trading_sessions WHERE user_id = $1 AND status = $2 ORDER BY created_at DESC', [userId, 'ACTIVE'], (err: any, rows: any[]) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows || []);
+        }
+      });
+    });
+  }
+
   static async getTradingSessionById(id: number): Promise<TradingSession | null> {
     return new Promise((resolve, reject) => {
       db.get('SELECT * FROM trading_sessions WHERE id = $1', [id], (err: any, row: any) => {

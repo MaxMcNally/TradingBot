@@ -177,7 +177,26 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
       }
     } catch (err: any) {
       console.error('Error starting trading session:', err);
-      setError(err.response?.data?.message || 'Failed to start trading session');
+      const errorData = err.response?.data;
+      
+      // Handle max session limit error with detailed information
+      if (errorData?.currentCount !== undefined && errorData?.maxSessions !== undefined) {
+        const errorMessage = errorData.message || 'Maximum active sessions limit reached';
+        const activeSessionIds = errorData.activeSessionIds || [];
+        const planTier = errorData.planTier || 'FREE';
+        
+        setError(
+          `${errorMessage}\n\n` +
+          `Your ${planTier} tier allows ${errorData.maxSessions} active session(s). ` +
+          `You currently have ${errorData.currentCount} active session(s). ` +
+          (activeSessionIds.length > 0 
+            ? `Active session IDs: ${activeSessionIds.join(', ')}. ` 
+            : '') +
+          `Please stop an existing session before starting a new one.`
+        );
+      } else {
+        setError(errorData?.message || 'Failed to start trading session');
+      }
     } finally {
       setLoading(false);
     }
@@ -531,7 +550,9 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
         {/* Error/Success Alerts */}
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-            {error}
+            <Typography variant="body2" component="div" sx={{ whiteSpace: 'pre-line' }}>
+              {error}
+            </Typography>
           </Alert>
         )}
         {success && (
