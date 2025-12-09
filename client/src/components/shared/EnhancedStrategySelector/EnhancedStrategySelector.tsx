@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Card,
@@ -143,29 +143,45 @@ const EnhancedStrategySelector: React.FC<EnhancedStrategySelectorProps> = ({
     },
   ];
 
+  // Track if we've already processed strategies to prevent infinite loops
+  const hasProcessedRef = useRef(false);
+  const processedStrategiesLengthRef = useRef(0);
+
+  // Handle prop strategies (highest priority) - only run once when propStrategies changes
   useEffect(() => {
     if (propStrategies) {
       setStrategies(propStrategies);
       setLoading(false);
-    } else {
-      fetchStrategies();
+      hasProcessedRef.current = true;
+      processedStrategiesLengthRef.current = propStrategies.length;
     }
-  }, [propStrategies, apiStrategies]);
+  }, [propStrategies]);
 
-  // Update loading state based on API strategies loading
+  // Handle API strategies - only when propStrategies is not provided
   useEffect(() => {
-    if (!propStrategies) {
-      setLoading(apiStrategiesLoading);
+    // Skip if prop strategies are provided
+    if (propStrategies) {
+      return;
     }
-  }, [apiStrategiesLoading, propStrategies]);
 
-  const fetchStrategies = async () => {
-    try {
+    // Skip if we've already processed these strategies (check by length)
+    const currentLength = apiStrategies?.length || 0;
+    if (hasProcessedRef.current && currentLength === processedStrategiesLengthRef.current) {
+      return;
+    }
+
+    // Only process when loading is complete
+    if (apiStrategiesLoading) {
       setLoading(true);
-      setError(null);
-      
-      // Use the API strategies from the hook
-      if (apiStrategies && apiStrategies.length > 0) {
+      return;
+    }
+
+    // Process API strategies
+    if (apiStrategies && apiStrategies.length > 0) {
+      try {
+        setLoading(true);
+        setError(null);
+        
         const convertedStrategies: TradingStrategy[] = apiStrategies.map(strategy => ({
           name: strategy.name,
           description: strategy.description || 'No description available',
@@ -175,20 +191,39 @@ const EnhancedStrategySelector: React.FC<EnhancedStrategySelectorProps> = ({
           enabled: true,
           symbols: [],
         }));
+        
         setStrategies(convertedStrategies);
-      } else {
-        // Fallback to trading API if strategies not available
-        const response = await getAvailableStrategies();
-        setStrategies(response.data.strategies || defaultStrategies);
+        hasProcessedRef.current = true;
+        processedStrategiesLengthRef.current = apiStrategies.length;
+        setLoading(false);
+      } catch (err) {
+        console.error('Error processing strategies:', err);
+        setError('Failed to process strategies');
+        setLoading(false);
       }
-    } catch (err) {
-      console.error('Error fetching strategies:', err);
-      setStrategies(defaultStrategies);
-      setError('Failed to load strategies, using defaults');
-    } finally {
-      setLoading(false);
+    } else if (!hasProcessedRef.current) {
+      // Fallback to trading API only if we haven't processed anything yet
+      const fetchFromApi = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          const response = await getAvailableStrategies();
+          setStrategies(response.data.strategies || defaultStrategies);
+          hasProcessedRef.current = true;
+          processedStrategiesLengthRef.current = response.data.strategies?.length || 0;
+        } catch (err) {
+          console.error('Error fetching strategies:', err);
+          setStrategies(defaultStrategies);
+          setError('Failed to load strategies, using defaults');
+          hasProcessedRef.current = true;
+          processedStrategiesLengthRef.current = defaultStrategies.length;
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchFromApi();
     }
-  };
+  }, [propStrategies, apiStrategiesLoading, apiStrategies?.length]);
 
   const handleStrategyChange = (strategyName: string) => {
     onStrategyChange(strategyName);

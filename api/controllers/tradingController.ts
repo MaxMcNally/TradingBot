@@ -6,6 +6,8 @@ import { StrategiesService } from "../services/strategiesService";
 import { WebhookService } from "../services/webhookService";
 import { CustomStrategy } from "../models/CustomStrategy";
 import { User } from "../models/User";
+import { TradingSessionSettingsDatabase } from "../database/tradingSessionSettingsDatabase";
+import { TradingSessionSettingsService } from "../services/tradingSessionSettingsService";
 
 export const getUserTradingStats = async (req: Request, res: Response) => {
   try {
@@ -116,7 +118,13 @@ export const getActiveTradingSession = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "No active trading session found" });
     }
 
-    res.json(session);
+    // Get settings for the session
+    const settings = await TradingSessionSettingsDatabase.getSettingsBySessionId(session.id!);
+
+    res.json({
+      ...session,
+      settings: settings || null
+    });
   } catch (error) {
     console.error("Error getting active trading session:", error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -221,6 +229,22 @@ export const startTradingSession = async (req: Request, res: Response) => {
       winning_trades: 0
     });
 
+    // Create default settings or use provided settings
+    const settingsInput = req.body.settings || {};
+    const validation = TradingSessionSettingsService.validateSettings(settingsInput);
+    if (!validation.valid) {
+      // If validation fails, delete the session and return error
+      await TradingDatabase.updateTradingSession(session.id!, { status: 'STOPPED' });
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid session settings',
+        errors: validation.errors
+      });
+    }
+
+    const settings = TradingSessionSettingsService.mergeWithDefaults(session.id!, settingsInput);
+    const createdSettings = await TradingSessionSettingsDatabase.createSettings(settings);
+
     // Send webhook event for bot started
     WebhookService.sendBotStartedEvent(userId, session.id!, session).catch(err => {
       console.error('Error sending bot started webhook:', err);
@@ -230,7 +254,10 @@ export const startTradingSession = async (req: Request, res: Response) => {
       success: true,
       sessionId: session.id,
       message: "Trading session started successfully",
-      session
+      session: {
+        ...session,
+        settings: createdSettings
+      }
     });
   } catch (error) {
     console.error("Error starting trading session:", error);
