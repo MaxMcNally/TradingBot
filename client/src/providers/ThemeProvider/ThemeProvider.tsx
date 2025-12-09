@@ -47,7 +47,51 @@ const theme = createTheme({
     divider: colors.border,
   },
   typography: {
-    fontFamily: 'Roboto, Arial, sans-serif',
+    fontFamily: '"Syne", Arial, sans-serif',
+    h1: {
+      fontFamily: '"Syne", Arial, sans-serif',
+      fontWeight: 800,
+    },
+    h2: {
+      fontFamily: '"Syne", Arial, sans-serif',
+      fontWeight: 700,
+    },
+    h3: {
+      fontFamily: '"Syne", Arial, sans-serif',
+      fontWeight: 700,
+    },
+    h4: {
+      fontFamily: '"Syne", Arial, sans-serif',
+      fontWeight: 700,
+    },
+    h5: {
+      fontFamily: '"Syne", Arial, sans-serif',
+      fontWeight: 700,
+    },
+    h6: {
+      fontFamily: '"Syne", Arial, sans-serif',
+      fontWeight: 700,
+    },
+    button: {
+      fontFamily: '"Syne", Arial, sans-serif',
+      fontWeight: 700,
+    },
+    body1: {
+      fontFamily: '"Syne", Arial, sans-serif',
+      fontWeight: 400,
+    },
+    body2: {
+      fontFamily: '"Syne", Arial, sans-serif',
+      fontWeight: 400,
+    },
+    caption: {
+      fontFamily: '"JetBrains Mono", monospace',
+      fontWeight: 400,
+    },
+    overline: {
+      fontFamily: '"JetBrains Mono", monospace',
+      fontWeight: 500,
+    },
   },
   components: {
     MuiPaper: {
