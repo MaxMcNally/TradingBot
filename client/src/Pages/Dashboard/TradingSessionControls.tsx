@@ -22,7 +22,6 @@ import {
   Step,
   StepLabel,
   Chip,
-  Divider,
   IconButton,
   Tooltip,
   Switch,
@@ -34,7 +33,6 @@ import {
   Pause,
   Settings,
   Info,
-  Warning,
   CheckCircle,
   TrendingUp,
   AccountBalance,
@@ -48,8 +46,10 @@ import {
   formatCurrency,
   StartTradingSessionRequest,
   TradingSession,
+  TradingSessionSettings,
 } from '../../api/tradingApi';
 import { getMarketStatus, formatMarketTime } from '../../utils/marketHours';
+import { TradingSessionSettingsForm } from '../../components/TradingSessionSettingsForm';
 
 interface TradingSessionControlsProps {
   userId: number;
@@ -83,6 +83,9 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
   const [enableScheduledEnd, setEnableScheduledEnd] = useState(false);
   const [scheduledEndTime, setScheduledEndTime] = useState('');
   const [marketStatus, setMarketStatus] = useState(getMarketStatus());
+  
+  // Session settings
+  const [sessionSettings, setSessionSettings] = useState<Partial<TradingSessionSettings>>({});
 
   useEffect(() => {
     if (userId && !isNaN(userId)) {
@@ -150,6 +153,7 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
         strategy: selectedStrategy,
         strategyParameters,
         scheduledEndTime: enableScheduledEnd && scheduledEndTime ? scheduledEndTime : undefined,
+        settings: Object.keys(sessionSettings).length > 0 ? sessionSettings : undefined,
       };
 
       const response = await startTradingSession(request);
@@ -261,6 +265,12 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
     setShowStartDialog(false);
     setActiveStep(0);
     setError(null);
+    setSessionSettings({});
+  };
+  
+  const handleSettingsSubmit = async (settings: Partial<TradingSessionSettings>) => {
+    setSessionSettings(settings);
+    handleNextStep();
   };
 
   const getStepContent = (step: number) => {
@@ -376,6 +386,29 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
         return (
           <Box>
             <Typography variant="h6" gutterBottom>
+              Trading Session Settings
+            </Typography>
+            <Typography variant="body2" color="textSecondary" paragraph>
+              Configure risk management, order execution, and trading window settings for this session. You can skip this step to use default settings.
+            </Typography>
+            <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+              <Button onClick={handleNextStep} variant="outlined" size="small">
+                Skip Settings
+              </Button>
+            </Box>
+            <TradingSessionSettingsForm
+              initialSettings={sessionSettings}
+              onSubmit={handleSettingsSubmit}
+              onCancel={handleBackStep}
+              submitLabel="Continue to Review"
+              showAdvanced={true}
+            />
+          </Box>
+        );
+      case 2:
+        return (
+          <Box>
+            <Typography variant="h6" gutterBottom>
               Review Configuration
             </Typography>
             <Grid container spacing={2}>
@@ -444,6 +477,23 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
                       </Typography>
                       <Typography variant="body2" color="textSecondary">
                         {new Date(scheduledEndTime).toLocaleString()}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              )}
+              
+              {/* Session Settings Summary */}
+              {Object.keys(sessionSettings).length > 0 && (
+                <Grid item xs={12}>
+                  <Card variant="outlined" sx={{ borderColor: 'primary.main' }}>
+                    <CardContent>
+                      <Typography variant="subtitle2" gutterBottom>
+                        <Settings sx={{ mr: 1, verticalAlign: 'middle' }} />
+                        Session Settings Configured
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        Custom settings have been applied for risk management, order execution, and trading window.
                       </Typography>
                     </CardContent>
                   </Card>
@@ -594,35 +644,40 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
                 <StepLabel>Configuration</StepLabel>
               </Step>
               <Step>
+                <StepLabel>Settings</StepLabel>
+              </Step>
+              <Step>
                 <StepLabel>Review</StepLabel>
               </Step>
             </Stepper>
             {getStepContent(activeStep)}
           </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDialog}>
-              Cancel
-            </Button>
-            {activeStep > 0 && (
-              <Button onClick={handleBackStep}>
-                Back
+          {activeStep !== 1 && (
+            <DialogActions>
+              <Button onClick={handleCloseDialog}>
+                Cancel
               </Button>
-            )}
-            {activeStep < 1 ? (
-              <Button onClick={handleNextStep} variant="contained">
-                Next
-              </Button>
-            ) : (
-              <Button
-                onClick={handleStartSession}
-                variant="contained"
-                disabled={loading}
-                startIcon={loading ? <CircularProgress size={20} /> : <PlayArrow />}
-              >
-                Start Session
-              </Button>
-            )}
-          </DialogActions>
+              {activeStep > 0 && (
+                <Button onClick={handleBackStep}>
+                  Back
+                </Button>
+              )}
+              {activeStep < 2 ? (
+                <Button onClick={handleNextStep} variant="contained">
+                  Next
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleStartSession}
+                  variant="contained"
+                  disabled={loading}
+                  startIcon={loading ? <CircularProgress size={20} /> : <PlayArrow />}
+                >
+                  Start Session
+                </Button>
+              )}
+            </DialogActions>
+          )}
         </Dialog>
       </CardContent>
     </Card>

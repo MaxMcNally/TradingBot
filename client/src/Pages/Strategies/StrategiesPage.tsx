@@ -507,10 +507,15 @@ const Strategies: React.FC = () => {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1">
-          Strategy Management
-        </Typography>
+      <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3}>
+        <Box>
+          <Typography variant="h4" component="h1" gutterBottom>
+            Program Bot
+          </Typography>
+          <Typography variant="subtitle1" color="textSecondary">
+            Create and manage your trading bots. Build custom algorithms or use pre-built strategies.
+          </Typography>
+        </Box>
         <Box display="flex" alignItems="center" gap={2}>
           <FormControlLabel
             control={
@@ -527,7 +532,7 @@ const Strategies: React.FC = () => {
             onClick={handleCreateStrategy}
             disabled={isCreating}
           >
-            Create Strategy
+            Create Bot
           </Button>
           {isPremium && (
             <Button
@@ -557,21 +562,21 @@ const Strategies: React.FC = () => {
         <Tabs value={activeTab} onChange={handleTabChange} aria-label="strategy tabs">
           <Tab 
             icon={<PersonIcon />} 
-            label="My Strategies" 
+            label="My Bots" 
             iconPosition="start"
             id="strategy-tab-0"
             aria-controls="strategy-tabpanel-0"
           />
           <Tab 
             icon={<PublicIcon />} 
-            label="Public Strategies" 
+            label="Public Bots" 
             iconPosition="start"
             id="strategy-tab-1"
             aria-controls="strategy-tabpanel-1"
           />
           <Tab 
             icon={<SettingsIcon />} 
-            label="Basic Strategies" 
+            label="Basic Bots" 
             iconPosition="start"
             id="strategy-tab-2"
             aria-controls="strategy-tabpanel-2"
@@ -579,7 +584,7 @@ const Strategies: React.FC = () => {
         </Tabs>
       </Box>
 
-      {/* My Strategies Tab */}
+      {/* My Bots Tab */}
       <TabPanel value={activeTab} index={0}>
         {userStrategiesLoading ? (
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -691,7 +696,7 @@ const Strategies: React.FC = () => {
         )}
       </TabPanel>
 
-      {/* Public Strategies Tab */}
+      {/* Public Bots Tab */}
       <TabPanel value={activeTab} index={1}>
         {publicStrategiesLoading ? (
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -715,7 +720,7 @@ const Strategies: React.FC = () => {
         )}
       </TabPanel>
 
-      {/* Basic Strategies Tab */}
+      {/* Basic Bots Tab */}
       <TabPanel value={activeTab} index={2}>
         {renderBasicStrategies()}
       </TabPanel>

@@ -215,9 +215,19 @@ export class TradingDatabase {
 
   static async updateTradingSession(id: number, updates: Partial<TradingSession>): Promise<void> {
     return new Promise((resolve, reject) => {
+      const isPostgres = process.env.DATABASE_URL && /^postgres(ql)?:\/\//i.test(process.env.DATABASE_URL);
       const fields = Object.keys(updates).filter(key => key !== 'id' && key !== 'created_at');
       const values = fields.map(field => updates[field as keyof TradingSession]);
-      const setClause = fields.map((field, index) => `${field} = $${index + 1}`).join(', ');
+      
+      // For PostgreSQL, cast timestamp fields to TIMESTAMP
+      // For SQLite, use plain field names
+      // Use ? placeholders which will be converted to $1, $2, etc. by toPg
+      const setClause = fields.map((field, index) => {
+        if (isPostgres && (field === 'start_time' || field === 'end_time')) {
+          return `${field} = CAST(? AS TIMESTAMP)`;
+        }
+        return `${field} = ?`;
+      }).join(', ');
       
       if (fields.length === 0) {
         resolve();
@@ -225,7 +235,7 @@ export class TradingDatabase {
       }
 
       db.run(
-        `UPDATE trading_sessions SET ${setClause} WHERE id = $${fields.length + 1}`,
+        `UPDATE trading_sessions SET ${setClause} WHERE id = ?`,
         [...values, id],
         function(err: any) {
           if (err) {
@@ -264,8 +274,17 @@ export class TradingDatabase {
 
   static async getTradesBySession(sessionId: number): Promise<Trade[]> {
     return new Promise((resolve, reject) => {
+      const isPostgres = process.env.DATABASE_URL && /^postgres(ql)?:\/\//i.test(process.env.DATABASE_URL);
+      
+      // For PostgreSQL, cast start_time to TIMESTAMP for comparison
+      // For SQLite, the comparison works with text strings
+      // Use ? placeholder which will be converted to $1 by toPg
+      const sql = isPostgres
+        ? 'SELECT * FROM trades WHERE created_at >= (SELECT start_time::TIMESTAMP FROM trading_sessions WHERE id = ?) ORDER BY timestamp'
+        : 'SELECT * FROM trades WHERE created_at >= (SELECT start_time FROM trading_sessions WHERE id = ?) ORDER BY timestamp';
+      
       db.all(
-        'SELECT * FROM trades WHERE created_at >= (SELECT start_time FROM trading_sessions WHERE id = $1) ORDER BY timestamp',
+        sql,
         [sessionId],
         (err: any, rows: any[]) => {
           if (err) {

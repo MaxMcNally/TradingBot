@@ -78,10 +78,24 @@ export class SessionMonitor {
   private async getSessionsToTerminate(currentTime: string): Promise<any[]> {
     return new Promise((resolve, reject) => {
       const { db } = require('../initDb');
-      const sql = `SELECT * FROM trading_sessions 
-         WHERE status = 'ACTIVE' 
-         AND end_time IS NOT NULL 
-         AND end_time <= $1`;
+      const isPostgres = process.env.DATABASE_URL && /^postgres(ql)?:\/\//i.test(process.env.DATABASE_URL);
+      
+      // Use ? placeholder which will be converted to $1 by toPg for PostgreSQL
+      // For PostgreSQL, cast both end_time (TEXT) and parameter to TIMESTAMP for comparison
+      // For SQLite, the comparison works with text strings
+      // The db.all method uses toPg to convert ? to $1, $2, etc. for PostgreSQL
+      const sql = isPostgres
+        ? `SELECT * FROM trading_sessions 
+           WHERE status = 'ACTIVE' 
+           AND end_time IS NOT NULL 
+           AND CAST(end_time AS TIMESTAMP) <= CAST(? AS TIMESTAMP)`
+        : `SELECT * FROM trading_sessions 
+           WHERE status = 'ACTIVE' 
+           AND end_time IS NOT NULL 
+           AND end_time <= ?`;
+      
+      // Use db.all which works for both PostgreSQL and SQLite
+      // The toPg function will convert ? to $1 for PostgreSQL
       db.all(sql, [currentTime], (err: any, rows: any[]) => {
         if (err) {
           reject(err);

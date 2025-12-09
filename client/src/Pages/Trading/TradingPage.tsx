@@ -11,45 +11,51 @@ import {
 import {
   TrendingUp,
   Settings,
-  Tune,
   AccountBalance,
 } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
 import { 
   TabPanel,
   StockSelectionSection,
-  StrategySelectionSection,
   SessionSummary,
-  StrategyParameters
+  BotSelector,
+  UnifiedStrategy,
 } from "../../components/shared";
 import TradingSessionControls from "../Dashboard/TradingSessionControls";
-import { useUser, useStrategies } from "../../hooks";
+import { useUser, useUserStrategies } from "../../hooks";
+import { useCustomStrategies } from "../../hooks/useCustomStrategies/useCustomStrategies";
 
 const TradingPage: React.FC = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
   const { user, isLoading: userLoading, error: userError } = useUser();
-  const { strategies: availableStrategies } = useStrategies();
+  const { strategies: userStrategies, isLoading: userStrategiesLoading } = useUserStrategies(false); // Only active strategies
+  const { strategies: customStrategies, isLoading: customStrategiesLoading } = useCustomStrategies(false); // Only active custom strategies
 
   // Trading session state
   const [selectedStocks, setSelectedStocks] = useState<string[]>([]);
-  const [selectedStrategy, setSelectedStrategy] = useState<string>("MovingAverage");
+  const [selectedStrategy, setSelectedStrategy] = useState<UnifiedStrategy | null>(null);
   const [strategyParameters, setStrategyParameters] = useState<Record<string, any>>({});
   const [activeSession, setActiveSession] = useState<any>(null);
 
-  // Reset strategy parameters when strategy changes
+  const strategiesLoading = userStrategiesLoading || customStrategiesLoading;
+
+  // Update strategy parameters when strategy changes
   useEffect(() => {
-    if (availableStrategies && selectedStrategy) {
-      const strategy = availableStrategies.find(s => s.name === selectedStrategy);
-      if (strategy && strategy.parameters) {
-        const defaultParams: Record<string, any> = {};
-        Object.entries(strategy.parameters).forEach(([key, param]) => {
-          if (typeof param === 'object' && param !== null && 'default' in param) {
-            defaultParams[key] = param.default;
-          }
+    if (selectedStrategy) {
+      if (selectedStrategy.type === 'user' && selectedStrategy.config) {
+        setStrategyParameters(selectedStrategy.config);
+      } else if (selectedStrategy.type === 'custom') {
+        // For custom strategies, we need to pass buy_conditions and sell_conditions
+        setStrategyParameters({
+          buy_conditions: selectedStrategy.buy_conditions,
+          sell_conditions: selectedStrategy.sell_conditions,
         });
-        setStrategyParameters(defaultParams);
       }
     }
-  }, [selectedStrategy, availableStrategies]);
+  }, [selectedStrategy]);
+
+  // Remove the allStrategies useMemo since BotSelector handles it
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
@@ -59,17 +65,13 @@ const TradingPage: React.FC = () => {
     setSelectedStocks(stocks);
   };
 
-  const handleStrategyChange = (strategy: string) => {
+  const handleStrategySelect = (strategy: UnifiedStrategy) => {
     setSelectedStrategy(strategy);
-  };
-
-  const handleParametersChange = (parameters: Record<string, any>) => {
-    setStrategyParameters(parameters);
   };
 
   const handleSessionStarted = (session: any) => {
     setActiveSession(session);
-    setActiveTab(3); // Switch to session controls tab
+    setActiveTab(2); // Switch to session controls tab
   };
 
   const handleSessionStopped = () => {
@@ -105,10 +107,10 @@ const TradingPage: React.FC = () => {
       {/* Header */}
       <Box mb={3}>
         <Typography variant="h4" component="h1" gutterBottom>
-          Trading
+          Run Bot
         </Typography>
         <Typography variant="subtitle1" color="textSecondary">
-          Create and manage your trading sessions. Configure stocks, strategies, and parameters to start trading.
+          Select stocks and a bot to start a live trading session. Create and manage bots in the Program Bot page.
         </Typography>
       </Box>
 
@@ -132,16 +134,10 @@ const TradingPage: React.FC = () => {
                   aria-controls="trading-tabpanel-1"
                 />
                 <Tab
-                  icon={<Tune />}
-                  label="Strategy Parameters"
-                  id="trading-tab-2"
-                  aria-controls="trading-tabpanel-2"
-                />
-                <Tab
                   icon={<AccountBalance />}
                   label="Session Controls"
-                  id="trading-tab-3"
-                  aria-controls="trading-tabpanel-3"
+                  id="trading-tab-2"
+                  aria-controls="trading-tabpanel-2"
                 />
               </Tabs>
             </Box>
@@ -160,32 +156,28 @@ const TradingPage: React.FC = () => {
 
             {/* Strategy Selection Tab */}
             <TabPanel value={activeTab} index={1}>
-              <StrategySelectionSection
+              <BotSelector
+                userStrategies={userStrategies}
+                customStrategies={customStrategies}
+                isLoading={strategiesLoading}
                 selectedStrategy={selectedStrategy}
-                onStrategyChange={handleStrategyChange}
-                onParametersChange={handleParametersChange}
-                strategyParameters={strategyParameters}
-                title="Select Trading Strategy"
-                description="Choose a trading strategy for live trading. You can select from basic strategies or public strategies shared by other users."
-                showSummary={false}
-              />
-            </TabPanel>
-
-            {/* Strategy Parameters Tab */}
-            <TabPanel value={activeTab} index={2}>
-              <StrategyParameters
-                selectedStrategy={selectedStrategy}
-                strategyParameters={strategyParameters}
-                onParametersChange={handleParametersChange}
+                onStrategySelect={handleStrategySelect}
+                title="Select Trading Bot"
+                description="Choose one of your saved bots to use for live trading. All bot creation and editing happens in the Program Bot page."
+                emptyStateTitle="No Bots Available"
+                emptyStateMessage="You haven't created any trading bots yet. Create your first bot to start trading."
+                emptyStateButtonLabel="Create Bot"
+                onEmptyStateButtonClick={() => navigate('/strategies')}
+                showActiveOnly={true}
               />
             </TabPanel>
 
             {/* Session Controls Tab */}
-            <TabPanel value={activeTab} index={3}>
+            <TabPanel value={activeTab} index={2}>
               <TradingSessionControls
                 userId={Number(user.id)}
                 selectedStocks={selectedStocks}
-                selectedStrategy={selectedStrategy}
+                selectedStrategy={selectedStrategy?.name || ''}
                 strategyParameters={strategyParameters}
                 onSessionStarted={handleSessionStarted}
                 onSessionStopped={handleSessionStopped}
@@ -199,7 +191,7 @@ const TradingPage: React.FC = () => {
           <SessionSummary
             title="Trading Session"
             selectedStocks={selectedStocks}
-            selectedStrategy={selectedStrategy}
+            selectedStrategy={selectedStrategy?.name || ''}
             strategyParameters={strategyParameters}
             mode="trading"
             maxStocks={10}
