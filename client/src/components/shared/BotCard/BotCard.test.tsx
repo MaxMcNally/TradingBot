@@ -389,7 +389,7 @@ describe('BotCard Component', () => {
 
   describe('Border Color', () => {
     it('should apply custom border color when provided', () => {
-      render(
+      const { container } = render(
         <BotCard
           strategy={mockUserStrategy}
           size="normal"
@@ -398,8 +398,9 @@ describe('BotCard Component', () => {
         />
       );
 
-      const card = screen.getByText('Test Strategy').closest('.MuiCard-root');
+      const card = container.querySelector('[class*="MuiCard"]');
       expect(card).toBeInTheDocument();
+      expect(screen.getByText('Test Strategy')).toBeInTheDocument();
     });
   });
 
