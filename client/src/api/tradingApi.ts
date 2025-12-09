@@ -103,14 +103,70 @@ export interface StartTradingSessionRequest {
   initialCash: number;
   symbols: string[];
   strategy: string;
-  strategyParameters: Record<string, any>;
+  strategyParameters?: Record<string, any>;
   scheduledEndTime?: string; // ISO string for when session should automatically end
+  settings?: Partial<TradingSessionSettings>; // Optional session settings
 }
 
 export interface StartTradingSessionResponse {
   success: boolean;
   sessionId?: number;
   message: string;
+  session?: TradingSession & { settings?: TradingSessionSettings | null };
+}
+
+// Trading Session Settings Types
+export type TimeInForce = 'day' | 'gtc' | 'opg' | 'cls' | 'ioc' | 'fok';
+export type OrderType = 'market' | 'limit' | 'stop' | 'stop_limit' | 'trailing_stop';
+export type PositionSizingMethod = 'fixed' | 'percentage' | 'kelly' | 'equal_weight';
+export type RebalanceFrequency = 'never' | 'daily' | 'weekly' | 'on_signal';
+export type SlippageModel = 'none' | 'fixed' | 'proportional';
+export type TradingDay = 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT' | 'SUN';
+
+export interface TradingSessionSettings {
+  id?: number;
+  session_id: number;
+  
+  // Risk Management
+  stop_loss_percentage?: number | null;
+  take_profit_percentage?: number | null;
+  max_position_size_percentage: number;
+  max_daily_loss_percentage?: number | null;
+  max_daily_loss_absolute?: number | null;
+  
+  // Order Execution
+  time_in_force: TimeInForce;
+  allow_partial_fills: boolean;
+  extended_hours: boolean;
+  order_type_default: OrderType;
+  limit_price_offset_percentage?: number | null;
+  
+  // Position Management
+  max_open_positions: number;
+  position_sizing_method: PositionSizingMethod;
+  position_size_value: number;
+  rebalance_frequency: RebalanceFrequency;
+  
+  // Trading Window
+  trading_hours_start: string; // HH:mm format in UTC
+  trading_hours_end: string; // HH:mm format in UTC
+  trading_days: TradingDay[];
+  
+  // Advanced
+  enable_trailing_stop: boolean;
+  trailing_stop_percentage?: number | null;
+  enable_bracket_orders: boolean;
+  enable_oco_orders: boolean;
+  commission_rate: number;
+  slippage_model: SlippageModel;
+  slippage_value: number;
+  
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface TradingSessionWithSettings extends TradingSession {
+  settings?: TradingSessionSettings | null;
 }
 
 // Trading API functions
@@ -129,7 +185,7 @@ export const getUserTradingSessions = (userId: number, limit: number = 20): Prom
 export const getUserPortfolioHistory = (userId: number, limit: number = 100): Promise<AxiosResponse<PortfolioSnapshot[]>> =>
   api.get(`/trading/users/${userId}/portfolio-history?limit=${limit}`);
 
-export const getActiveTradingSession = (userId: number): Promise<AxiosResponse<TradingSession>> =>
+export const getActiveTradingSession = (userId: number): Promise<AxiosResponse<TradingSessionWithSettings>> =>
   api.get(`/trading/users/${userId}/active-session`);
 
 export const getTradesBySession = (sessionId: number): Promise<AxiosResponse<Trade[]>> =>
@@ -154,6 +210,16 @@ export const getAvailableStrategies = (): Promise<AxiosResponse<{ strategies: Tr
 
 export const getStrategyConfig = (strategyName: string): Promise<AxiosResponse<TradingStrategy>> =>
   api.get(`/trading/strategies/${strategyName}`);
+
+// Trading Session Settings API
+export const getSessionSettings = (sessionId: number): Promise<AxiosResponse<{ success: boolean; settings: TradingSessionSettings }>> =>
+  api.get(`/trading/sessions/${sessionId}/settings`);
+
+export const createSessionSettings = (sessionId: number, settings: Partial<TradingSessionSettings>): Promise<AxiosResponse<{ success: boolean; message: string; settings: TradingSessionSettings }>> =>
+  api.post(`/trading/sessions/${sessionId}/settings`, { settings });
+
+export const updateSessionSettings = (sessionId: number, settings: Partial<TradingSessionSettings>): Promise<AxiosResponse<{ success: boolean; message: string; settings: TradingSessionSettings }>> =>
+  api.patch(`/trading/sessions/${sessionId}/settings`, settings);
 
 // Real-time trading data (WebSocket connection)
 export const connectToTradingWebSocket = (userId: number, onMessage: (data: any) => void): WebSocket => {

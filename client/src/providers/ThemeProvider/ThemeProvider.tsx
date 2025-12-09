@@ -47,39 +47,11 @@ const theme = createTheme({
     divider: colors.border,
   },
   typography: {
-    fontFamily: '"Syne", Arial, sans-serif',
-    h1: {
-      fontFamily: '"Syne", Arial, sans-serif',
-      fontWeight: 800,
-    },
-    h2: {
-      fontFamily: '"Syne", Arial, sans-serif',
-      fontWeight: 700,
-    },
-    h3: {
-      fontFamily: '"Syne", Arial, sans-serif',
-      fontWeight: 700,
-    },
-    h4: {
-      fontFamily: '"Syne", Arial, sans-serif',
-      fontWeight: 700,
-    },
-    h5: {
-      fontFamily: '"Syne", Arial, sans-serif',
-      fontWeight: 700,
-    },
-    h6: {
-      fontFamily: '"Syne", Arial, sans-serif',
-      fontWeight: 700,
-    },
-    button: {
-      fontFamily: '"Syne", Arial, sans-serif',
-      fontWeight: 700,
-    },
-    body1: {
-      fontFamily: '"Syne", Arial, sans-serif',
-      fontWeight: 400,
-    },
+    fontFamily: '"JetBrains Mono", monospace',
+    h1: { fontFamily: '"Rajdhani", sans-serif', fontWeight: 700, letterSpacing: '0.05em' },
+    h2: { fontFamily: '"Rajdhani", sans-serif', fontWeight: 600 },
+    // Rajdhani is naturally condensed, so it's great for sidebars and cards
+    body1: { fontFamily: '"Rajdhani", sans-serif', fontSize: '1.1rem' },
     body2: {
       fontFamily: '"Syne", Arial, sans-serif',
       fontWeight: 400,

@@ -5,7 +5,7 @@
  */
 
 import { db } from '../initDb';
-import { TradingSessionSettings, TradingSessionSettingsUpdate } from '../types/tradingSessionSettings';
+import { TradingSessionSettings, TradingSessionSettingsUpdate, TradingDay } from '../types/tradingSessionSettings';
 
 export class TradingSessionSettingsDatabase {
   /**
@@ -242,15 +242,26 @@ export class TradingSessionSettingsDatabase {
   private static normalizeSettings(row: any): TradingSessionSettings {
     const isPostgres = process.env.DATABASE_URL && /^postgres(ql)?:\/\//i.test(process.env.DATABASE_URL);
     
-    // Parse trading_days
-    let tradingDays: string[];
+    // Valid trading day values
+    const validTradingDays: TradingDay[] = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+    
+    // Parse and validate trading_days
+    let tradingDays: TradingDay[] = [];
     if (isPostgres) {
-      tradingDays = Array.isArray(row.trading_days) ? row.trading_days : [];
+      const parsed = Array.isArray(row.trading_days) ? row.trading_days : [];
+      tradingDays = parsed.filter((day: any): day is TradingDay => 
+        typeof day === 'string' && validTradingDays.includes(day as TradingDay)
+      );
     } else {
       try {
-        tradingDays = typeof row.trading_days === 'string' 
+        const parsed = typeof row.trading_days === 'string' 
           ? JSON.parse(row.trading_days) 
           : row.trading_days || [];
+        tradingDays = Array.isArray(parsed) 
+          ? parsed.filter((day: any): day is TradingDay => 
+              typeof day === 'string' && validTradingDays.includes(day as TradingDay)
+            )
+          : [];
       } catch {
         tradingDays = [];
       }
