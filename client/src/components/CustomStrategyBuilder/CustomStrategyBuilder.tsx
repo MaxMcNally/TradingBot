@@ -40,12 +40,13 @@ import {
   CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
 import { ConditionNode, validateCustomStrategy } from '../../api/customStrategiesApi';
+import { RobotAvatarSelector } from '../shared/RobotAvatars';
 
 interface CustomStrategyBuilderProps {
   open: boolean;
   onClose: () => void;
-  onSave: (strategy: { name: string; description?: string; buy_conditions: ConditionNode | ConditionNode[]; sell_conditions: ConditionNode | ConditionNode[]; is_public?: boolean }) => Promise<void>;
-  editingStrategy?: { id: number; name: string; description?: string; buy_conditions: ConditionNode | ConditionNode[]; sell_conditions: ConditionNode | ConditionNode[]; is_public?: boolean };
+  onSave: (strategy: { name: string; description?: string; buy_conditions: ConditionNode | ConditionNode[]; sell_conditions: ConditionNode | ConditionNode[]; is_public?: boolean; avatar?: number | null }) => Promise<void>;
+  editingStrategy?: { id: number; name: string; description?: string; buy_conditions: ConditionNode | ConditionNode[]; sell_conditions: ConditionNode | ConditionNode[]; is_public?: boolean; avatar?: number | null };
   isLoading?: boolean;
 }
 
@@ -1016,6 +1017,7 @@ const CustomStrategyBuilder = ({
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isPublic, setIsPublic] = useState(false);
+  const [avatar, setAvatar] = useState<number | null>(null);
   const [buyChain, setBuyChain] = useState<ChainItem[]>([]);
   const [sellChain, setSellChain] = useState<ChainItem[]>([]);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -1030,6 +1032,7 @@ const CustomStrategyBuilder = ({
         setName(editingStrategy.name || '');
         setDescription(editingStrategy.description || '');
         setIsPublic(editingStrategy.is_public || false);
+        setAvatar(editingStrategy.avatar || null);
         setActiveStep(0); // Start at first step when editing
 
         // Load buy conditions
@@ -1056,6 +1059,7 @@ const CustomStrategyBuilder = ({
         setName('');
         setDescription('');
         setIsPublic(false);
+        setAvatar(null);
         setActiveStep(0);
         setBuyChain([]);
         setSellChain([]);
@@ -1286,7 +1290,8 @@ const CustomStrategyBuilder = ({
         description: description.trim() || undefined,
         buy_conditions: buyConditions,
         sell_conditions: sellConditions,
-        is_public: isPublic
+        is_public: isPublic,
+        avatar: avatar
       });
       handleClose();
     } catch (error) {
@@ -1726,6 +1731,12 @@ const CustomStrategyBuilder = ({
                 multiline
                 rows={4}
                 helperText="Describe what this strategy does and when it's best used"
+              />
+
+              <RobotAvatarSelector
+                selectedAvatar={avatar}
+                onAvatarSelect={(avatarNumber) => setAvatar(avatarNumber)}
+                size={40}
               />
 
               <Paper sx={{ p: 2, bgcolor: 'action.hover' }}>

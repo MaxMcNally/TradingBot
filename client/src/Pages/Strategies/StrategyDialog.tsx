@@ -20,6 +20,7 @@ import {
   Divider
 } from '@mui/material';
 import { StrategyDialogProps, StrategyFormData } from './Strategies.types';
+import { RobotAvatarSelector } from '../../components/shared/RobotAvatars';
 
 const STRATEGY_TYPES = [
   { value: 'moving_average_crossover', label: 'Moving Average Crossover' },
@@ -44,6 +45,7 @@ const StrategyDialog: React.FC<StrategyDialogProps> = ({
       config: {},
       backtest_results: null,
       is_public: false,
+      avatar: null,
     },
     mode: 'onChange',
   });
@@ -58,6 +60,7 @@ const StrategyDialog: React.FC<StrategyDialogProps> = ({
         config: strategy.config || {},
         backtest_results: strategy.backtest_results || null,
         is_public: strategy.is_public || false,
+        avatar: strategy.avatar || null,
       });
     } else {
       reset({
@@ -67,6 +70,7 @@ const StrategyDialog: React.FC<StrategyDialogProps> = ({
         config: {},
         backtest_results: null,
         is_public: false,
+        avatar: null,
       });
     }
   }, [strategy, open, reset]);
@@ -102,6 +106,12 @@ const StrategyDialog: React.FC<StrategyDialogProps> = ({
               multiline
               rows={3}
               fullWidth
+            />
+
+            <RobotAvatarSelector
+              selectedAvatar={watch('avatar')}
+              onAvatarSelect={(avatarNumber) => setValue('avatar', avatarNumber)}
+              size={40}
             />
 
             <FormControl fullWidth error={!!errors.strategy_type}>

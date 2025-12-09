@@ -149,7 +149,7 @@ export const BotSelector: React.FC<BotSelectorProps> = ({
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 1 }}>
                     <RobotAvatarDisplay 
-                      avatar={strategy.type === 'user' ? (strategy.original as UserStrategy).avatar : (strategy.original as CustomStrategy).avatar}
+                      avatar={strategy.avatar}
                       size={48}
                     />
                     <Box sx={{ flex: 1 }}>

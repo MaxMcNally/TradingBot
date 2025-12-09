@@ -149,6 +149,7 @@ const Strategies: React.FC = () => {
     buy_conditions: any;
     sell_conditions: any;
     is_public?: boolean;
+    avatar?: number | null;
   }) => {
     try {
       if (editingCustomStrategy) {
