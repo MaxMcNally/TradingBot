@@ -396,8 +396,44 @@ export const getPublicStrategies = (): Promise<AxiosResponse<{ strategies: UserS
 export const getPublicStrategiesByType = (strategyType: string): Promise<AxiosResponse<{ strategies: UserStrategy[]; count: number }>> => 
   api.get(`/strategies/public/${strategyType}`);
 
-export const copyPublicStrategy = (userId: number, strategyId: number, customName?: string): Promise<AxiosResponse<{ message: string; strategy: UserStrategy }>> => 
+export const copyPublicStrategy = (userId: number, strategyId: number, customName?: string): Promise<AxiosResponse<{ message: string; strategy: UserStrategy }>> =>
   api.post(`/strategies/users/${userId}/strategies/copy-public`, { strategyId, customName });
+
+// Strategy Performance
+export interface StrategyPerformanceData {
+  id?: number;
+  user_id: number;
+  strategy_name: string;
+  strategy_type: string;
+  execution_type: 'backtest' | 'live';
+  session_id?: number;
+  symbols: string | string[];
+  start_date: string;
+  end_date: string;
+  initial_capital: number;
+  final_capital: number;
+  total_return: number;
+  total_return_dollar: number;
+  max_drawdown: number;
+  sharpe_ratio?: number;
+  sortino_ratio?: number;
+  win_rate: number;
+  total_trades: number;
+  winning_trades: number;
+  losing_trades: number;
+  avg_win: number;
+  avg_loss: number;
+  profit_factor: number;
+  largest_win: number;
+  largest_loss: number;
+  created_at?: string;
+}
+
+export const getStrategyPerformance = (strategyName: string, limit: number = 100): Promise<AxiosResponse<{ success: boolean; data: { summary?: any; performances: StrategyPerformanceData[] } }>> =>
+  api.get(`/admin/performance/strategy/${strategyName}`, { params: { limit } });
+
+export const getUserStrategyPerformance = (userId: number, limit: number = 100): Promise<AxiosResponse<{ success: boolean; data: StrategyPerformanceData[] }>> =>
+  api.get(`/admin/performance/user/${userId}`, { params: { limit } });
 
 // Alpaca Integration API
 

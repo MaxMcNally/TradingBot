@@ -9,6 +9,11 @@
  * Common configurations: 10/30, 20/50, 50/200 day moving averages
  */
 
+import { BacktestPortfolio } from '../backtest/BacktestPortfolio';
+import { OrderExecutionSimulator } from '../backtest/OrderExecutionSimulator';
+import { TradingSessionSettings, DEFAULT_SESSION_SETTINGS } from '../../api/types/tradingSessionSettings';
+import { TradingMode } from '../config';
+
 export interface MovingAverageCrossoverConfig {
   fastWindow: number;     // Fast moving average window (e.g., 10)
   slowWindow: number;     // Slow moving average window (e.g., 30)

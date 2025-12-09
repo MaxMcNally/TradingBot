@@ -4,36 +4,19 @@ import {
   Box,
   Typography,
   Paper,
-  Button,
-  Card,
-  CardContent,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Alert,
-  CircularProgress,
-  Stack,
-  LinearProgress,
   Tabs,
   Tab,
-  Chip,
-  IconButton,
-  Tooltip,
+  Alert,
+  CircularProgress,
 } from "@mui/material";
 import {
   Assessment,
-  Timeline,
   TrendingUp,
   Settings,
-  Refresh,
-  Save as SaveIcon,
+  AccountBalance,
 } from "@mui/icons-material";
 import { 
-  BacktestFormData, 
-  BacktestResponse
+  BacktestFormData
 } from "./Backtesting.types";
 import { 
   TabPanel,
@@ -42,20 +25,12 @@ import {
   BotSelector,
   UnifiedStrategy,
 } from "../../components/shared";
-import { useStrategies, useBacktest, useUserStrategies } from "../../hooks";
+import { useStrategies, useUserStrategies } from "../../hooks";
 import { useCustomStrategies } from "../../hooks/useCustomStrategies/useCustomStrategies";
 import { useNavigate } from "react-router-dom";
 import SaveStrategyDialog from "./SaveStrategyDialog";
 import BacktestSessionControls from "./BacktestSessionControls";
-import { AccountBalance } from "@mui/icons-material";
 
-// Utility functions
-const formatPercentage = (value: number | undefined | null): string => {
-  if (value === undefined || value === null || isNaN(value)) {
-    return "0.00%";
-  }
-  return `${(value * 100).toFixed(2)}%`;
-};
 
 
 
@@ -123,7 +98,6 @@ const BacktestingPage: React.FC = () => {
   };
   
 
-  const [results, setResults] = useState<BacktestResponse | null>(null);
   
   // Local state for selected stocks (similar to Trading component)
   const [selectedStocks, setSelectedStocks] = useState<string[]>([]);
@@ -146,7 +120,6 @@ const BacktestingPage: React.FC = () => {
   const { strategies: availableStrategies, isLoading: strategiesLoading, isError: strategiesError } = useStrategies();
   const { strategies: userStrategies, isLoading: userStrategiesLoading } = useUserStrategies(false);
   const { strategies: customStrategies, isLoading: customStrategiesLoading } = useCustomStrategies(false);
-  const { isLoading: backtestLoading } = useBacktest();
   const { saveFromBacktest, isCreating: isSavingStrategy } = useUserStrategies();
   
   // Selected bot state (for BotSelector)
@@ -259,12 +232,6 @@ const BacktestingPage: React.FC = () => {
                   id="backtest-tab-2"
                   aria-controls="backtest-tabpanel-2"
                 />
-                <Tab
-                  icon={<Timeline />}
-                  label="Results"
-                  id="backtest-tab-3"
-                  aria-controls="backtest-tabpanel-3"
-                />
               </Tabs>
             </Box>
 
@@ -308,242 +275,15 @@ const BacktestingPage: React.FC = () => {
                 selectedBot={selectedBot}
                 strategyParameters={strategyParameters}
                 onBacktestStarted={() => {
-                  setResults(null);
-                  // Switch to results tab when backtest starts
-                  setTimeout(() => setActiveTab(3), 100);
+                  // Backtest started - results will be available in Dashboard
                 }}
-                onBacktestCompleted={(backtestResults: BacktestResponse) => {
-                  setResults(backtestResults);
-                  setActiveTab(3); // Switch to results tab
+                onBacktestCompleted={() => {
+                  // Backtest completed - results will be available in Dashboard
+                  // Optionally navigate to dashboard to view results
+                  // navigate('/dashboard');
                 }}
               />
             </TabPanel>
-
-            {/* Results Tab */}
-            <TabPanel value={activeTab} index={3}>
-          {backtestLoading && (
-            <Paper sx={{ p: 3, mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Running Test...
-              </Typography>
-              <LinearProgress />
-            </Paper>
-          )}
-
-          {results ? (
-            <Paper sx={{ p: 3 }}>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                <Typography variant="h6">
-                  <Timeline sx={{ mr: 1, verticalAlign: 'middle' }} />
-                  Test Results
-                </Typography>
-                <Box display="flex" gap={1}>
-                  <Button
-                    variant="contained"
-                    startIcon={<SaveIcon />}
-                    onClick={() => setSaveStrategyDialogOpen(true)}
-                    color="primary"
-                    size="small"
-                  >
-                    Save Strategy
-                  </Button>
-                  <Tooltip title="Refresh Results">
-                    <IconButton onClick={() => window.location.reload()}>
-                      <Refresh />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              </Box>
-              
-              <Stack spacing={3}>
-                {/* Backtest Configuration */}
-                <Box>
-                  <Typography variant="subtitle1" gutterBottom>
-                    Backtest Configuration
-                  </Typography>
-                  <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50' }}>
-                    <Stack spacing={2}>
-                      <Box display="flex" flexWrap="wrap" gap={2}>
-                        <Box>
-                          <Typography variant="body2" color="textSecondary">
-                            Strategy
-                          </Typography>
-                          <Typography variant="body1" fontWeight="medium">
-                            {formData.strategy}
-                          </Typography>
-                        </Box>
-                        <Box>
-                          <Typography variant="body2" color="textSecondary">
-                            Date Range
-                          </Typography>
-                          <Typography variant="body1" fontWeight="medium">
-                            {formData.startDate} to {formData.endDate}
-                          </Typography>
-                        </Box>
-                        <Box>
-                          <Typography variant="body2" color="textSecondary">
-                            Initial Capital
-                          </Typography>
-                          <Typography variant="body1" fontWeight="medium">
-                            ${formData.initialCapital.toLocaleString()}
-                          </Typography>
-                        </Box>
-                        <Box>
-                          <Typography variant="body2" color="textSecondary">
-                            Symbols
-                          </Typography>
-                          <Typography variant="body1" fontWeight="medium">
-                            {(formData.symbols || []).join(', ')}
-                          </Typography>
-                        </Box>
-                      </Box>
-
-                      {/* Strategy Parameters */}
-                      <Box>
-                        <Typography variant="body2" color="textSecondary" gutterBottom>
-                          Strategy Parameters
-                        </Typography>
-                        <Box display="flex" flexWrap="wrap" gap={1}>
-                          {Object.entries(strategyParameters).map(([key, value]) => (
-                            <Chip
-                              key={key}
-                              label={`${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`}
-                              size="small"
-                              variant="outlined"
-                            />
-                          ))}
-                        </Box>
-                      </Box>
-                    </Stack>
-                  </Paper>
-                </Box>
-
-                {/* Summary Statistics */}
-                <Box>
-                  <Typography variant="subtitle1" gutterBottom>
-                    Overall Performance
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
-                    <Card variant="outlined" sx={{ flex: 1 }}>
-                      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                        <Typography color="textSecondary" gutterBottom>
-                          Total Return
-                        </Typography>
-                        <Typography
-                          variant="h6"
-                          color={(results.data as any).totalReturn >= 0 ? 'success.main' : 'error.main'}
-                        >
-                          {formatPercentage((results.data as any).totalReturn)}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                    <Card variant="outlined" sx={{ flex: 1 }}>
-                      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                        <Typography color="textSecondary" gutterBottom>
-                          Final Portfolio Value
-                        </Typography>
-                        <Typography variant="h6">
-                          ${((results.data as any).finalPortfolioValue || 0).toLocaleString()}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                    <Card variant="outlined" sx={{ flex: 1 }}>
-                      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                        <Typography color="textSecondary" gutterBottom>
-                          Win Rate
-                        </Typography>
-                        <Typography variant="h6">
-                          {formatPercentage((results.data as any).winRate)}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                    <Card variant="outlined" sx={{ flex: 1 }}>
-                      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                        <Typography color="textSecondary" gutterBottom>
-                          Total Trades
-                        </Typography>
-                        <Typography variant="h6">
-                          {(results.data as any).totalTrades}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                    <Card variant="outlined" sx={{ flex: 1 }}>
-                      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                        <Typography color="textSecondary" gutterBottom>
-                          Max Drawdown
-                        </Typography>
-                        <Typography variant="h6" color="error.main">
-                          {formatPercentage((results.data as any).maxDrawdown)}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  </Box>
-                </Box>
-
-                {/* Results Table */}
-                <Box>
-                  <Typography variant="subtitle1" gutterBottom>
-                    Results Per Symbol
-                  </Typography>
-                  <TableContainer component={Paper}>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Symbol</TableCell>
-                          <TableCell align="right">Total Return</TableCell>
-                          <TableCell align="right">Final Value</TableCell>
-                          <TableCell align="right">Win Rate</TableCell>
-                          <TableCell align="right">Total Trades</TableCell>
-                          <TableCell align="right">Max Drawdown</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {results.data.results.map((result: any, index: number) => (
-                          <TableRow key={index}>
-                            <TableCell>
-                              <Typography variant="subtitle2" fontWeight="bold">
-                                {result.symbol}
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="right">
-                              <Typography
-                                variant="body2"
-                                color={result.totalReturn >= 0 ? 'success.main' : 'error.main'}
-                                fontWeight="bold"
-                              >
-                                {formatPercentage(result.totalReturn)}
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="right">
-                              ${(result.finalPortfolioValue || 0).toLocaleString()}
-                            </TableCell>
-                            <TableCell align="right">
-                              {formatPercentage(result.winRate)}
-                            </TableCell>
-                            <TableCell align="right">
-                              {result.totalTrades}
-                            </TableCell>
-                            <TableCell align="right">
-                              <Typography variant="body2" color="error.main">
-                                {formatPercentage(result.maxDrawdown)}
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </Box>
-              </Stack>
-            </Paper>
-          ) : !backtestLoading && (
-            <Paper sx={{ p: 3, textAlign: 'center' }}>
-              <Typography variant="h6" color="text.secondary">
-                Configure your test and click "Run Test" to see results
-              </Typography>
-            </Paper>
-          )}
-        </TabPanel>
           </Paper>
         </Box>
 
@@ -566,7 +306,7 @@ const BacktestingPage: React.FC = () => {
         onClose={() => setSaveStrategyDialogOpen(false)}
         onSave={handleSaveStrategy}
         formData={getValues()}
-        results={results}
+        results={null}
         isLoading={isSavingStrategy}
       />
     </Box>

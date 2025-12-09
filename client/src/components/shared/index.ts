@@ -29,3 +29,5 @@ export type {
   StrategyConfig 
 } from './StrategyParameters';
 export type { BotSelectorProps, UnifiedStrategy } from './BotSelector';
+export { BotCard } from './BotCard';
+export type { BotCardProps } from './BotCard';

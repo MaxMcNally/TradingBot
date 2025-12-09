@@ -181,7 +181,8 @@ export function runCustomStrategy(
         if (execution.executed && execution.executedQuantity > 0) {
           const sellResult = portfolio.sell(symbol, execution.executedPrice, dayData.date, execution.executedQuantity);
           
-          if (sellResult.success) {
+          // Type guard: sellResult is an object when called with date parameter
+          if (sellResult && typeof sellResult === 'object' && 'success' in sellResult && sellResult.success) {
             trades.push({
               symbol,
               date: dayData.date,
@@ -242,7 +243,8 @@ export function runCustomStrategy(
         if (execution.executed && execution.executedQuantity > 0) {
           const buyResult = portfolio.buy(symbol, execution.executedPrice, dayData.date, execution.executedQuantity);
           
-          if (buyResult.success) {
+          // Type guard: buyResult is an object when called with date parameter
+          if (buyResult && typeof buyResult === 'object' && 'success' in buyResult && buyResult.success) {
             entryPrices.push(execution.executedPrice);
       trades.push({
         symbol,
@@ -277,7 +279,8 @@ export function runCustomStrategy(
         if (execution.executed && execution.executedQuantity > 0) {
           const sellResult = portfolio.sell(symbol, execution.executedPrice, dayData.date, execution.executedQuantity);
           
-          if (sellResult.success) {
+          // Type guard: sellResult is an object when called with date parameter
+          if (sellResult && typeof sellResult === 'object' && 'success' in sellResult && sellResult.success) {
             entryPrices.shift(); // Remove entry price from tracking
             const pnl = sellResult.pnl;
       

@@ -15,8 +15,10 @@ import {
   AccountBalance,
   TrendingUp,
   ShowChart,
+  Psychology,
 } from "@mui/icons-material";
 import TradingResults from "./TradingResults";
+import MyBots from "./MyBots";
 import { TabPanel } from "../../components/shared";
 import { useUser } from "../../hooks";
 
@@ -161,6 +163,12 @@ const DashboardPage: React.FC = () => {
                   id="dashboard-tab-2"
                   aria-controls="dashboard-tabpanel-2"
                 />
+                <Tab
+                  icon={<Psychology />}
+                  label="My Bots"
+                  id="dashboard-tab-3"
+                  aria-controls="dashboard-tabpanel-3"
+                />
               </Tabs>
             </Box>
 
@@ -199,6 +207,11 @@ const DashboardPage: React.FC = () => {
                   and risk-adjusted returns are coming soon.
                 </Alert>
               </Box>
+            </TabPanel>
+
+            {/* My Bots Tab */}
+            <TabPanel value={activeTab} index={3}>
+              <MyBots />
             </TabPanel>
           </Paper>
         </Box>
