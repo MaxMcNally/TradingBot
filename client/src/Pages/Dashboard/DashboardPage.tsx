@@ -61,7 +61,7 @@ const DashboardPage: React.FC = () => {
           Dashboard
         </Typography>
         <Typography variant="subtitle1" color="textSecondary">
-          Welcome back, {user.name || 'User'}! Monitor your portfolio performance and trading results.
+          Welcome back, {user.username || 'User'}! Monitor your portfolio performance and trading results.
         </Typography>
       </Box>
 
