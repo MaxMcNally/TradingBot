@@ -9,7 +9,7 @@ export const createStrategy = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid user ID" });
     }
 
-    const { name, description, strategy_type, config, backtest_results, is_public = false } = req.body;
+    const { name, description, strategy_type, config, backtest_results, is_public = false, avatar } = req.body;
 
     // Validate required fields
     if (!name || !strategy_type || !config) {
@@ -33,7 +33,8 @@ export const createStrategy = async (req: Request, res: Response) => {
       strategy_type,
       config,
       backtest_results,
-      is_public
+      is_public,
+      avatar: avatar || null
     };
 
     const newStrategy = await Strategy.create(strategyData);
@@ -60,7 +61,7 @@ export const getUserStrategies = async (req: Request, res: Response) => {
 
     const strategies = await Strategy.findByUserId(userId, includeInactive);
     const parsedStrategies = strategies.map(strategy => Strategy.parseStrategyData(strategy));
-
+    
     res.json({
       strategies: parsedStrategies,
       count: parsedStrategies.length
@@ -210,7 +211,8 @@ export const saveStrategyFromBacktest = async (req: Request, res: Response) => {
       strategy_type, 
       config, 
       backtest_results,
-      is_public = false
+      is_public = false,
+      avatar
     } = req.body;
 
     // Validate required fields
@@ -235,7 +237,8 @@ export const saveStrategyFromBacktest = async (req: Request, res: Response) => {
       strategy_type,
       config,
       backtest_results,
-      is_public
+      is_public,
+      avatar: avatar || null
     };
 
     const newStrategy = await Strategy.create(strategyData);
@@ -331,7 +334,8 @@ export const copyPublicStrategy = async (req: Request, res: Response) => {
       strategy_type: publicStrategy.strategy_type,
       config: publicStrategy.config,
       backtest_results: publicStrategy.backtest_results,
-      is_public: false // Keep the copy private by default
+      is_public: false, // Keep the copy private by default
+      avatar: publicStrategy.avatar || null
     };
 
     const newStrategy = await Strategy.create(strategyData);

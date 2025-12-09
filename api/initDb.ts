@@ -234,6 +234,7 @@ export const initDatabase = () => {
           backtest_results TEXT,
           is_active BOOLEAN DEFAULT TRUE,
           is_public BOOLEAN DEFAULT FALSE,
+          avatar INTEGER,
           created_at TIMESTAMP DEFAULT NOW(),
           updated_at TIMESTAMP DEFAULT NOW(),
           UNIQUE(user_id, name)
@@ -250,6 +251,7 @@ export const initDatabase = () => {
           sell_conditions TEXT NOT NULL,
           is_active BOOLEAN DEFAULT TRUE,
           is_public BOOLEAN DEFAULT FALSE,
+          avatar INTEGER,
           created_at TIMESTAMP DEFAULT NOW(),
           updated_at TIMESTAMP DEFAULT NOW(),
           UNIQUE(user_id, name)
@@ -258,6 +260,10 @@ export const initDatabase = () => {
       
       // Add is_public column if it doesn't exist (for existing databases)
       await pgPool!.query(`ALTER TABLE custom_strategies ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE`);
+      
+      // Add avatar column if it doesn't exist (for existing databases)
+      await pgPool!.query(`ALTER TABLE user_strategies ADD COLUMN IF NOT EXISTS avatar INTEGER`);
+      await pgPool!.query(`ALTER TABLE custom_strategies ADD COLUMN IF NOT EXISTS avatar INTEGER`);
 
       await pgPool!.query(`
         CREATE TABLE IF NOT EXISTS strategy_performance (

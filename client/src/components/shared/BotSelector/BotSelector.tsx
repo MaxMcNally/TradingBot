@@ -18,6 +18,7 @@ import {
 } from '@mui/icons-material';
 import { UserStrategy } from '../../../api';
 import { CustomStrategy } from '../../../api/customStrategiesApi';
+import { RobotAvatarDisplay } from '../RobotAvatars';
 
 // Unified strategy type for display
 export type UnifiedStrategy = {
@@ -28,6 +29,7 @@ export type UnifiedStrategy = {
   strategy_type?: string; // For user strategies
   is_active: boolean;
   is_public?: boolean;
+  avatar?: number | null;
   config?: any; // For user strategies
   buy_conditions?: any; // For custom strategies
   sell_conditions?: any; // For custom strategies
@@ -75,6 +77,7 @@ export const BotSelector: React.FC<BotSelectorProps> = ({
         strategy_type: s.strategy_type,
         is_active: s.is_active,
         is_public: s.is_public,
+        avatar: s.avatar,
         config: s.config,
         original: s,
       }));
@@ -88,6 +91,7 @@ export const BotSelector: React.FC<BotSelectorProps> = ({
         type: 'custom' as const,
         is_active: s.is_active,
         is_public: s.is_public,
+        avatar: s.avatar,
         buy_conditions: s.buy_conditions,
         sell_conditions: s.sell_conditions,
         original: s,
@@ -143,37 +147,45 @@ export const BotSelector: React.FC<BotSelectorProps> = ({
             >
               <CardActionArea onClick={() => onStrategySelect(strategy)}>
                 <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                    <Typography variant="h6" component="div">
-                      {strategy.name}
-                    </Typography>
-                    <Chip
-                      label={strategy.type === 'custom' ? 'Custom' : (strategy.strategy_type || 'Strategy')}
-                      size="small"
-                      color={strategy.type === 'custom' ? 'secondary' : 'primary'}
-                      variant="outlined"
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 1 }}>
+                    <RobotAvatarDisplay 
+                      avatar={strategy.avatar}
+                      size={48}
                     />
-                  </Box>
-                  {strategy.description && (
-                    <Typography variant="body2" color="textSecondary" paragraph>
-                      {strategy.description}
-                    </Typography>
-                  )}
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
-                    <Chip
-                      label={strategy.is_active ? 'Active' : 'Inactive'}
-                      size="small"
-                      color={strategy.is_active ? 'success' : 'default'}
-                      variant="outlined"
-                    />
-                    {strategy.is_public && (
-                      <Chip
-                        label="Public"
-                        size="small"
-                        color="secondary"
-                        variant="outlined"
-                      />
-                    )}
+                    <Box sx={{ flex: 1 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                        <Typography variant="h6" component="div">
+                          {strategy.name}
+                        </Typography>
+                        <Chip
+                          label={strategy.type === 'custom' ? 'Custom' : (strategy.strategy_type || 'Strategy')}
+                          size="small"
+                          color={strategy.type === 'custom' ? 'secondary' : 'primary'}
+                          variant="outlined"
+                        />
+                      </Box>
+                      {strategy.description && (
+                        <Typography variant="body2" color="textSecondary" paragraph>
+                          {strategy.description}
+                        </Typography>
+                      )}
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+                        <Chip
+                          label={strategy.is_active ? 'Active' : 'Inactive'}
+                          size="small"
+                          color={strategy.is_active ? 'success' : 'default'}
+                          variant="outlined"
+                        />
+                        {strategy.is_public && (
+                          <Chip
+                            label="Public"
+                            size="small"
+                            color="secondary"
+                            variant="outlined"
+                          />
+                        )}
+                      </Box>
+                    </Box>
                   </Box>
                 </CardContent>
               </CardActionArea>

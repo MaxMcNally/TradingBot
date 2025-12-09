@@ -31,6 +31,7 @@ export interface CustomStrategy {
   sell_conditions: ConditionNode | ConditionNode[];
   is_active: boolean;
   is_public?: boolean;
+  avatar?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -41,6 +42,7 @@ export interface CreateCustomStrategyData {
   buy_conditions: ConditionNode | ConditionNode[];
   sell_conditions: ConditionNode | ConditionNode[];
   is_public?: boolean;
+  avatar?: number | null;
 }
 
 export interface UpdateCustomStrategyData {
@@ -50,6 +52,7 @@ export interface UpdateCustomStrategyData {
   sell_conditions?: ConditionNode | ConditionNode[];
   is_active?: boolean;
   is_public?: boolean;
+  avatar?: number | null;
 }
 
 export interface TestCustomStrategyRequest {

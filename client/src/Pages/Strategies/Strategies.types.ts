@@ -5,6 +5,7 @@ export interface StrategyFormData {
   config: any;
   backtest_results?: any;
   is_public?: boolean;
+  avatar?: number | null;
 }
 
 export interface StrategyDialogProps {

@@ -11,7 +11,7 @@ export const createCustomStrategy = async (req: AuthenticatedRequest, res: Respo
       return res.status(401).json({ error: "User not authenticated" });
     }
 
-    const { name, description, buy_conditions, sell_conditions, is_public } = req.body;
+    const { name, description, buy_conditions, sell_conditions, is_public, avatar } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: "Strategy name is required" });
@@ -61,7 +61,8 @@ export const createCustomStrategy = async (req: AuthenticatedRequest, res: Respo
       description,
       buy_conditions: buyNodes.length === 1 ? buyNodes[0] : buyNodes,
       sell_conditions: sellNodes.length === 1 ? sellNodes[0] : sellNodes,
-      is_public: is_public === true
+      is_public: is_public === true,
+      avatar: avatar || null
     });
 
     res.status(201).json({
@@ -146,12 +147,14 @@ export const updateCustomStrategy = async (req: AuthenticatedRequest, res: Respo
       return res.status(404).json({ error: "Strategy not found" });
     }
 
-    const { name, description, buy_conditions, sell_conditions, is_active } = req.body;
+    const { name, description, buy_conditions, sell_conditions, is_active, avatar, is_public } = req.body;
     const updateData: any = {};
 
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
     if (is_active !== undefined) updateData.is_active = is_active;
+    if (avatar !== undefined) updateData.avatar = avatar;
+    if (is_public !== undefined) updateData.is_public = is_public;
 
     if (buy_conditions !== undefined) {
       const buyNodes = Array.isArray(buy_conditions) ? buy_conditions : [buy_conditions];
