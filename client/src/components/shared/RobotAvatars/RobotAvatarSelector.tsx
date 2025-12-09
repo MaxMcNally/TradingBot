@@ -3,7 +3,6 @@ import {
   Box,
   Grid,
   IconButton,
-  Paper,
   Typography,
 } from '@mui/material';
 import {
