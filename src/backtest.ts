@@ -427,7 +427,8 @@ async function main() {
           window: argv.window,
           threshold: argv.threshold,
           initialCapital: argv.capital,
-          sharesPerTrade: argv.shares
+          sharesPerTrade: argv.shares,
+          sessionSettings: sessionSettings
         });
         strategyDescription = `${argv.window}-day MA with ${(argv.threshold * 100).toFixed(1)}% threshold`;
         break;
@@ -438,7 +439,8 @@ async function main() {
           slowWindow: argv.slowWindow,
           maType: argv.maType as 'SMA' | 'EMA',
           initialCapital: argv.capital,
-          sharesPerTrade: argv.shares
+          sharesPerTrade: argv.shares,
+          sessionSettings: sessionSettings
         });
         strategyDescription = `${argv.fastWindow}/${argv.slowWindow}-day ${argv.maType} crossover`;
         break;
@@ -451,7 +453,8 @@ async function main() {
           momentumWindow: argv.momentumWindow,
           momentumThreshold: argv.momentumThreshold,
           initialCapital: argv.capital,
-          sharesPerTrade: argv.shares
+          sharesPerTrade: argv.shares,
+          sessionSettings: sessionSettings
         });
         strategyDescription = `RSI(${argv.rsiWindow}) ${argv.rsiOversold}/${argv.rsiOverbought}, Momentum(${argv.momentumWindow}) ${(argv.momentumThreshold * 100).toFixed(1)}%`;
         break;
@@ -462,7 +465,8 @@ async function main() {
           multiplier: argv.multiplier,
           maType: argv.maType as 'SMA' | 'EMA',
           initialCapital: argv.capital,
-          sharesPerTrade: argv.shares
+          sharesPerTrade: argv.shares,
+          sessionSettings: sessionSettings
         });
         strategyDescription = `${argv.window}-day ${argv.maType} with ${argv.multiplier}x standard deviation`;
         break;
@@ -474,7 +478,8 @@ async function main() {
           minVolumeRatio: argv.minVolumeRatio,
           confirmationPeriod: argv.confirmationPeriod,
           initialCapital: argv.capital,
-          sharesPerTrade: argv.shares
+          sharesPerTrade: argv.shares,
+          sessionSettings: sessionSettings
         });
         strategyDescription = `${argv.lookbackWindow}-day levels, ${(argv.breakoutThreshold * 100).toFixed(1)}% threshold, ${argv.confirmationPeriod}-day hold`;
         break;

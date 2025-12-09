@@ -9,6 +9,11 @@
  * The strategy buys on momentum confirmation and sells on momentum exhaustion.
  */
 
+import { BacktestPortfolio } from '../backtest/BacktestPortfolio';
+import { OrderExecutionSimulator } from '../backtest/OrderExecutionSimulator';
+import { TradingSessionSettings, DEFAULT_SESSION_SETTINGS } from '../api/types/tradingSessionSettings';
+import { TradingMode } from '../config';
+
 export interface MomentumConfig {
   rsiWindow: number;        // RSI calculation window (typically 14)
   rsiOverbought: number;    // RSI overbought threshold (typically 70)
@@ -267,10 +272,11 @@ export class MomentumStrategy extends AbstractStrategy {
  */
 export function runMomentumStrategy(
   symbol: string,
-  data: { date: string; close: number, open: number }[],
+  data: { date: string; close: number, open: number, volume?: number }[],
   config: MomentumConfig & {
     initialCapital: number;
     sharesPerTrade: number;
+    sessionSettings?: TradingSessionSettings | null;
   }
 ): MomentumResult {
   const trades: MomentumTrade[] = [];
@@ -282,8 +288,22 @@ export function runMomentumStrategy(
     momentumThreshold: config.momentumThreshold
   });
 
-  let currentShares = 0;
-  let cash = config.initialCapital;
+  // Create session settings (use defaults if not provided)
+  const settings: TradingSessionSettings = config.sessionSettings || {
+    ...DEFAULT_SESSION_SETTINGS,
+    session_id: 0, // Placeholder for backtest
+  };
+  
+  // Initialize portfolio and order simulator
+  const portfolio = new BacktestPortfolio(
+    config.initialCapital,
+    TradingMode.PAPER,
+    [symbol],
+    settings
+  );
+  
+  const orderSimulator = new OrderExecutionSimulator(settings);
+  
   let portfolioHistory: Array<{
     date: string;
     portfolioValue: number;
@@ -295,84 +315,180 @@ export function runMomentumStrategy(
   let totalTrades = 0;
   let maxPortfolioValue = config.initialCapital;
   let maxDrawdown = 0;
+  const entryPrices: number[] = [];
 
   for (let i = 0; i < data.length; i++) {
     const dayData = data[i];
+    
+    // Reset daily P&L if new day
+    portfolio.resetDailyPnL(dayData.date);
+    
     strategy.addPrice(dayData.close);
     const signal = strategy.getSignal();
     const { rsi, momentum } = strategy.getCurrentIndicators();
 
-    if (signal === 'BUY' && cash >= dayData.close) {
-      // Execute buy order
-      const sharesToBuy = Math.floor(cash / dayData.close);
-      const actualShares = Math.min(sharesToBuy, config.sharesPerTrade);
-      const cost = actualShares * dayData.close;
-      
-      cash -= cost;
-      currentShares += actualShares;
-      
-      let signalType: 'RSI_OVERSOLD' | 'MOMENTUM_BREAKOUT' | undefined = undefined;
-      if (rsi && rsi <= config.rsiOversold) {
-        signalType = 'RSI_OVERSOLD';
-      } else if (momentum && momentum >= config.momentumThreshold) {
-        signalType = 'MOMENTUM_BREAKOUT';
-      }
-      
-      trades.push({
-        symbol,
-        date: dayData.date,
-        action: "BUY",
-        price: dayData.close,
-        shares: actualShares,
-        rsi: rsi || undefined,
-        momentum: momentum || undefined,
-        signal: signalType
-      });
-    } else if (signal === 'SELL' && currentShares > 0) {
-      // Execute sell order
-      const sharesToSell = Math.min(currentShares, config.sharesPerTrade);
-      const proceeds = sharesToSell * dayData.close;
-      
-      cash += proceeds;
-      currentShares -= sharesToSell;
-      
-      let signalType: 'RSI_OVERBOUGHT' | 'MOMENTUM_EXHAUSTION' | undefined = undefined;
-      if (rsi && rsi >= config.rsiOverbought) {
-        signalType = 'RSI_OVERBOUGHT';
-      } else if (momentum && momentum <= -config.momentumThreshold) {
-        signalType = 'MOMENTUM_EXHAUSTION';
-      }
-      
-      trades.push({
-        symbol,
-        date: dayData.date,
-        action: "SELL",
-        price: dayData.close,
-        shares: sharesToSell,
-        rsi: rsi || undefined,
-        momentum: momentum || undefined,
-        signal: signalType
-      });
-
-      // Track winning trades for win rate calculation
-      if (trades.length >= 2) {
-        const lastBuyTrade = trades.slice().reverse().find(t => t.action === 'BUY');
-        if (lastBuyTrade && dayData.close > lastBuyTrade.price) {
-          winningTrades++;
+    // Check stop loss/take profit for existing positions
+    const stopLossTakeProfit = portfolio.checkStopLossTakeProfit(symbol, dayData.close);
+    if (stopLossTakeProfit) {
+      const position = (portfolio as any).positions[symbol];
+      if (position && position.shares > 0) {
+        // Execute sell order due to stop loss or take profit
+        const orderRequest = {
+          symbol,
+          side: 'SELL' as const,
+          quantity: position.shares,
+          orderType: settings.order_type_default,
+          currentPrice: dayData.close,
+          volume: dayData.volume,
+          timestamp: dayData.date,
+        };
+        
+        const execution = orderSimulator.executeOrder(orderRequest);
+        if (execution.executed && execution.executedQuantity > 0) {
+          const sellResult = portfolio.sell(symbol, execution.executedPrice, dayData.date, execution.executedQuantity);
+          
+          if (sellResult.success) {
+            entryPrices.shift(); // Remove entry price from tracking
+            
+            let signalType: 'RSI_OVERBOUGHT' | 'MOMENTUM_EXHAUSTION' | undefined = undefined;
+            if (rsi && rsi >= config.rsiOverbought) {
+              signalType = 'RSI_OVERBOUGHT';
+            } else if (momentum && momentum <= -config.momentumThreshold) {
+              signalType = 'MOMENTUM_EXHAUSTION';
+            }
+            
+            trades.push({
+              symbol,
+              date: dayData.date,
+              action: "SELL",
+              price: execution.executedPrice,
+              shares: sellResult.actualQuantity,
+              rsi: rsi || undefined,
+              momentum: momentum || undefined,
+              signal: signalType
+            });
+            
+            // Track winning trades
+            if (sellResult.pnl > 0) {
+              winningTrades++;
+            }
+            totalTrades++;
+          }
         }
-        totalTrades++;
+      }
+    }
+
+    // Check if we can trade (trading window, position limits, etc.)
+    const canOpen = portfolio.canOpenPosition(symbol, dayData.close, dayData.date);
+    
+    if (signal === 'BUY' && canOpen.allowed) {
+      // Calculate position size
+      const targetQuantity = portfolio.calculatePositionSize(symbol, dayData.close, dayData.date);
+      
+      if (targetQuantity > 0) {
+        // Execute buy order through order simulator
+        const orderRequest = {
+          symbol,
+          side: 'BUY' as const,
+          quantity: targetQuantity,
+          orderType: settings.order_type_default,
+          limitPrice: settings.limit_price_offset_percentage 
+            ? dayData.close * (1 - settings.limit_price_offset_percentage / 100)
+            : undefined,
+          currentPrice: dayData.close,
+          volume: dayData.volume,
+          timestamp: dayData.date,
+        };
+        
+        const execution = orderSimulator.executeOrder(orderRequest);
+        if (execution.executed && execution.executedQuantity > 0) {
+          const buyResult = portfolio.buy(symbol, execution.executedPrice, dayData.date, execution.executedQuantity);
+          
+          if (buyResult.success) {
+            entryPrices.push(execution.executedPrice);
+            
+            let signalType: 'RSI_OVERSOLD' | 'MOMENTUM_BREAKOUT' | undefined = undefined;
+            if (rsi && rsi <= config.rsiOversold) {
+              signalType = 'RSI_OVERSOLD';
+            } else if (momentum && momentum >= config.momentumThreshold) {
+              signalType = 'MOMENTUM_BREAKOUT';
+            }
+            
+            trades.push({
+              symbol,
+              date: dayData.date,
+              action: "BUY",
+              price: execution.executedPrice,
+              shares: buyResult.actualQuantity,
+              rsi: rsi || undefined,
+              momentum: momentum || undefined,
+              signal: signalType
+            });
+          }
+        }
+      }
+    } else if (signal === 'SELL') {
+      const position = (portfolio as any).positions[symbol];
+      if (position && position.shares > 0) {
+        // Execute sell order
+        const orderRequest = {
+          symbol,
+          side: 'SELL' as const,
+          quantity: position.shares,
+          orderType: settings.order_type_default,
+          limitPrice: settings.limit_price_offset_percentage 
+            ? dayData.close * (1 + settings.limit_price_offset_percentage / 100)
+            : undefined,
+          currentPrice: dayData.close,
+          volume: dayData.volume,
+          timestamp: dayData.date,
+        };
+        
+        const execution = orderSimulator.executeOrder(orderRequest);
+        if (execution.executed && execution.executedQuantity > 0) {
+          const sellResult = portfolio.sell(symbol, execution.executedPrice, dayData.date, execution.executedQuantity);
+          
+          if (sellResult.success) {
+            entryPrices.shift(); // Remove entry price from tracking
+            
+            let signalType: 'RSI_OVERBOUGHT' | 'MOMENTUM_EXHAUSTION' | undefined = undefined;
+            if (rsi && rsi >= config.rsiOverbought) {
+              signalType = 'RSI_OVERBOUGHT';
+            } else if (momentum && momentum <= -config.momentumThreshold) {
+              signalType = 'MOMENTUM_EXHAUSTION';
+            }
+            
+            trades.push({
+              symbol,
+              date: dayData.date,
+              action: "SELL",
+              price: execution.executedPrice,
+              shares: sellResult.actualQuantity,
+              rsi: rsi || undefined,
+              momentum: momentum || undefined,
+              signal: signalType
+            });
+
+            // Track winning trades for win rate calculation
+            if (sellResult.pnl > 0) {
+              winningTrades++;
+            }
+            totalTrades++;
+          }
+        }
       }
     }
 
     // Calculate current portfolio value
-    const currentPortfolioValue = cash + (currentShares * dayData.close);
+    const status = portfolio.status({ [symbol]: dayData.close });
+    const currentPortfolioValue = status.totalValue;
     
     // Track detailed portfolio history
     portfolioHistory.push({
       date: dayData.date,
       portfolioValue: currentPortfolioValue,
-      cash: cash,
-      shares: currentShares,
+      cash: status.cash,
+      shares: status.positions[symbol]?.shares || 0,
       price: dayData.close
     });
     
@@ -388,7 +504,8 @@ export function runMomentumStrategy(
 
   // Calculate final portfolio value
   const finalPrice = data.length > 0 ? data[data.length - 1].close : 0;
-  const finalPortfolioValue = cash + (currentShares * finalPrice);
+  const finalStatus = portfolio.status({ [symbol]: finalPrice });
+  const finalPortfolioValue = finalStatus.totalValue;
   const totalReturn = (finalPortfolioValue - config.initialCapital) / config.initialCapital;
   const winRate = totalTrades > 0 ? winningTrades / totalTrades : 0;
 

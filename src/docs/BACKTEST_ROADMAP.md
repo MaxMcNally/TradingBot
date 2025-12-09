@@ -32,11 +32,12 @@ This document outlines a comprehensive roadmap to enhance the backtesting system
 
 - **API & Script Support**: Backend accepts session settings, script accepts settings flag
 
-### ⚠️ Pending Integration
+### ✅ Integration Complete
 - ✅ Custom strategy execution function refactored to use new infrastructure
-- ⚠️ Other strategy execution functions need refactoring (meanReversion, movingAverageCrossover, etc.)
+- ✅ All strategy execution functions refactored (meanReversion, movingAverageCrossover, momentum, bollingerBands, breakout)
 - ✅ Frontend UI for configuring session settings in backtests
-- ⚠️ Integration testing
+- ✅ Session settings passed to all strategy functions in backtest script
+- ⚠️ Integration testing (pending validation)
 
 ### ❌ Not Started
 - Phase 2.5: Session Settings Templates
@@ -174,7 +175,7 @@ This document outlines a comprehensive roadmap to enhance the backtesting system
 - [x] Add `--session-settings` flag to accept JSON-encoded settings
 - [x] Parse session settings from command line arguments
 - [x] Integrate settings into custom strategy execution function
-- [ ] Integrate settings into other strategy execution functions (meanReversion, movingAverageCrossover, etc.)
+- [x] Integrate settings into other strategy execution functions (meanReversion, movingAverageCrossover, momentum, bollingerBands, breakout)
 
 ##### 2.3 Portfolio Manager Updates
 **File: `src/backtest/BacktestPortfolio.ts` (CREATED)**
@@ -708,10 +709,10 @@ This document outlines a comprehensive roadmap to enhance the backtesting system
 
 ### Phase 2 Success Criteria
 - ✅ Session settings infrastructure created (BacktestPortfolio, OrderExecutionSimulator)
-- ✅ Session settings are applied during backtesting (Custom strategy integration complete)
-- ⚠️ Risk management rules are enforced (Custom strategy complete, other strategies pending)
-- ⚠️ Order execution constraints are simulated (Custom strategy complete, other strategies pending)
-- ⚠️ Backtest results reflect settings impact (Custom strategy complete, other strategies pending)
+- ✅ Session settings are applied during backtesting (All strategies integrated)
+- ✅ Risk management rules are enforced (All strategies complete)
+- ✅ Order execution constraints are simulated (All strategies complete)
+- ✅ Backtest results reflect settings impact (All strategies complete)
 
 ### Phase 2.5 Success Criteria
 - ✅ Users can create templates from session settings
@@ -859,6 +860,6 @@ This document outlines a comprehensive roadmap to enhance the backtesting system
 ---
 
 **Last Updated**: December 2024
-**Status**: Phase 1 Complete, Phase 2 Infrastructure Complete, Custom Strategy Integration Complete
-**Next Steps**: Refactor remaining strategy functions (meanReversion, movingAverageCrossover, etc.) to use new infrastructure
+**Status**: Phase 1 Complete, Phase 2 Integration Complete
+**Next Steps**: Integration testing and validation, Phase 2.5 (Session Settings Templates)
 
