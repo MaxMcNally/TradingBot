@@ -78,17 +78,39 @@ export class SessionMonitor {
   private async getSessionsToTerminate(currentTime: string): Promise<any[]> {
     return new Promise((resolve, reject) => {
       const { db } = require('../initDb');
-      const sql = `SELECT * FROM trading_sessions 
-         WHERE status = 'ACTIVE' 
-         AND end_time IS NOT NULL 
-         AND end_time <= $1`;
-      db.all(sql, [currentTime], (err: any, rows: any[]) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(rows || []);
-        }
-      });
+      const isPostgres = process.env.DATABASE_URL && /^postgres(ql)?:\/\//i.test(process.env.DATABASE_URL);
+      
+      // For PostgreSQL, cast the text parameter to TIMESTAMP
+      // For SQLite, the comparison works with text strings
+      const sql = isPostgres
+        ? `SELECT * FROM trading_sessions 
+           WHERE status = 'ACTIVE' 
+           AND end_time IS NOT NULL 
+           AND end_time <= $1::TIMESTAMP`
+        : `SELECT * FROM trading_sessions 
+           WHERE status = 'ACTIVE' 
+           AND end_time IS NOT NULL 
+           AND end_time <= ?`;
+      
+      const method = isPostgres ? 'query' : 'all';
+      
+      if (isPostgres) {
+        db.query(sql, [currentTime], (err: any, result: any) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result.rows || []);
+          }
+        });
+      } else {
+        db.all(sql, [currentTime], (err: any, rows: any[]) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(rows || []);
+          }
+        });
+      }
     });
   }
 

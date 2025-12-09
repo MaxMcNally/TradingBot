@@ -29,7 +29,6 @@ import {
   TrendingUp,
   Settings,
   Refresh,
-  Tune,
   Save as SaveIcon,
 } from "@mui/icons-material";
 import { 
@@ -40,7 +39,6 @@ import {
   TabPanel,
   StockSelectionSection,
   SessionSummary,
-  StrategyParameters,
   BotSelector,
   UnifiedStrategy,
 } from "../../components/shared";
@@ -48,6 +46,8 @@ import { useStrategies, useBacktest, useUserStrategies } from "../../hooks";
 import { useCustomStrategies } from "../../hooks/useCustomStrategies/useCustomStrategies";
 import { useNavigate } from "react-router-dom";
 import SaveStrategyDialog from "./SaveStrategyDialog";
+import BacktestSessionControls from "./BacktestSessionControls";
+import { AccountBalance } from "@mui/icons-material";
 
 // Utility functions
 const formatPercentage = (value: number | undefined | null): string => {
@@ -123,7 +123,7 @@ const BacktestingPage: React.FC = () => {
   };
   
 
-  const [results] = useState<BacktestResponse | null>(null);
+  const [results, setResults] = useState<BacktestResponse | null>(null);
   
   // Local state for selected stocks (similar to Trading component)
   const [selectedStocks, setSelectedStocks] = useState<string[]>([]);
@@ -254,8 +254,8 @@ const BacktestingPage: React.FC = () => {
                   aria-controls="backtest-tabpanel-1"
                 />
                 <Tab
-                  icon={<Tune />}
-                  label="Strategy Parameters"
+                  icon={<AccountBalance />}
+                  label="Session Controls"
                   id="backtest-tab-2"
                   aria-controls="backtest-tabpanel-2"
                 />
@@ -301,24 +301,26 @@ const BacktestingPage: React.FC = () => {
               />
             </TabPanel>
 
-            {/* Strategy Parameters Tab */}
+            {/* Session Controls Tab */}
             <TabPanel value={activeTab} index={2}>
-              <StrategyParameters
-                selectedStrategy={formData.strategy}
+              <BacktestSessionControls
+                selectedStocks={selectedStocks}
+                selectedBot={selectedBot}
                 strategyParameters={strategyParameters}
-                onParametersChange={setStrategyParameters}
-                showSaveButton={false}
-                showResetButton={false}
-                compact={false}
-                showCurrentValues={false}
-                title="Bot Parameters"
-                description="Configure the parameters for your selected bot. These settings will determine how the bot behaves during testing."
+                onBacktestStarted={() => {
+                  setResults(null);
+                  // Switch to results tab when backtest starts
+                  setTimeout(() => setActiveTab(3), 100);
+                }}
+                onBacktestCompleted={(backtestResults: BacktestResponse) => {
+                  setResults(backtestResults);
+                  setActiveTab(3); // Switch to results tab
+                }}
               />
             </TabPanel>
 
-
-        {/* Results Tab */}
-        <TabPanel value={activeTab} index={3}>
+            {/* Results Tab */}
+            <TabPanel value={activeTab} index={3}>
           {backtestLoading && (
             <Paper sx={{ p: 3, mb: 3 }}>
               <Typography variant="h6" gutterBottom>
