@@ -13,6 +13,11 @@ import {
   resumeTradingSession,
   getAvailableStrategies
 } from '../controllers/tradingController';
+import {
+  getSessionSettings,
+  updateSessionSettings,
+  createSessionSettings
+} from '../controllers/tradingSessionSettingsController';
 import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
@@ -33,6 +38,11 @@ router.post('/sessions/start', authenticateToken, startTradingSession);
 router.post('/sessions/:sessionId/stop', authenticateToken, stopTradingSession);
 router.post('/sessions/:sessionId/pause', authenticateToken, pauseTradingSession);
 router.post('/sessions/:sessionId/resume', authenticateToken, resumeTradingSession);
+
+// Trading session settings routes
+router.get('/sessions/:sessionId/settings', authenticateToken, getSessionSettings);
+router.post('/sessions/:sessionId/settings', authenticateToken, createSessionSettings);
+router.patch('/sessions/:sessionId/settings', authenticateToken, updateSessionSettings);
 
 // Strategy management routes
 router.get('/strategies', getAvailableStrategies);
