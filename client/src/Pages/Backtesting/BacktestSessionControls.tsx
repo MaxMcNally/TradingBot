@@ -121,7 +121,7 @@ const BacktestSessionControls: React.FC<BacktestSessionControlsProps> = ({
     <Card>
       <CardContent>
         {/* Session Requirements */}
-        <Box mt={3} p={2} bgcolor="grey.50" borderRadius={1}>
+        <Box mt={3} p={2} bgcolor="InfoBackground" borderRadius={1}>
           <Typography variant="subtitle2" gutterBottom>
             <Info sx={{ mr: 1, verticalAlign: 'middle' }} />
             Backtest Requirements
@@ -208,7 +208,7 @@ const BacktestSessionControls: React.FC<BacktestSessionControlsProps> = ({
             <Typography variant="subtitle2" gutterBottom>
               Configuration Summary
             </Typography>
-            <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50' }}>
+            <Paper variant="outlined" sx={{ p: 2, bgcolor: 'InfoBackground' }}>
               <Grid container spacing={2}>
                 {selectedBot && (
                   <Grid item xs={12} sm={6}>

@@ -80,37 +80,29 @@ export class SessionMonitor {
       const { db } = require('../initDb');
       const isPostgres = process.env.DATABASE_URL && /^postgres(ql)?:\/\//i.test(process.env.DATABASE_URL);
       
-      // For PostgreSQL, cast the text parameter to TIMESTAMP
+      // Use ? placeholder which will be converted to $1 by toPg for PostgreSQL
+      // For PostgreSQL, cast the parameter to TIMESTAMP
       // For SQLite, the comparison works with text strings
+      // The db.all method uses toPg to convert ? to $1, $2, etc. for PostgreSQL
       const sql = isPostgres
         ? `SELECT * FROM trading_sessions 
            WHERE status = 'ACTIVE' 
            AND end_time IS NOT NULL 
-           AND end_time <= $1::TIMESTAMP`
+           AND end_time <= CAST(? AS TIMESTAMP)`
         : `SELECT * FROM trading_sessions 
            WHERE status = 'ACTIVE' 
            AND end_time IS NOT NULL 
            AND end_time <= ?`;
       
-      const method = isPostgres ? 'query' : 'all';
-      
-      if (isPostgres) {
-        db.query(sql, [currentTime], (err: any, result: any) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(result.rows || []);
-          }
-        });
-      } else {
-        db.all(sql, [currentTime], (err: any, rows: any[]) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(rows || []);
-          }
-        });
-      }
+      // Use db.all which works for both PostgreSQL and SQLite
+      // The toPg function will convert ? to $1 for PostgreSQL
+      db.all(sql, [currentTime], (err: any, rows: any[]) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows || []);
+        }
+      });
     });
   }
 
