@@ -29,7 +29,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { HeaderProps } from './Header.types';
 import { useTheme } from '../../providers/ThemeProvider/useTheme';
 
-const Header: React.FC = ({ user, onLogout }:HeaderProps) => {
+const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { mode, setMode } = useTheme();
