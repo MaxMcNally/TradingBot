@@ -147,13 +147,14 @@ export const updateCustomStrategy = async (req: AuthenticatedRequest, res: Respo
       return res.status(404).json({ error: "Strategy not found" });
     }
 
-    const { name, description, buy_conditions, sell_conditions, is_active, avatar } = req.body;
+    const { name, description, buy_conditions, sell_conditions, is_active, avatar, is_public } = req.body;
     const updateData: any = {};
 
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
     if (is_active !== undefined) updateData.is_active = is_active;
     if (avatar !== undefined) updateData.avatar = avatar;
+    if (is_public !== undefined) updateData.is_public = is_public;
 
     if (buy_conditions !== undefined) {
       const buyNodes = Array.isArray(buy_conditions) ? buy_conditions : [buy_conditions];
