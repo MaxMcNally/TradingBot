@@ -43,35 +43,36 @@ export { RobotAvatar20 } from './RobotAvatar20';
 export { RobotAvatarDisplay } from './RobotAvatarDisplay';
 export { RobotAvatarSelector } from './RobotAvatarSelector';
 
+// Avatar lookup array - defined at module level to avoid recreating on every function call
+const AVATAR_COMPONENTS: (React.ComponentType<any> | null)[] = [
+  null, // 0-indexed, so index 0 is null
+  RobotAvatar1,
+  RobotAvatar2,
+  RobotAvatar3,
+  RobotAvatar4,
+  RobotAvatar5,
+  RobotAvatar6,
+  RobotAvatar7,
+  RobotAvatar8,
+  RobotAvatar9,
+  RobotAvatar10,
+  RobotAvatar11,
+  RobotAvatar12,
+  RobotAvatar13,
+  RobotAvatar14,
+  RobotAvatar15,
+  RobotAvatar16,
+  RobotAvatar17,
+  RobotAvatar18,
+  RobotAvatar19,
+  RobotAvatar20,
+];
+
 // Helper to get avatar component by number (1-20)
 export const getRobotAvatar = (avatarNumber: number | string | null | undefined): React.ComponentType<any> | null => {
   const num = typeof avatarNumber === 'string' ? parseInt(avatarNumber, 10) : avatarNumber;
   if (!num || num < 1 || num > 20) return null;
   
-  const avatars: (React.ComponentType<any> | null)[] = [
-    null, // 0-indexed, so index 0 is null
-    RobotAvatar1,
-    RobotAvatar2,
-    RobotAvatar3,
-    RobotAvatar4,
-    RobotAvatar5,
-    RobotAvatar6,
-    RobotAvatar7,
-    RobotAvatar8,
-    RobotAvatar9,
-    RobotAvatar10,
-    RobotAvatar11,
-    RobotAvatar12,
-    RobotAvatar13,
-    RobotAvatar14,
-    RobotAvatar15,
-    RobotAvatar16,
-    RobotAvatar17,
-    RobotAvatar18,
-    RobotAvatar19,
-    RobotAvatar20,
-  ];
-  
-  return avatars[num] || null;
+  return AVATAR_COMPONENTS[num] || null;
 };
 
