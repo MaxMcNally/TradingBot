@@ -40,6 +40,8 @@ export { RobotAvatar17 } from './RobotAvatar17';
 export { RobotAvatar18 } from './RobotAvatar18';
 export { RobotAvatar19 } from './RobotAvatar19';
 export { RobotAvatar20 } from './RobotAvatar20';
+export { RobotAvatarDisplay } from './RobotAvatarDisplay';
+export { RobotAvatarSelector } from './RobotAvatarSelector';
 
 // Helper to get avatar component by number (1-20)
 export const getRobotAvatar = (avatarNumber: number | string | null | undefined): React.ComponentType<any> | null => {
