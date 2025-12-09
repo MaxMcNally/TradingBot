@@ -90,6 +90,15 @@ const Footer: React.FC<FooterProps> = ({ user }) => {
             </MuiLink>
             <MuiLink
               component={Link}
+              to="/disclaimers"
+              color="text.secondary"
+              underline="hover"
+              sx={{ fontSize: '0.875rem' }}
+            >
+              Disclaimers
+            </MuiLink>
+            <MuiLink
+              component={Link}
               to="/support"
               color="text.secondary"
               underline="hover"

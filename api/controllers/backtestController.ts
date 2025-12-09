@@ -2,6 +2,9 @@ import { Request, Response } from "express";
 import { spawn } from "child_process";
 import path from "path";
 import { PerformanceMetricsService } from "../services/performanceMetricsService";
+import { CustomStrategy } from "../models/CustomStrategy";
+import { ConditionNode } from "../models/CustomStrategy";
+import { TradingSessionSettings } from "../types/tradingSessionSettings";
 // Removed unused imports
 
 export interface BacktestRequest {
@@ -17,6 +20,14 @@ export interface BacktestRequest {
   useCache?: boolean;
   prepopulateCache?: boolean;
   showCacheStats?: boolean;
+  // Custom strategy support
+  customStrategy?: {
+    id: number;
+    buy_conditions: ConditionNode | ConditionNode[];
+    sell_conditions: ConditionNode | ConditionNode[];
+  };
+  // Trading session settings
+  sessionSettings?: TradingSessionSettings;
   // Sentiment Analysis parameters
   lookbackDays?: number;
   pollIntervalMinutes?: number;
@@ -128,13 +139,69 @@ export const runBacktest = async (req: Request, res: Response) => {
       'momentum',
       'bollingerBands',
       'breakout',
-      'sentimentAnalysis'
+      'sentimentAnalysis',
+      'custom'
     ];
     if (!validStrategies.includes(strategy)) {
       return res.status(400).json({
         success: false,
         error: `Invalid strategy. Valid strategies: ${validStrategies.join(', ')}`
       });
+    }
+
+    // If using custom strategy, validate and fetch it
+    let customStrategyData = null;
+    if (strategy === 'custom') {
+      const { customStrategy } = req.body;
+      
+      if (!customStrategy || !customStrategy.id) {
+        return res.status(400).json({
+          success: false,
+          error: "Custom strategy ID is required when strategy is 'custom'"
+        });
+      }
+
+      // Get user ID from request (from auth middleware)
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          error: "Authentication required for custom strategy backtesting"
+        });
+      }
+
+      // Fetch custom strategy from database
+      try {
+        const customStrategyRecord = await CustomStrategy.findById(customStrategy.id);
+        if (!customStrategyRecord) {
+          return res.status(404).json({
+            success: false,
+            error: "Custom strategy not found"
+          });
+        }
+
+        // Check ownership
+        if (customStrategyRecord.user_id !== userId) {
+          return res.status(403).json({
+            success: false,
+            error: "Access denied to custom strategy"
+          });
+        }
+
+        // Parse strategy data
+        const parsed = CustomStrategy.parseStrategyData(customStrategyRecord);
+        customStrategyData = {
+          id: customStrategyRecord.id!,
+          buy_conditions: parsed.buy_conditions,
+          sell_conditions: parsed.sell_conditions
+        };
+      } catch (error) {
+        console.error('Error fetching custom strategy:', error);
+        return res.status(500).json({
+          success: false,
+          error: "Failed to fetch custom strategy"
+        });
+      }
     }
 
     // Validate provider
@@ -185,6 +252,10 @@ export const runBacktest = async (req: Request, res: Response) => {
           useCache,
           prepopulateCache,
           showCacheStats,
+          // Custom strategy
+          customStrategy: customStrategyData,
+          // Session settings
+          sessionSettings: req.body.sessionSettings,
           // Strategy-specific parameters
           window,
           threshold,
@@ -355,6 +426,14 @@ const runSingleBacktest = async (params: {
   useCache: boolean;
   prepopulateCache: boolean;
   showCacheStats: boolean;
+  // Custom strategy
+  customStrategy?: {
+    id: number;
+    buy_conditions: ConditionNode | ConditionNode[];
+    sell_conditions: ConditionNode | ConditionNode[];
+  } | null;
+  // Session settings
+  sessionSettings?: TradingSessionSettings;
   // Strategy-specific parameters
   window: number;
   threshold: number;
@@ -404,6 +483,16 @@ const runSingleBacktest = async (params: {
       '--capital', initialCapital.toString(),
       '--shares', sharesPerTrade.toString()
     ];
+
+    // Add custom strategy if provided
+    if (strategy === 'custom' && params.customStrategy) {
+      args.push('--custom-strategy', JSON.stringify(params.customStrategy));
+    }
+
+    // Add session settings if provided
+    if (params.sessionSettings) {
+      args.push('--session-settings', JSON.stringify(params.sessionSettings));
+    }
 
     // Add strategy-specific parameters
     if (strategy === 'meanReversion') {

@@ -19,6 +19,7 @@ import {
   SupportPage,
   HowItWorksPage,
 } from "./Pages";
+import DisclaimersPage from "./Pages/Disclaimers/DisclaimersPage";
 import { AdminRoute } from "./Pages/Admin";
 import ThemeProvider from "./providers/ThemeProvider";
 import { QueryProvider } from "./providers/QueryProvider";
@@ -188,6 +189,14 @@ const AppContent: React.FC = () => {
           element={
             <MainLayout user={user} onLogout={logout}>
               <HowItWorksPage />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/disclaimers"
+          element={
+            <MainLayout user={user} onLogout={logout}>
+              <DisclaimersPage />
             </MainLayout>
           }
         />

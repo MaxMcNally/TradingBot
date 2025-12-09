@@ -9,6 +9,8 @@ import {
   runBollingerBandsStrategy,
   runBreakoutStrategy
 } from "./strategies";
+import { CustomStrategyExecutor, ConditionNode } from "./utils/indicators/executor";
+import { PriceData } from "./utils/indicators/types";
 import {YahooDataProvider} from "./dataProviders/yahooProvider"
 import {PolygonProvider} from "./dataProviders/PolygonProvider"
 import {PolygonFlatFilesCLIProvider} from "./dataProviders/PolygonFlatFilesCLIProvider"
@@ -55,7 +57,181 @@ const argv = yargs(hideBin(process.argv))
   .option("breakoutThreshold", { type: "number", default: 0.01, description: "Breakout threshold" })
   .option("minVolumeRatio", { type: "number", default: 1.5, description: "Minimum volume ratio" })
   .option("confirmationPeriod", { type: "number", default: 2, description: "Confirmation period in days" })
+  // Custom strategy support
+  .option("custom-strategy", { type: "string", description: "JSON-encoded custom strategy config" })
+  // Session settings support
+  .option("session-settings", { type: "string", description: "JSON-encoded session settings" })
   .parseSync();
+
+/**
+ * Run a custom strategy backtest on historical data
+ */
+function  runCustomStrategy(
+  symbol: string,
+  data: { date: string; close: number; open: number; volume?: number }[],
+  config: {
+    buy_conditions: ConditionNode | ConditionNode[];
+    sell_conditions: ConditionNode | ConditionNode[];
+    name: string;
+    initialCapital: number;
+    sharesPerTrade: number;
+  }
+): {
+  trades: any[];
+  finalPortfolioValue: number;
+  totalReturn: number;
+  winRate: number;
+  maxDrawdown: number;
+  portfolioHistory: Array<{
+    date: string;
+    portfolioValue: number;
+    cash: number;
+    shares: number;
+    price: number;
+  }>;
+} {
+  const trades: any[] = [];
+  let currentShares = 0;
+  let cash = config.initialCapital;
+  let portfolioHistory: Array<{
+    date: string;
+    portfolioValue: number;
+    cash: number;
+    shares: number;
+    price: number;
+  }> = [];
+  let winningTrades = 0;
+  let totalTrades = 0;
+  let maxPortfolioValue = config.initialCapital;
+  let maxDrawdown = 0;
+
+  // Convert formatted data to PriceData format for CustomStrategyExecutor
+  const priceDataHistory: PriceData[] = data.map((d) => ({
+    date: d.date,
+    open: d.open,
+    high: d.open, // Approximate high with open
+    low: d.open, // Approximate low with open
+    close: d.close,
+    volume: d.volume || 1
+  }));
+
+  // Track entry prices for win rate calculation
+  const entryPrices: number[] = [];
+
+  for (let i = 0; i < data.length; i++) {
+    const dayData = data[i];
+    
+    // Get price data up to current point
+    const currentPriceData = priceDataHistory.slice(0, i + 1);
+    
+    // Need at least 10 data points for custom strategy to work
+    if (currentPriceData.length < 10) {
+      // Still track portfolio value
+      const currentPortfolioValue = cash + (currentShares * dayData.close);
+      portfolioHistory.push({
+        date: dayData.date,
+        portfolioValue: currentPortfolioValue,
+        cash: cash,
+        shares: currentShares,
+        price: dayData.close
+      });
+      continue;
+    }
+
+    // Execute custom strategy to get signal
+    let signal: 'BUY' | 'SELL' | null = null;
+    try {
+      signal = CustomStrategyExecutor.executeStrategy(
+        config.buy_conditions,
+        config.sell_conditions,
+        currentPriceData
+      );
+    } catch (error) {
+      console.error(`Error executing custom strategy at ${dayData.date}:`, error);
+      signal = null;
+    }
+
+    if (signal === 'BUY' && cash >= dayData.close && currentShares === 0) {
+      // Execute buy order
+      const sharesToBuy = Math.floor(cash / dayData.close);
+      const actualShares = Math.min(sharesToBuy, config.sharesPerTrade);
+      const cost = actualShares * dayData.close;
+      
+      cash -= cost;
+      currentShares += actualShares;
+      entryPrices.push(dayData.close);
+      
+      trades.push({
+        symbol,
+        date: dayData.date,
+        action: "BUY",
+        price: dayData.close,
+        shares: actualShares
+      });
+    } else if (signal === 'SELL' && currentShares > 0) {
+      // Execute sell order
+      const sharesToSell = Math.min(currentShares, config.sharesPerTrade);
+      const proceeds = sharesToSell * dayData.close;
+      
+      cash += proceeds;
+      currentShares -= sharesToSell;
+      
+      // Calculate P&L for this trade
+      const entryPrice = entryPrices.shift() || dayData.close;
+      const pnl = (dayData.close - entryPrice) * sharesToSell;
+      
+      trades.push({
+        symbol,
+        date: dayData.date,
+        action: "SELL",
+        price: dayData.close,
+        shares: sharesToSell
+      });
+
+      // Track winning trades for win rate calculation
+      if (pnl > 0) {
+        winningTrades++;
+      }
+      totalTrades++;
+    }
+
+    // Calculate current portfolio value
+    const currentPortfolioValue = cash + (currentShares * dayData.close);
+    
+    // Track detailed portfolio history
+    portfolioHistory.push({
+      date: dayData.date,
+      portfolioValue: currentPortfolioValue,
+      cash: cash,
+      shares: currentShares,
+      price: dayData.close
+    });
+    
+    if (currentPortfolioValue > maxPortfolioValue) {
+      maxPortfolioValue = currentPortfolioValue;
+    } else {
+      const currentDrawdown = (maxPortfolioValue - currentPortfolioValue) / maxPortfolioValue;
+      if (currentDrawdown > maxDrawdown) {
+        maxDrawdown = currentDrawdown;
+      }
+    }
+  }
+
+  // Calculate final portfolio value
+  const finalPrice = data.length > 0 ? data[data.length - 1].close : 0;
+  const finalPortfolioValue = cash + (currentShares * finalPrice);
+  const totalReturn = (finalPortfolioValue - config.initialCapital) / config.initialCapital;
+  const winRate = totalTrades > 0 ? winningTrades / totalTrades : 0;
+
+  return { 
+    trades, 
+    finalPortfolioValue, 
+    totalReturn,
+    winRate,
+    maxDrawdown,
+    portfolioHistory
+  };
+}
 
 async function main() {
   // Validate API key requirement for Polygon REST API provider
@@ -189,6 +365,21 @@ async function main() {
           maxDrawdown: 0,
         };
         strategyDescription = `News Sentiment (lookback=${argv.lookbackDays}d, buy>=${argv.buyThreshold}, sell<=${argv.sellThreshold}, source=${argv.newsSource})`;
+        break;
+
+      case 'custom':
+        if (!argv.customStrategy) {
+          throw new Error('Custom strategy config is required when strategy is "custom"');
+        }
+        const customConfig = JSON.parse(argv.customStrategy as string);
+        result =  runCustomStrategy(argv.symbol, formattedData, {
+          buy_conditions: customConfig.buy_conditions,
+          sell_conditions: customConfig.sell_conditions,
+          name: `Custom Strategy ${customConfig.id || ''}`,
+          initialCapital: argv.capital,
+          sharesPerTrade: argv.shares
+        });
+        strategyDescription = `Custom Strategy (ID: ${customConfig.id || 'N/A'})`;
         break;
 
       default:

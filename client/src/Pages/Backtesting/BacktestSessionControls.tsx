@@ -20,6 +20,7 @@ import {
   TrendingUp,
   AccountBalance,
 } from '@mui/icons-material';
+import { OrderExecutionModal } from '../../components/shared/OrderExecutionModal';
 import { runBacktest } from '../../api';
 import { BacktestRequest } from '../../api';
 import { UnifiedStrategy } from '../../components/shared';
@@ -43,6 +44,7 @@ const BacktestSessionControls: React.FC<BacktestSessionControlsProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [orderExecutionModalOpen, setOrderExecutionModalOpen] = useState(false);
   
   // Backtest configuration
   const [startDate, setStartDate] = useState(() => {
@@ -73,13 +75,23 @@ const BacktestSessionControls: React.FC<BacktestSessionControlsProps> = ({
       onBacktestStarted();
 
       // Build backtest request
-      // For user strategies, use strategy_type; for custom strategies, we can't backtest them directly
-      // as the API only supports predefined strategy types
       let strategyType: string;
+      let customStrategyData: { id: number; buy_conditions: any; sell_conditions: any } | undefined;
+      
       if (selectedBot.type === 'user' && selectedBot.strategy_type) {
         strategyType = selectedBot.strategy_type;
       } else if (selectedBot.type === 'custom') {
-        throw new Error('Custom strategies cannot be backtested directly. Please use a predefined strategy type.');
+        strategyType = 'custom';
+        // Include custom strategy data
+        if (selectedBot.buy_conditions && selectedBot.sell_conditions) {
+          customStrategyData = {
+            id: selectedBot.id,
+            buy_conditions: selectedBot.buy_conditions,
+            sell_conditions: selectedBot.sell_conditions
+          };
+        } else {
+          throw new Error('Custom strategy is missing buy or sell conditions');
+        }
       } else {
         throw new Error('Invalid bot type for backtesting');
       }
@@ -91,6 +103,8 @@ const BacktestSessionControls: React.FC<BacktestSessionControlsProps> = ({
         endDate,
         initialCapital,
         sharesPerTrade,
+        // Include custom strategy if applicable
+        ...(customStrategyData && { customStrategy: customStrategyData }),
         // Include strategy parameters
         ...strategyParameters,
       };
@@ -148,9 +162,19 @@ const BacktestSessionControls: React.FC<BacktestSessionControlsProps> = ({
 
         {/* Backtest Configuration */}
         <Box mt={3}>
-          <Typography variant="h6" gutterBottom>
-            Backtest Configuration
-          </Typography>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Typography variant="h6">
+              Backtest Configuration
+            </Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<Info />}
+              onClick={() => setOrderExecutionModalOpen(true)}
+            >
+              Read More About Order Execution
+            </Button>
+          </Box>
           
           <Grid container spacing={3} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
@@ -280,12 +304,6 @@ const BacktestSessionControls: React.FC<BacktestSessionControlsProps> = ({
           </Alert>
         )}
 
-        {/* Custom Strategy Warning */}
-        {selectedBot && selectedBot.type === 'custom' && (
-          <Alert severity="warning" sx={{ mt: 3 }}>
-            Custom strategies cannot be backtested with the current API. Please select a predefined strategy bot.
-          </Alert>
-        )}
 
         <Divider sx={{ my: 3 }} />
 
@@ -296,13 +314,19 @@ const BacktestSessionControls: React.FC<BacktestSessionControlsProps> = ({
             size="large"
             startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <PlayArrow />}
             onClick={handleRunBacktest}
-            disabled={loading || selectedStocks.length === 0 || !selectedBot || selectedBot.type === 'custom'}
+            disabled={loading || selectedStocks.length === 0 || !selectedBot}
             sx={{ minWidth: 200 }}
           >
             {loading ? 'Running Backtest...' : 'Run Backtest'}
           </Button>
         </Box>
       </CardContent>
+      
+      <OrderExecutionModal
+        open={orderExecutionModalOpen}
+        onClose={() => setOrderExecutionModalOpen(false)}
+        context="backtesting"
+      />
     </Card>
   );
 };
