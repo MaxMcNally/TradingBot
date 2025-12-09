@@ -10,7 +10,6 @@ export { default as StockSelectionSection } from './StockSelectionSection';
 export { default as StrategySelectionSection } from './StrategySelectionSection';
 export { default as StrategyParameters } from './StrategyParameters';
 export { BotSelector } from './BotSelector';
-export { RobotAvatarSelector, RobotAvatarDisplay, getRobotAvatar } from './RobotAvatars';
 export * from './RobotAvatars';
 
 // Export types
