@@ -240,6 +240,84 @@ railway up
 - 🐳 **Docker Support** - Containerized deployment
 - 🚀 **CI/CD** - Automated testing and deployment
 
+## 🧭 Trading Session Settings Specification (Alpaca)
+
+### Objective
+Give each trading session a configurable guardrail layer that mirrors Alpaca’s Trading API semantics so users can predefine risk controls (stop loss %, take profit %, fill policies, etc.) before orders are relayed.
+
+### References
+- Alpaca Trading API docs: https://docs.alpaca.markets/docs/trading-api
+- Relevant endpoints: `POST /v2/orders`, `GET /v2/positions`, `GET /v2/account`, streaming `/v2/account/activities`, `/v2/orders/events`
+
+### Functional Scope
+- **Configurable stops**: session-level default `stop_loss_percent` (0-100) and `take_profit_percent` (0-200) stored as decimals (e.g., `0.05` = 5%).
+- **Order fill policy**: `allow_partial_fills` toggles Alpaca `time_in_force`.
+  - `true` → `time_in_force = day` (or `gtc` if user selects).
+  - `false` → `time_in_force = fok` (fill-or-kill) or `ioc`.
+- **Advanced controls**:
+  - `max_position_size_usd`
+  - `max_concurrent_positions`
+  - `trailing_stop_percent`
+  - `session_budget_usd`
+  - `halt_on_drawdown_percent`
+  - `allow_extended_hours` (maps to Alpaca `extended_hours`)
+- **Session presets**: allow multiple saved templates per user, selectable when starting a new trading session.
+
+### Data Model
+- New table: `session_settings`
+  - `id`, `user_id`, `session_id` (nullable when used as template)
+  - `stop_loss_percent`, `take_profit_percent`, `trailing_stop_percent`
+  - `allow_partial_fills`, `time_in_force_override`
+  - `max_position_size_usd`, `max_concurrent_positions`, `session_budget_usd`
+  - `halt_on_drawdown_percent`, `allow_extended_hours`
+  - `alpaca_order_class` (`simple`, `bracket`, `oco`)
+  - `metadata` JSONB for future Alpaca options (e.g., `order_type`, `limit_price_buffer`)
+  - timestamps + soft delete
+
+### API Surface
+- `GET /api/trading-sessions/:sessionId/settings`
+- `PUT /api/trading-sessions/:sessionId/settings`
+- `POST /api/trading-session-settings/templates`
+- `GET /api/trading-session-settings/templates`
+- `DELETE /api/trading-session-settings/templates/:id`
+- Validation middleware enforces numeric ranges and cross-field rules (e.g., `stop_loss_percent < take_profit_percent`).
+- Controllers map settings into Alpaca order payloads before calling existing broker connector.
+- Audit log entry when risk parameters change.
+
+### Client (React) Updates
+- New `SessionSettingsForm` within session creation wizard.
+- Use controlled sliders/inputs with live preview of calculated stop/target price deltas.
+- Toggle group for fill policy (`Partial OK`, `Fill or Kill`, `Immediate or Cancel`).
+- Preset selector with ability to save current configuration as template.
+- Inline Alpaca capability hints (e.g., tooltips referencing supported `time_in_force` values).
+
+### Bot/Core Changes
+- Trading engine injects session settings into every order request. Stops/brackets are created by setting Alpaca `order_class = bracket` with `take_profit`/`stop_loss`.
+- Risk daemon watches live PnL; triggers `halt_on_drawdown_percent` by pausing strategy queue and cancelling open Alpaca orders.
+- Backtesting runner reads templates so historical simulations mimic live guardrails.
+
+### Telemetry & Alerts
+- Emit metrics when guardrails trigger (Grafana `session_guardrail_trigger_total`).
+- Optional notification hooks (email/webhook) when drawdown halt or budget cap is hit.
+
+### Additional Alpaca Integrations (Roadmap)
+- **Portfolio sync**: persist `GET /v2/positions` snapshots per session; expose `/api/alpaca/portfolio` for UI dashboards.
+- **Order history**: nightly job to upsert `GET /v2/orders` data, filter by `client_order_id` tied to session.
+- **Real-time open orders**: subscribe to Alpaca Websocket `/v2/orders` channel; stream status changes into Redis pub/sub so the client shows live fills/cancellations.
+- **Account insights**: surface Alpaca `GET /v2/account` buying power and regulatory status alongside session settings to warn when constraints might fail.
+
+### Testing & Validation
+- Unit tests for controller validation and Alpaca payload mapping.
+- Integration tests using Alpaca sandbox API to ensure bracket orders respect stop/take percentages.
+- Frontend Cypress coverage for presets, validation toasts, and guardrail warnings.
+- Load tests that simulate frequent updates to ensure settings lookups stay performant (<5 ms, cached per session).
+
+### Rollout Plan
+1. Migrate database and seed default template per existing user.
+2. Ship API + UI behind feature flag.
+3. Enable paper-trading cohort, monitor telemetry.
+4. Gradually enable for live trading users; update documentation and in-app onboarding.
+
 ## 📁 Project Structure
 
 ```
