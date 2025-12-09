@@ -45,8 +45,12 @@ const BacktestSessionControls: React.FC<BacktestSessionControlsProps> = ({
   const [success, setSuccess] = useState<string | null>(null);
   
   // Backtest configuration
-  const [startDate, setStartDate] = useState('2023-01-01');
-  const [endDate, setEndDate] = useState('2023-12-31');
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date();
+    date.setFullYear(date.getFullYear() - 1);
+    return date.toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [initialCapital, setInitialCapital] = useState(10000);
   const [sharesPerTrade, setSharesPerTrade] = useState(100);
 
