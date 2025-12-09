@@ -39,11 +39,14 @@ import {
 import { 
   TabPanel,
   StockSelectionSection,
-  StrategySelectionSection,
   SessionSummary,
-  StrategyParameters
+  StrategyParameters,
+  BotSelector,
+  UnifiedStrategy,
 } from "../../components/shared";
 import { useStrategies, useBacktest, useUserStrategies } from "../../hooks";
+import { useCustomStrategies } from "../../hooks/useCustomStrategies/useCustomStrategies";
+import { useNavigate } from "react-router-dom";
 import SaveStrategyDialog from "./SaveStrategyDialog";
 
 // Utility functions
@@ -57,6 +60,7 @@ const formatPercentage = (value: number | undefined | null): string => {
 
 
 const BacktestingPage: React.FC = () => {
+  const navigate = useNavigate();
   // Tab state
   const [activeTab, setActiveTab] = useState(0);
   
@@ -140,15 +144,38 @@ const BacktestingPage: React.FC = () => {
 
   // Use hooks for strategies and backtesting
   const { strategies: availableStrategies, isLoading: strategiesLoading, isError: strategiesError } = useStrategies();
+  const { strategies: userStrategies, isLoading: userStrategiesLoading } = useUserStrategies(false);
+  const { strategies: customStrategies, isLoading: customStrategiesLoading } = useCustomStrategies(false);
   const { isLoading: backtestLoading } = useBacktest();
   const { saveFromBacktest, isCreating: isSavingStrategy } = useUserStrategies();
+  
+  // Selected bot state (for BotSelector)
+  const [selectedBot, setSelectedBot] = useState<UnifiedStrategy | null>(null);
+  const botsLoading = userStrategiesLoading || customStrategiesLoading;
 
-  // Reset strategy parameters when strategy changes
+  // Handle bot selection from BotSelector
+  const handleBotSelect = (bot: UnifiedStrategy) => {
+    setSelectedBot(bot);
+    // Set the strategy name in the form
+    setValue('strategy', bot.name);
+    
+    // Set strategy parameters based on bot type
+    if (bot.type === 'user' && bot.config) {
+      setStrategyParameters(bot.config);
+    } else if (bot.type === 'custom') {
+      setStrategyParameters({
+        buy_conditions: bot.buy_conditions,
+        sell_conditions: bot.sell_conditions,
+      });
+    }
+  };
+
+  // Reset strategy parameters when strategy changes (for basic strategies)
   useEffect(() => {
-    if (availableStrategies && formData.strategy) {
+    if (availableStrategies && formData.strategy && !selectedBot) {
       const strategy = availableStrategies.find(s => s.name === formData.strategy);
       if (strategy && strategy.parameters) {
-      const defaultParams: Record<string, any> = {};
+        const defaultParams: Record<string, any> = {};
         Object.entries(strategy.parameters).forEach(([key, param]) => {
           if (typeof param === 'object' && param !== null && 'default' in param) {
             defaultParams[key] = param.default;
@@ -157,7 +184,7 @@ const BacktestingPage: React.FC = () => {
         setStrategyParameters(defaultParams);
       }
     }
-  }, [formData.strategy, availableStrategies]);
+  }, [formData.strategy, availableStrategies, selectedBot]);
 
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -200,10 +227,10 @@ const BacktestingPage: React.FC = () => {
       <Box mb={3}>
         <Typography variant="h4" component="h1" gutterBottom>
           <Assessment sx={{ mr: 1, verticalAlign: 'middle' }} />
-          Strategy Backtesting
+          Test Bot
         </Typography>
         <Typography variant="subtitle1" color="textSecondary">
-          Test your trading strategies against historical data to evaluate performance.
+          Backtest your trading bots against historical data to evaluate performance before running them live.
         </Typography>
       </Box>
 
@@ -245,7 +272,7 @@ const BacktestingPage: React.FC = () => {
             <TabPanel value={activeTab} index={0}>
               <StockSelectionSection
                 selectedStocks={selectedStocks}
-                onStocksChange={(symbols) => {
+                onStocksChange={(symbols: string[]) => {
                   setSelectedStocks(symbols);
                   setValue('symbols', symbols);
                 }}
@@ -258,21 +285,19 @@ const BacktestingPage: React.FC = () => {
 
             {/* Strategy Selection Tab */}
             <TabPanel value={activeTab} index={1}>
-              <StrategySelectionSection
-                selectedStrategy={formData.strategy}
-                onStrategyChange={(strategy) => setValue('strategy', strategy)}
-                onParametersChange={setStrategyParameters}
-                strategyParameters={strategyParameters}
-                title="Select Strategy for Backtesting"
-                description="Choose a trading strategy to test against historical data. You can select from basic strategies or public strategies shared by other users."
-                showSummary={false}
-                availableStrategies={availableStrategies.map(s => ({
-                  name: s.name,
-                  description: s.description || '',
-                  parameters: s.parameters || {},
-                  enabled: true,
-                  symbols: []
-                }))}
+              <BotSelector
+                userStrategies={userStrategies}
+                customStrategies={customStrategies}
+                isLoading={botsLoading}
+                selectedStrategy={selectedBot}
+                onStrategySelect={handleBotSelect}
+                title="Select Bot for Testing"
+                description="Choose a trading bot to test against historical data. You can select from your saved bots or create a new one."
+                emptyStateTitle="No Bots Available"
+                emptyStateMessage="You haven't created any trading bots yet. Create your first bot to start testing."
+                emptyStateButtonLabel="Create Bot"
+                onEmptyStateButtonClick={() => navigate('/strategies')}
+                showActiveOnly={true}
               />
             </TabPanel>
 
@@ -286,8 +311,8 @@ const BacktestingPage: React.FC = () => {
                 showResetButton={false}
                 compact={false}
                 showCurrentValues={false}
-                title="Strategy Parameters"
-                description="Configure the parameters for your selected strategy. These settings will determine how the strategy behaves during backtesting."
+                title="Bot Parameters"
+                description="Configure the parameters for your selected bot. These settings will determine how the bot behaves during testing."
               />
             </TabPanel>
 
@@ -297,7 +322,7 @@ const BacktestingPage: React.FC = () => {
           {backtestLoading && (
             <Paper sx={{ p: 3, mb: 3 }}>
               <Typography variant="h6" gutterBottom>
-                Running Backtest...
+                Running Test...
               </Typography>
               <LinearProgress />
             </Paper>
@@ -308,7 +333,7 @@ const BacktestingPage: React.FC = () => {
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
                 <Typography variant="h6">
                   <Timeline sx={{ mr: 1, verticalAlign: 'middle' }} />
-                  Backtest Results
+                  Test Results
                 </Typography>
                 <Box display="flex" gap={1}>
                   <Button
@@ -512,7 +537,7 @@ const BacktestingPage: React.FC = () => {
           ) : !backtestLoading && (
             <Paper sx={{ p: 3, textAlign: 'center' }}>
               <Typography variant="h6" color="text.secondary">
-                Configure your backtest and click "Run Backtest" to see results
+                Configure your test and click "Run Test" to see results
               </Typography>
             </Paper>
           )}

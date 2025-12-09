@@ -9,6 +9,7 @@ export { default as TwoColumnLayout } from './TwoColumnLayout';
 export { default as StockSelectionSection } from './StockSelectionSection';
 export { default as StrategySelectionSection } from './StrategySelectionSection';
 export { default as StrategyParameters } from './StrategyParameters';
+export { BotSelector } from './BotSelector';
 
 // Export types
 export type { StockPickerProps } from './StockPicker';
@@ -26,3 +27,4 @@ export type {
   StrategyParameterConfig, 
   StrategyConfig 
 } from './StrategyParameters';
+export type { BotSelectorProps, UnifiedStrategy } from './BotSelector';

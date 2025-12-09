@@ -7,46 +7,23 @@ import {
   Paper,
   Alert,
   CircularProgress,
-  Button,
-  Card,
-  CardContent,
-  CardActionArea,
-  Chip,
-  Stack,
 } from "@mui/material";
 import {
   TrendingUp,
   Settings,
   AccountBalance,
-  Add,
-  Psychology,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { 
   TabPanel,
   StockSelectionSection,
   SessionSummary,
+  BotSelector,
+  UnifiedStrategy,
 } from "../../components/shared";
 import TradingSessionControls from "../Dashboard/TradingSessionControls";
 import { useUser, useUserStrategies } from "../../hooks";
 import { useCustomStrategies } from "../../hooks/useCustomStrategies/useCustomStrategies";
-import { UserStrategy } from "../../api";
-import { CustomStrategy } from "../../api/customStrategiesApi";
-
-// Unified strategy type for display
-type UnifiedStrategy = {
-  id: number;
-  name: string;
-  description?: string;
-  type: 'user' | 'custom';
-  strategy_type?: string; // For user strategies
-  is_active: boolean;
-  is_public?: boolean;
-  config?: any; // For user strategies
-  buy_conditions?: any; // For custom strategies
-  sell_conditions?: any; // For custom strategies
-  original: UserStrategy | CustomStrategy;
-};
 
 const TradingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -60,35 +37,6 @@ const TradingPage: React.FC = () => {
   const [selectedStrategy, setSelectedStrategy] = useState<UnifiedStrategy | null>(null);
   const [strategyParameters, setStrategyParameters] = useState<Record<string, any>>({});
   const [activeSession, setActiveSession] = useState<any>(null);
-
-  // Combine strategies into unified format
-  const allStrategies: UnifiedStrategy[] = React.useMemo(() => {
-    const user: UnifiedStrategy[] = (userStrategies || []).map(s => ({
-      id: s.id,
-      name: s.name,
-      description: s.description,
-      type: 'user' as const,
-      strategy_type: s.strategy_type,
-      is_active: s.is_active,
-      is_public: s.is_public,
-      config: s.config,
-      original: s,
-    }));
-
-    const custom: UnifiedStrategy[] = (customStrategies || []).map(s => ({
-      id: s.id,
-      name: s.name,
-      description: s.description,
-      type: 'custom' as const,
-      is_active: s.is_active,
-      is_public: s.is_public,
-      buy_conditions: s.buy_conditions,
-      sell_conditions: s.sell_conditions,
-      original: s,
-    }));
-
-    return [...user, ...custom];
-  }, [userStrategies, customStrategies]);
 
   const strategiesLoading = userStrategiesLoading || customStrategiesLoading;
 
@@ -106,6 +54,8 @@ const TradingPage: React.FC = () => {
       }
     }
   }, [selectedStrategy]);
+
+  // Remove the allStrategies useMemo since BotSelector handles it
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
@@ -157,10 +107,10 @@ const TradingPage: React.FC = () => {
       {/* Header */}
       <Box mb={3}>
         <Typography variant="h4" component="h1" gutterBottom>
-          Trading
+          Run Bot
         </Typography>
         <Typography variant="subtitle1" color="textSecondary">
-          Select stocks and a strategy to start a trading session. Create and manage strategies in the Strategies page.
+          Select stocks and a bot to start a live trading session. Create and manage bots in the Program Bot page.
         </Typography>
       </Box>
 
@@ -206,89 +156,20 @@ const TradingPage: React.FC = () => {
 
             {/* Strategy Selection Tab */}
             <TabPanel value={activeTab} index={1}>
-              <Box sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  <Settings sx={{ mr: 1, verticalAlign: 'middle' }} />
-                  Select Trading Strategy
-                </Typography>
-                <Typography variant="body2" color="textSecondary" paragraph>
-                  Choose one of your saved strategies to use for live trading. All strategy creation and editing happens in the Strategies page.
-                </Typography>
-
-                {strategiesLoading ? (
-                  <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-                    <CircularProgress />
-                  </Box>
-                ) : allStrategies.length === 0 ? (
-                  <Paper sx={{ p: 4, textAlign: 'center' }}>
-                    <Psychology sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                    <Typography variant="h6" gutterBottom>
-                      No Strategies Available
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary" paragraph>
-                      You haven't created any trading strategies yet. Create your first strategy to start trading.
-                    </Typography>
-                    <Button
-                      variant="contained"
-                      startIcon={<Add />}
-                      onClick={() => navigate('/strategies')}
-                      sx={{ mt: 2 }}
-                    >
-                      Create Strategy
-                    </Button>
-                  </Paper>
-                ) : (
-                  <Stack spacing={2}>
-                    {allStrategies.map((strategy) => (
-                      <Card
-                        key={`${strategy.type}-${strategy.id}`}
-                        sx={{
-                          border: selectedStrategy?.id === strategy.id && selectedStrategy?.type === strategy.type ? 2 : 1,
-                          borderColor: selectedStrategy?.id === strategy.id && selectedStrategy?.type === strategy.type ? 'primary.main' : 'divider',
-                          backgroundColor: selectedStrategy?.id === strategy.id && selectedStrategy?.type === strategy.type ? 'action.selected' : 'background.paper',
-                        }}
-                      >
-                        <CardActionArea onClick={() => handleStrategySelect(strategy)}>
-                          <CardContent>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                              <Typography variant="h6" component="div">
-                                {strategy.name}
-                              </Typography>
-                              <Chip
-                                label={strategy.type === 'custom' ? 'Custom' : (strategy.strategy_type || 'Strategy')}
-                                size="small"
-                                color={strategy.type === 'custom' ? 'secondary' : 'primary'}
-                                variant="outlined"
-                              />
-                            </Box>
-                            {strategy.description && (
-                              <Typography variant="body2" color="textSecondary" paragraph>
-                                {strategy.description}
-                              </Typography>
-                            )}
-                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
-                              <Chip
-                                label={strategy.is_active ? 'Active' : 'Inactive'}
-                                size="small"
-                                color={strategy.is_active ? 'success' : 'default'}
-                                variant="outlined"
-                              />
-                              {strategy.is_public && (
-                                <Chip
-                                  label="Public"
-                                  size="small"
-                                  color="secondary"
-                                  variant="outlined"
-                                />
-                              )}
-                            </Box>
-                          </CardContent>
-                        </CardActionArea>
-                      </Card>
-                    ))}
-                  </Stack>
-                )}
-              </Box>
+              <BotSelector
+                userStrategies={userStrategies}
+                customStrategies={customStrategies}
+                isLoading={strategiesLoading}
+                selectedStrategy={selectedStrategy}
+                onStrategySelect={handleStrategySelect}
+                title="Select Trading Bot"
+                description="Choose one of your saved bots to use for live trading. All bot creation and editing happens in the Program Bot page."
+                emptyStateTitle="No Bots Available"
+                emptyStateMessage="You haven't created any trading bots yet. Create your first bot to start trading."
+                emptyStateButtonLabel="Create Bot"
+                onEmptyStateButtonClick={() => navigate('/strategies')}
+                showActiveOnly={true}
+              />
             </TabPanel>
 
             {/* Session Controls Tab */}

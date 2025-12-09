@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import { signup, verify2FAAfterLogin, requestPasswordReset } from "../../api";
 import {
   TextField,
@@ -17,7 +18,8 @@ import { LoginFormData } from "./Login.types";
 import { useUser } from "../../hooks";
 
 const LoginPage: React.FC = () => {
-  const { login } = useUser();
+  const navigate = useNavigate();
+  const { login, user } = useUser();
   const {
     register,
     handleSubmit,
@@ -33,6 +35,13 @@ const LoginPage: React.FC = () => {
   const [forgotMode, setForgotMode] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (user && user.id) {
+      navigate("/");
+    }
+  }, [user, navigate]);
 
   const onSubmit = async (data: LoginFormData): Promise<void> => {
     if (!data.username || !data.password) {
@@ -62,6 +71,8 @@ const LoginPage: React.FC = () => {
           if (res.data.data) {
             localStorage.setItem('authToken', res.data.data.token);
             localStorage.setItem('user', JSON.stringify(res.data.data.user));
+            // Redirect after 2FA verification
+            navigate("/");
           }
           setError("");
         }
@@ -70,10 +81,14 @@ const LoginPage: React.FC = () => {
         await signup(requestData);
         setError("");
         await login(data.username, data.password);
+        // Redirect after signup and login
+        navigate("/");
       } else {
         try {
           await login(data.username, data.password);
           setError("");
+          // Redirect after successful login
+          navigate("/");
         } catch (err: any) {
           const resp = err.response?.data;
           if (resp?.requires2fa) {
