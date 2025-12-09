@@ -70,7 +70,7 @@ const argv = yargs(hideBin(process.argv))
 /**
  * Run a custom strategy backtest on historical data with session settings support
  */
-function  runCustomStrategy(
+export function runCustomStrategy(
   symbol: string,
   data: { date: string; close: number; open: number; volume?: number }[],
   config: {

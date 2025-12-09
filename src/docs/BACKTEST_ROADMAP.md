@@ -37,7 +37,7 @@ This document outlines a comprehensive roadmap to enhance the backtesting system
 - ✅ All strategy execution functions refactored (meanReversion, movingAverageCrossover, momentum, bollingerBands, breakout)
 - ✅ Frontend UI for configuring session settings in backtests
 - ✅ Session settings passed to all strategy functions in backtest script
-- ⚠️ Integration testing (pending validation)
+- ✅ Integration testing (comprehensive test suite created)
 
 ### ❌ Not Started
 - Phase 2.5: Session Settings Templates
@@ -252,14 +252,17 @@ This document outlines a comprehensive roadmap to enhance the backtesting system
 **Status**: Frontend UI integration complete. Users can now configure session settings in backtests.
 
 ##### 2.6 Testing
-- [ ] Test backtest with stop loss/take profit settings (PENDING - requires integration)
-- [ ] Test position sizing methods (PENDING - requires integration)
-- [ ] Test trading window restrictions (PENDING - requires integration)
-- [ ] Test order execution with slippage and commissions (PENDING - requires integration)
-- [ ] Test daily loss limits (PENDING - requires integration)
-- [ ] Compare backtest results with/without settings (PENDING - requires integration)
+- [x] Test backtest with stop loss/take profit settings
+- [x] Test position sizing methods (fixed, percentage, equal weight)
+- [x] Test trading window restrictions
+- [x] Test order execution with slippage and commissions
+- [x] Test daily loss limits (percentage and absolute)
+- [x] Test custom strategy with session settings
+- [x] Test multiple settings combinations
+- [x] Test default settings behavior
+- [x] Test edge cases (empty data, insufficient data)
 
-**Note**: Test infrastructure created. Integration tests pending completion of strategy function refactoring.
+**Status**: Comprehensive integration tests created in `src/__tests__/backtest.sessionSettings.integration.test.ts`. Tests cover all major features and edge cases.
 
 ---
 

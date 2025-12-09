@@ -11,7 +11,7 @@
 
 import { BacktestPortfolio } from '../backtest/BacktestPortfolio';
 import { OrderExecutionSimulator } from '../backtest/OrderExecutionSimulator';
-import { TradingSessionSettings, DEFAULT_SESSION_SETTINGS } from '../api/types/tradingSessionSettings';
+import { TradingSessionSettings, DEFAULT_SESSION_SETTINGS } from '../../api/types/tradingSessionSettings';
 import { TradingMode } from '../config';
 
 export interface MeanReversionConfig {
@@ -194,7 +194,7 @@ export function runMeanReversionStrategy(
   config: MeanReversionConfig & {
     initialCapital: number;
     sharesPerTrade: number;
-    sessionSettings?: import('../api/types/tradingSessionSettings').TradingSessionSettings | null;
+    sessionSettings?: TradingSessionSettings | null;
   }
 ): MeanReversionResult {
   const trades: MeanReversionTrade[] = [];

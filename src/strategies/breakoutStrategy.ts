@@ -12,7 +12,7 @@
 
 import { BacktestPortfolio } from '../backtest/BacktestPortfolio';
 import { OrderExecutionSimulator } from '../backtest/OrderExecutionSimulator';
-import { TradingSessionSettings, DEFAULT_SESSION_SETTINGS } from '../api/types/tradingSessionSettings';
+import { TradingSessionSettings, DEFAULT_SESSION_SETTINGS } from '../../api/types/tradingSessionSettings';
 import { TradingMode } from '../config';
 
 export interface BreakoutConfig {
