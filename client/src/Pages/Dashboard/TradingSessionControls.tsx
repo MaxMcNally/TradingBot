@@ -402,6 +402,7 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
               onCancel={handleBackStep}
               submitLabel="Continue to Review"
               showAdvanced={true}
+              context="trading"
             />
           </Box>
         );

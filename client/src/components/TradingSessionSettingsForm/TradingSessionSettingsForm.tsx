@@ -29,7 +29,9 @@ import {
   ShoppingCart,
   Schedule,
   Tune,
+  Info,
 } from '@mui/icons-material';
+import { OrderExecutionModal } from '../shared/OrderExecutionModal';
 import {
   TradingSessionSettings,
   TimeInForce,
@@ -47,6 +49,7 @@ export interface TradingSessionSettingsFormProps {
   isLoading?: boolean;
   submitLabel?: string;
   showAdvanced?: boolean;
+  context?: 'trading' | 'backtesting';
 }
 
 const DEFAULT_SETTINGS: Partial<TradingSessionSettings> = {
@@ -94,6 +97,7 @@ export const TradingSessionSettingsForm: React.FC<TradingSessionSettingsFormProp
   isLoading = false,
   submitLabel = 'Save Settings',
   showAdvanced = false,
+  context = 'trading',
 }) => {
   const [settings, setSettings] = useState<Partial<TradingSessionSettings>>({
     ...DEFAULT_SETTINGS,
@@ -101,6 +105,7 @@ export const TradingSessionSettingsForm: React.FC<TradingSessionSettingsFormProp
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [expandedSection, setExpandedSection] = useState<string | false>(showAdvanced ? 'advanced' : 'risk');
+  const [orderExecutionModalOpen, setOrderExecutionModalOpen] = useState(false);
 
   useEffect(() => {
     setSettings({
@@ -289,12 +294,23 @@ export const TradingSessionSettingsForm: React.FC<TradingSessionSettingsFormProp
           {/* Order Execution Section */}
           <Accordion expanded={expandedSection === 'execution'} onChange={(_, isExpanded) => setExpandedSection(isExpanded ? 'execution' : false)}>
             <AccordionSummary expandIcon={<ExpandMore />}>
-              <Box display="flex" alignItems="center">
+              <Box display="flex" alignItems="center" width="100%">
                 <ShoppingCart sx={{ mr: 1 }} />
                 <Typography variant="subtitle1">Order Execution</Typography>
               </Box>
             </AccordionSummary>
             <AccordionDetails>
+              <Box mb={2}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<Info />}
+                  onClick={() => setOrderExecutionModalOpen(true)}
+                  sx={{ mb: 2 }}
+                >
+                  Read More About Order Execution
+                </Button>
+              </Box>
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
                   <FormControl fullWidth>
@@ -602,6 +618,12 @@ export const TradingSessionSettingsForm: React.FC<TradingSessionSettingsFormProp
           </Box>
         </form>
       </CardContent>
+      
+      <OrderExecutionModal
+        open={orderExecutionModalOpen}
+        onClose={() => setOrderExecutionModalOpen(false)}
+        context={context}
+      />
     </Card>
   );
 };

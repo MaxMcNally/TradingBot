@@ -20,6 +20,7 @@ import {
   TrendingUp,
   AccountBalance,
 } from '@mui/icons-material';
+import { OrderExecutionModal } from '../../components/shared/OrderExecutionModal';
 import { runBacktest } from '../../api';
 import { BacktestRequest } from '../../api';
 import { UnifiedStrategy } from '../../components/shared';
@@ -43,6 +44,7 @@ const BacktestSessionControls: React.FC<BacktestSessionControlsProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [orderExecutionModalOpen, setOrderExecutionModalOpen] = useState(false);
   
   // Backtest configuration
   const [startDate, setStartDate] = useState(() => {
@@ -160,9 +162,19 @@ const BacktestSessionControls: React.FC<BacktestSessionControlsProps> = ({
 
         {/* Backtest Configuration */}
         <Box mt={3}>
-          <Typography variant="h6" gutterBottom>
-            Backtest Configuration
-          </Typography>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Typography variant="h6">
+              Backtest Configuration
+            </Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<Info />}
+              onClick={() => setOrderExecutionModalOpen(true)}
+            >
+              Read More About Order Execution
+            </Button>
+          </Box>
           
           <Grid container spacing={3} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
@@ -309,6 +321,12 @@ const BacktestSessionControls: React.FC<BacktestSessionControlsProps> = ({
           </Button>
         </Box>
       </CardContent>
+      
+      <OrderExecutionModal
+        open={orderExecutionModalOpen}
+        onClose={() => setOrderExecutionModalOpen(false)}
+        context="backtesting"
+      />
     </Card>
   );
 };
