@@ -166,6 +166,14 @@ export interface BacktestRequest {
   // Common
   initialCapital?: number;
   sharesPerTrade?: number;
+  // Custom strategy support
+  customStrategy?: {
+    id: number;
+    buy_conditions: any;
+    sell_conditions: any;
+  };
+  // Trading session settings
+  sessionSettings?: any; // TradingSessionSettings - will import proper type if needed
   // Mean Reversion
   window?: number;
   threshold?: number;

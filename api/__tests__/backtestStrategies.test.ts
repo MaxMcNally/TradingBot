@@ -44,6 +44,7 @@ describe('Unified Strategies API', () => {
     const strategies = payload.data.strategies;
     
     // Check that all expected strategies are present
+    // Note: 'custom' is not included in getAvailableStrategies as it's user-specific
     const expectedStrategies = [
       { name: 'meanReversion', displayName: 'Mean Reversion' },
       { name: 'movingAverageCrossover', displayName: 'Moving Average Crossover' },
