@@ -5,6 +5,7 @@ export interface StrategyPerformanceData {
   user_id: number;
   strategy_name: string;
   strategy_type: string;
+  strategy_id?: number; // ID of custom strategy or user strategy
   execution_type: 'BACKTEST' | 'LIVE_TRADING';
   session_id?: number; // For live trading sessions
   symbols: string; // JSON array of symbols
@@ -41,6 +42,7 @@ export interface CreateStrategyPerformanceData {
   user_id: number;
   strategy_name: string;
   strategy_type: string;
+  strategy_id?: number; // ID of custom strategy or user strategy
   execution_type: 'BACKTEST' | 'LIVE_TRADING';
   session_id?: number;
   symbols: string[];
@@ -90,7 +92,7 @@ export class StrategyPerformance {
   static async create(performanceData: CreateStrategyPerformanceData): Promise<StrategyPerformanceData> {
     return new Promise((resolve, reject) => {
       const {
-        user_id, strategy_name, strategy_type, execution_type, session_id,
+        user_id, strategy_name, strategy_type, strategy_id, execution_type, session_id,
         symbols, start_date, end_date, initial_capital, final_capital,
         total_return, total_return_dollar, max_drawdown, sharpe_ratio, sortino_ratio,
         win_rate, total_trades, winning_trades, losing_trades, avg_win, avg_loss,
@@ -104,7 +106,7 @@ export class StrategyPerformance {
       const portfolioHistoryJson = JSON.stringify(portfolio_history);
 
       const query = `INSERT INTO strategy_performance (
-          user_id, strategy_name, strategy_type, execution_type, session_id,
+          user_id, strategy_name, strategy_type, strategy_id, execution_type, session_id,
           symbols, start_date, end_date, initial_capital, final_capital,
           total_return, total_return_dollar, max_drawdown, sharpe_ratio, sortino_ratio,
           win_rate, total_trades, winning_trades, losing_trades, avg_win, avg_loss,
@@ -112,16 +114,16 @@ export class StrategyPerformance {
           beta, alpha, config, trades_data, portfolio_history
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
-          $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31
+          $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32
         ) RETURNING id`;
 
       const params = [
-        user_id, strategy_name, strategy_type, execution_type, session_id,
+        user_id, strategy_name, strategy_type, strategy_id || null, execution_type, session_id || null,
         symbolsJson, start_date, end_date, initial_capital, final_capital,
-        total_return, total_return_dollar, max_drawdown, sharpe_ratio, sortino_ratio,
+        total_return, total_return_dollar, max_drawdown, sharpe_ratio || null, sortino_ratio || null,
         win_rate, total_trades, winning_trades, losing_trades, avg_win, avg_loss,
         profit_factor, largest_win, largest_loss, avg_trade_duration, volatility,
-        beta, alpha, configJson, tradesDataJson, portfolioHistoryJson
+        beta || null, alpha || null, configJson, tradesDataJson, portfolioHistoryJson
       ];
 
       db.run(query, params, function(this: any, err: any) {
@@ -130,7 +132,7 @@ export class StrategyPerformance {
         } else {
           resolve({
             id: this.lastID,
-            user_id, strategy_name, strategy_type, execution_type, session_id,
+            user_id, strategy_name, strategy_type, strategy_id, execution_type, session_id,
             symbols: symbolsJson, start_date, end_date, initial_capital, final_capital,
             total_return, total_return_dollar, max_drawdown, sharpe_ratio, sortino_ratio,
             win_rate, total_trades, winning_trades, losing_trades, avg_win, avg_loss,
@@ -179,6 +181,20 @@ export class StrategyPerformance {
       const query = 'SELECT * FROM strategy_performance WHERE strategy_name = $1 ORDER BY created_at DESC LIMIT $2';
       
       db.all(query, [strategyName, limit], (err: any, rows: any[]) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows || []);
+        }
+      });
+    });
+  }
+
+  static async findByStrategyId(strategyId: number, limit: number = 100): Promise<StrategyPerformanceData[]> {
+    return new Promise((resolve, reject) => {
+      const query = 'SELECT * FROM strategy_performance WHERE strategy_id = $1 ORDER BY created_at DESC LIMIT $2';
+      
+      db.all(query, [strategyId, limit], (err: any, rows: any[]) => {
         if (err) {
           reject(err);
         } else {

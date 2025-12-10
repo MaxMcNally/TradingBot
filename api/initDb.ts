@@ -271,6 +271,7 @@ export const initDatabase = () => {
           user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
           strategy_name TEXT NOT NULL,
           strategy_type TEXT NOT NULL,
+          strategy_id INTEGER,
           execution_type TEXT NOT NULL CHECK (execution_type IN ('BACKTEST', 'LIVE_TRADING')),
           session_id INTEGER,
           symbols TEXT NOT NULL,
@@ -303,6 +304,9 @@ export const initDatabase = () => {
           updated_at TIMESTAMP DEFAULT NOW()
         )
       `);
+      
+      // Add strategy_id column if it doesn't exist (for existing databases)
+      await pgPool!.query(`ALTER TABLE strategy_performance ADD COLUMN IF NOT EXISTS strategy_id INTEGER`);
 
       await pgPool!.query(`
         CREATE TABLE IF NOT EXISTS subscriptions (
@@ -393,6 +397,7 @@ export const initDatabase = () => {
       await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_user_id ON strategy_performance(user_id)`);
       await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_strategy_name ON strategy_performance(strategy_name)`);
       await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_strategy_type ON strategy_performance(strategy_type)`);
+      await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_strategy_id ON strategy_performance(strategy_id)`);
       await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_execution_type ON strategy_performance(execution_type)`);
       await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_strategy_performance_created_at ON strategy_performance(created_at)`);
       await pgPool!.query(`CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id)`);

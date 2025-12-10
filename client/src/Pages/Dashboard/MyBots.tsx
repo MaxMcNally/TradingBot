@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect,useState } from 'react';
 import {
   Box,
   Typography,
@@ -49,7 +49,7 @@ import {
 } from '../../api/tradingApi';
 import { useTradingSessions } from '../../hooks';
 import type { StrategyPerformanceData } from '../../api';
-import { getStrategyPerformance } from '../../api';
+import { getStrategyPerformanceByStrategyId } from '../../api';
 
 interface BotDetailsProps {
   bot: UnifiedStrategy;
@@ -64,7 +64,7 @@ const BotDetails: React.FC<BotDetailsProps> = ({ bot, onClose, userId }) => {
   const [loading, setLoading] = useState(true);
   const { sessions } = useTradingSessions(userId, 100);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       try {
@@ -77,7 +77,7 @@ const BotDetails: React.FC<BotDetailsProps> = ({ bot, onClose, userId }) => {
 
         // Load test sessions (backtest results) from strategy_performance table
         try {
-          const response = await getStrategyPerformance(bot.name, 100);
+          const response = await getStrategyPerformanceByStrategyId(bot.id, 100);
           if (response.data.success && response.data.data && response.data.data.performances) {
             // Filter for backtest results only
             const backtests = response.data.data.performances.filter(

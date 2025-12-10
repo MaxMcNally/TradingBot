@@ -61,22 +61,48 @@ Authorization: Bearer <jwt_token>
 - `POST /api/trading/sessions/:sessionId/stop` - Stop an active session
 - `POST /api/trading/sessions/:sessionId/pause` - Pause a session
 - `POST /api/trading/sessions/:sessionId/resume` - Resume a paused session
-- `GET /api/trading/sessions/active` - Get active session for user
-- `GET /api/trading/sessions/:sessionId` - Get session details
+- `GET /api/trading/users/:userId/active-session` - Get active session for user
+- `GET /api/trading/users/:userId/sessions` - Get all sessions for user
+- `GET /api/trading/sessions/:sessionId/trades` - Get trades for a session
+- `GET /api/trading/users/:userId/stats` - Get user trading statistics
+- `GET /api/trading/users/:userId/portfolio` - Get user portfolio summary
 
 #### Backtesting
 - `POST /api/backtest/run` - Run a backtest
-- `GET /api/backtest/results/:id` - Get backtest results
+- `GET /api/backtest/health` - Get backtest service health
+- `GET /api/backtest/strategies` - List available strategies
+
+#### Performance Metrics
+All performance routes are accessible to authenticated users (no admin required):
+- `GET /api/performance/overview` - Get performance overview
+- `GET /api/performance/analytics` - Get performance analytics
+- `GET /api/performance/strategy/:strategyName` - Get performance by strategy name
+- `GET /api/performance/strategy-id/:strategyId` - Get performance by strategy ID
+- `GET /api/performance/:id` - Get specific performance record
+- `DELETE /api/performance/:id` - Delete performance record
 
 #### Strategies
-- `GET /api/strategies` - List available strategies
-- `GET /api/strategies/:id` - Get strategy details
-- `POST /api/strategies` - Create custom strategy
-- `PUT /api/strategies/:id` - Update strategy
+- `GET /api/strategies/users/:userId/strategies` - Get user strategies
+- `GET /api/strategies/:strategyId` - Get strategy details
+- `POST /api/strategies/users/:userId/strategies` - Create user strategy
+- `PUT /api/strategies/:strategyId` - Update strategy
+- `DELETE /api/strategies/:strategyId` - Delete strategy
+- `GET /api/strategies/public` - Get public strategies
+- `GET /api/strategies/public/:strategyType` - Get public strategies by type
+
+#### Custom Strategies
+- `POST /api/custom-strategies` - Create custom strategy (Premium/Enterprise)
+- `GET /api/custom-strategies` - Get user's custom strategies
+- `GET /api/custom-strategies/:strategyId` - Get custom strategy by ID
+- `PUT /api/custom-strategies/:strategyId` - Update custom strategy
+- `DELETE /api/custom-strategies/:strategyId` - Delete custom strategy
+- `POST /api/custom-strategies/validate` - Validate custom strategy
+- `POST /api/custom-strategies/test` - Test custom strategy
 
 #### Session Settings
 - `GET /api/trading/sessions/:sessionId/settings` - Get session settings
-- `PUT /api/trading/sessions/:sessionId/settings` - Update session settings
+- `POST /api/trading/sessions/:sessionId/settings` - Create session settings
+- `PATCH /api/trading/sessions/:sessionId/settings` - Update session settings
 
 ---
 

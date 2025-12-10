@@ -151,6 +151,7 @@ export const runBacktest = async (req: Request, res: Response) => {
 
     // If using custom strategy, validate and fetch it
     let customStrategyData = null;
+    let customStrategyRecord = null;
     if (strategy === 'custom') {
       const { customStrategy } = req.body;
       
@@ -172,7 +173,7 @@ export const runBacktest = async (req: Request, res: Response) => {
 
       // Fetch custom strategy from database
       try {
-        const customStrategyRecord = await CustomStrategy.findById(customStrategy.id);
+        customStrategyRecord = await CustomStrategy.findById(customStrategy.id);
         if (!customStrategyRecord) {
           return res.status(404).json({
             success: false,
@@ -376,6 +377,23 @@ export const runBacktest = async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id || 1; // Default to admin user if no auth
       
+      // Determine strategy name and type
+      let strategyName: string;
+      let strategyType: string;
+      let strategyId: number | undefined;
+      
+      if (strategy === 'custom' && customStrategyRecord) {
+        // For custom strategies, use the actual strategy name
+        strategyName = customStrategyRecord.name;
+        strategyType = 'custom';
+        strategyId = customStrategyRecord.id!;
+      } else {
+        // For predefined strategies, use the strategy type as the name
+        strategyName = strategy;
+        strategyType = strategy;
+        strategyId = undefined; // Predefined strategies don't have an ID
+      }
+      
       // Convert results to performance metrics format
       const performanceMetrics = PerformanceMetricsService.convertBacktestResults(
         {
@@ -383,8 +401,8 @@ export const runBacktest = async (req: Request, res: Response) => {
           finalPortfolioValue,
           portfolioHistory: results.flatMap(r => r.portfolioHistory || [])
         },
-        strategy,
-        strategy,
+        strategyName,
+        strategyType,
         responseData.config,
         startDate,
         endDate,
@@ -392,9 +410,14 @@ export const runBacktest = async (req: Request, res: Response) => {
         initialCapital
       );
 
+      // Add strategy_id to the metrics if available
+      if (strategyId !== undefined) {
+        (performanceMetrics as any).strategy_id = strategyId;
+      }
+
       // Save to database
       await PerformanceMetricsService.savePerformanceMetrics(performanceMetrics, userId);
-      console.log(`Performance metrics saved for backtest: ${strategy}`);
+      console.log(`Performance metrics saved for backtest: ${strategyName} (${strategyType})`);
     } catch (error) {
       console.error('Error saving performance metrics:', error);
       // Don't fail the request if metrics saving fails

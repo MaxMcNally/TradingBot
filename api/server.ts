@@ -13,6 +13,7 @@ import tradingRouter from "./routes/trading";
 import {strategyRouter} from "./routes/strategies";
 import { customStrategyRouter } from "./routes/customStrategies";
 import adminRouter from "./routes/adminRoutes";
+import performanceRouter from "./routes/performanceRoutes";
 import billingRouter from "./routes/billing";
 import { enterpriseRouter } from "./routes/enterprise";
 import { developerRouter } from "./routes/developer";
@@ -122,6 +123,8 @@ try {
   app.use("/api/custom-strategies", customStrategyRouter);
   console.log("Mounting admin router...");
   app.use("/api/admin", adminRouter);
+  console.log("Mounting performance router...");
+  app.use("/api/performance", performanceRouter);
   console.log("Mounting test router...");
   app.use("/api/test", testRouter);
   console.log("Mounting billing router...");

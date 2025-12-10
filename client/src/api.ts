@@ -405,7 +405,7 @@ export interface StrategyPerformanceData {
   user_id: number;
   strategy_name: string;
   strategy_type: string;
-  execution_type: 'backtest' | 'live';
+  execution_type: 'BACKTEST' | 'LIVE_TRADING';
   session_id?: number;
   symbols: string | string[];
   start_date: string;
@@ -430,7 +430,10 @@ export interface StrategyPerformanceData {
 }
 
 export const getStrategyPerformance = (strategyName: string, limit: number = 100): Promise<AxiosResponse<{ success: boolean; data: { summary?: any; performances: StrategyPerformanceData[] } }>> =>
-  api.get(`/admin/performance/strategy/${strategyName}`, { params: { limit } });
+  api.get(`/performance/strategy/${strategyName}`, { params: { limit } });
+
+export const getStrategyPerformanceByStrategyId = (strategyId: number, limit: number = 100): Promise<AxiosResponse<{ success: boolean; data: { performances: StrategyPerformanceData[] } }>> =>
+  api.get(`/performance/strategy-id/${strategyId}`, { params: { limit } });
 
 export const getUserStrategyPerformance = (userId: number, limit: number = 100): Promise<AxiosResponse<{ success: boolean; data: StrategyPerformanceData[] }>> =>
   api.get(`/admin/performance/user/${userId}`, { params: { limit } });

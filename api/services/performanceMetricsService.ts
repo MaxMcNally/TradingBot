@@ -50,6 +50,7 @@ export class PerformanceMetricsService {
   static calculateMetrics(metrics: BacktestMetrics | LiveTradingMetrics): CreateStrategyPerformanceData {
     const { trades, portfolioHistory, initialCapital, finalCapital, startDate, endDate, symbols, strategyName, strategyType, config } = metrics;
     const sessionId = 'sessionId' in metrics ? metrics.sessionId : undefined;
+    const strategyId = 'strategy_id' in metrics ? (metrics as any).strategy_id : undefined;
 
     // Basic calculations
     const totalReturn = (finalCapital - initialCapital) / initialCapital;
@@ -110,6 +111,7 @@ export class PerformanceMetricsService {
       user_id: 1, // This should be passed from the calling context
       strategy_name: strategyName,
       strategy_type: strategyType,
+      strategy_id: strategyId,
       execution_type: sessionId ? 'LIVE_TRADING' : 'BACKTEST',
       session_id: sessionId,
       symbols,
