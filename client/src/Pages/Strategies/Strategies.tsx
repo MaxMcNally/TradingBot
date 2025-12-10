@@ -181,9 +181,9 @@ const Strategies: React.FC = () => {
 
   const getStrategyTypeLabel = (type: string) => {
     const typeMap: Record<string, string> = {
-      'moving_average_crossover': 'Moving Average Crossover',
-      'bollinger_bands': 'Bollinger Bands',
-      'mean_reversion': 'Mean Reversion',
+      'movingAverageCrossover': 'Moving Average Crossover',
+      'bollingerBands': 'Bollinger Bands',
+      'meanReversion': 'Mean Reversion',
       'momentum': 'Momentum',
       'breakout': 'Breakout'
     };
@@ -313,7 +313,7 @@ const Strategies: React.FC = () => {
         id: 'basic-moving-average',
         name: 'Moving Average Crossover',
         description: 'A simple strategy that buys when short-term moving average crosses above long-term moving average.',
-        strategy_type: 'moving_average_crossover',
+        strategy_type: 'movingAverageCrossover',
         is_active: true,
         is_public: false,
         created_at: new Date().toISOString(),
@@ -323,7 +323,7 @@ const Strategies: React.FC = () => {
         id: 'basic-bollinger',
         name: 'Bollinger Bands',
         description: 'Buy when price touches lower band, sell when it touches upper band.',
-        strategy_type: 'bollinger_bands',
+        strategy_type: 'bollingerBands',
         is_active: true,
         is_public: false,
         created_at: new Date().toISOString(),
@@ -333,7 +333,7 @@ const Strategies: React.FC = () => {
         id: 'basic-mean-reversion',
         name: 'Mean Reversion',
         description: 'Identifies when prices deviate from their mean and expects them to revert.',
-        strategy_type: 'mean_reversion',
+        strategy_type: 'meanReversion',
         is_active: true,
         is_public: false,
         created_at: new Date().toISOString(),

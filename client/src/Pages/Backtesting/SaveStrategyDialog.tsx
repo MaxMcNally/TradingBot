@@ -35,20 +35,21 @@ interface SaveStrategyDialogProps {
   isLoading: boolean;
 }
 
+// Strategy types are now consistent - camelCase everywhere
 const STRATEGY_TYPE_MAP: Record<string, string> = {
-  'meanReversion': 'mean_reversion',
-  'MeanReversion': 'mean_reversion',
-  'movingAverageCrossover': 'moving_average_crossover',
-  'MovingAverage': 'moving_average_crossover',
-  'MovingAverageCrossover': 'moving_average_crossover',
-  'bollingerBands': 'bollinger_bands',
-  'BollingerBands': 'bollinger_bands',
+  'meanReversion': 'meanReversion',
+  'MeanReversion': 'meanReversion',
+  'movingAverageCrossover': 'movingAverageCrossover',
+  'MovingAverage': 'movingAverageCrossover',
+  'MovingAverageCrossover': 'movingAverageCrossover',
+  'bollingerBands': 'bollingerBands',
+  'BollingerBands': 'bollingerBands',
   'momentum': 'momentum',
   'Momentum': 'momentum',
   'breakout': 'breakout',
   'Breakout': 'breakout',
-  'sentimentAnalysis': 'sentiment_analysis',
-  'SentimentAnalysis': 'sentiment_analysis'
+  'sentimentAnalysis': 'sentimentAnalysis',
+  'SentimentAnalysis': 'sentimentAnalysis'
 };
 
 const STRATEGY_TYPE_LABELS: Record<string, string> = {

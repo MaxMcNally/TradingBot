@@ -177,7 +177,13 @@ const TradingPage: React.FC = () => {
               <TradingSessionControls
                 userId={Number(user.id)}
                 selectedStocks={selectedStocks}
-                selectedStrategy={selectedStrategy?.name || ''}
+                selectedStrategy={
+                  selectedStrategy?.type === 'user' 
+                    ? selectedStrategy.strategy_type || '' 
+                    : selectedStrategy?.type === 'custom'
+                    ? 'custom'
+                    : ''
+                }
                 strategyParameters={strategyParameters}
                 onSessionStarted={handleSessionStarted}
                 onSessionStopped={handleSessionStopped}

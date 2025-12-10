@@ -48,19 +48,19 @@ import StrategyParameters from '../../components/shared/StrategyParameters';
 
 const STRATEGY_TYPES = [
   { 
-    value: 'moving_average_crossover', 
+    value: 'movingAverageCrossover', 
     label: 'Moving Average Crossover',
     icon: <CompareArrows />,
     description: 'A trend-following strategy that generates buy signals when a fast moving average crosses above a slow moving average, and sell signals when it crosses below. Best for trending markets.'
   },
   { 
-    value: 'bollinger_bands', 
+    value: 'bollingerBands', 
     label: 'Bollinger Bands',
     icon: <BarChart />,
     description: 'Uses volatility bands to identify overbought and oversold conditions. Buys when price touches the lower band and sells when it reaches the upper band. Effective in ranging markets.'
   },
   { 
-    value: 'mean_reversion', 
+    value: 'meanReversion', 
     label: 'Mean Reversion',
     icon: <ShowChart />,
     description: 'Assumes prices will revert to their mean. Buys when price deviates significantly below the mean and sells when it returns. Works well in sideways markets.'
@@ -78,7 +78,7 @@ const STRATEGY_TYPES = [
     description: 'Identifies when price breaks through support or resistance levels with increased volume. Captures strong directional moves. Best for markets with clear support/resistance levels.'
   },
   { 
-    value: 'sentiment_analysis', 
+    value: 'sentimentAnalysis', 
     label: 'Sentiment Analysis',
     icon: <Psychology />,
     description: 'Analyzes news articles and social media sentiment to predict price movements. Buys on positive sentiment and sells on negative sentiment. Useful for stocks with high news coverage.'
@@ -87,12 +87,12 @@ const STRATEGY_TYPES = [
 
 // Map strategy_type values to StrategyParameters config keys
 const STRATEGY_TYPE_TO_CONFIG_KEY: Record<string, string> = {
-  'moving_average_crossover': 'MovingAverageCrossover',
-  'bollinger_bands': 'BollingerBands',
-  'mean_reversion': 'MeanReversion',
+  'movingAverageCrossover': 'MovingAverageCrossover',
+  'bollingerBands': 'BollingerBands',
+  'meanReversion': 'MeanReversion',
   'momentum': 'Momentum',
   'breakout': 'Breakout',
-  'sentiment_analysis': 'SentimentAnalysis',
+  'sentimentAnalysis': 'SentimentAnalysis',
 };
 
 const steps = ['Pick Strategy', 'Customize', 'Details'];
@@ -111,7 +111,7 @@ const StrategyDialog: React.FC<StrategyDialogProps> = ({
     defaultValues: {
       name: '',
       description: '',
-      strategy_type: 'moving_average_crossover',
+      strategy_type: 'movingAverageCrossover',
       config: {},
       backtest_results: null,
       is_public: false,
@@ -127,7 +127,7 @@ const StrategyDialog: React.FC<StrategyDialogProps> = ({
         reset({
           name: strategy.name || '',
           description: strategy.description || '',
-          strategy_type: strategy.strategy_type || 'moving_average_crossover',
+          strategy_type: strategy.strategy_type || 'movingAverageCrossover',
           config: strategy.config || {},
           backtest_results: strategy.backtest_results || null,
           is_public: strategy.is_public || false,
@@ -138,7 +138,7 @@ const StrategyDialog: React.FC<StrategyDialogProps> = ({
         reset({
           name: '',
           description: '',
-          strategy_type: 'moving_average_crossover',
+          strategy_type: 'movingAverageCrossover',
           config: {},
           backtest_results: null,
           is_public: false,

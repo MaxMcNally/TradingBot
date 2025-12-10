@@ -79,9 +79,9 @@ const StrategyDetailsDialog: React.FC<StrategyDetailsDialogProps> = ({
 
   const getStrategyTypeLabel = (type: string) => {
     const typeMap: Record<string, string> = {
-      'moving_average_crossover': 'Moving Average Crossover',
-      'bollinger_bands': 'Bollinger Bands',
-      'mean_reversion': 'Mean Reversion',
+      'movingAverageCrossover': 'Moving Average Crossover',
+      'bollingerBands': 'Bollinger Bands',
+      'meanReversion': 'Mean Reversion',
       'momentum': 'Momentum',
       'breakout': 'Breakout'
     };
@@ -356,9 +356,9 @@ const StrategiesMarketplace: React.FC = () => {
 
   const getStrategyTypeLabel = (type: string) => {
     const typeMap: Record<string, string> = {
-      'moving_average_crossover': 'Moving Average Crossover',
-      'bollinger_bands': 'Bollinger Bands',
-      'mean_reversion': 'Mean Reversion',
+      'movingAverageCrossover': 'Moving Average Crossover',
+      'bollingerBands': 'Bollinger Bands',
+      'meanReversion': 'Mean Reversion',
       'momentum': 'Momentum',
       'breakout': 'Breakout'
     };
@@ -458,9 +458,9 @@ const StrategiesMarketplace: React.FC = () => {
                   label="Strategy Type"
                 >
                   <MenuItem value="all">All Types</MenuItem>
-                  <MenuItem value="moving_average_crossover">Moving Average Crossover</MenuItem>
-                  <MenuItem value="bollinger_bands">Bollinger Bands</MenuItem>
-                  <MenuItem value="mean_reversion">Mean Reversion</MenuItem>
+                  <MenuItem value="movingAverageCrossover">Moving Average Crossover</MenuItem>
+                  <MenuItem value="bollingerBands">Bollinger Bands</MenuItem>
+                  <MenuItem value="meanReversion">Mean Reversion</MenuItem>
                   <MenuItem value="momentum">Momentum</MenuItem>
                   <MenuItem value="breakout">Breakout</MenuItem>
                 </Select>

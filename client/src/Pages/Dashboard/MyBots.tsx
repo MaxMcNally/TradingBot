@@ -82,9 +82,7 @@ const BotDetails: React.FC<BotDetailsProps> = ({ bot, onClose, userId }) => {
             // Filter for backtest results only
             const backtests = response.data.data.performances.filter(
               (p: StrategyPerformanceData) => 
-                p.execution_type === 'backtest' || 
-                p.execution_type === 'BACKTEST' ||
-                (p as any).execution_type === 'backtest'
+                p.execution_type === 'BACKTEST'
             );
             setTestSessions(backtests);
           }

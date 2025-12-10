@@ -50,6 +50,7 @@ import {
 } from '../../api/tradingApi';
 import { getMarketStatus, formatMarketTime } from '../../utils/marketHours';
 import { TradingSessionSettingsForm } from '../../components/TradingSessionSettingsForm';
+import { normalizeStrategyName } from '../../utils/strategyNameNormalizer';
 
 interface TradingSessionControlsProps {
   userId: number;
@@ -150,7 +151,7 @@ const TradingSessionControls: React.FC<TradingSessionControlsProps> = ({
         mode,
         initialCash,
         symbols: selectedStocks,
-        strategy: selectedStrategy,
+        strategy: normalizeStrategyName(selectedStrategy),
         strategyParameters,
         scheduledEndTime: enableScheduledEnd && scheduledEndTime ? scheduledEndTime : undefined,
         settings: Object.keys(sessionSettings).length > 0 ? sessionSettings : undefined,

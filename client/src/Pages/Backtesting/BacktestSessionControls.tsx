@@ -32,6 +32,7 @@ import { UnifiedStrategy } from '../../components/shared';
 import { BacktestResponse } from './Backtesting.types';
 import { TradingSessionSettingsForm } from '../../components/TradingSessionSettingsForm';
 import { TradingSessionSettings } from '../../api/tradingApi';
+import { normalizeStrategyName } from '../../utils/strategyNameNormalizer';
 
 interface BacktestSessionControlsProps {
   selectedStocks: string[];
@@ -91,7 +92,8 @@ const BacktestSessionControls: React.FC<BacktestSessionControlsProps> = ({
       let customStrategyData: { id: number; buy_conditions: any; sell_conditions: any } | undefined;
       
       if (selectedBot.type === 'user' && selectedBot.strategy_type) {
-        strategyType = selectedBot.strategy_type;
+        // Normalize strategy name to camelCase for API consistency
+        strategyType = normalizeStrategyName(selectedBot.strategy_type);
       } else if (selectedBot.type === 'custom') {
         strategyType = 'custom';
         // Include custom strategy data
